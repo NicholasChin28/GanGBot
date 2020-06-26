@@ -28,6 +28,12 @@ import logging
 
 import youtube_dl
 
+# Wrap text
+import lorem
+
+# Relative path
+from pathlib import Path
+
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
@@ -490,6 +496,15 @@ class Music(commands.Cog):
 
         Includes the currently playing song in the queue as well.
         """
+
+        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
+        # Use discord.embed
+        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
+        '''
+        for line in textwrap.wrap(lorem.paragraph(), 40):
+            embed = discord.Embed(title="Lorem ipsum", description=line)
+            await ctx.send(embed=embed)
+        '''
         # if not ctx.voice_state.is_playing:
         # if len(ctx.voice_state.songs) == 0:
         if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
@@ -780,7 +795,16 @@ class Music(commands.Cog):
         onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f)) and os.path.splitext(join(mypath, f))[1] == '.mp3']
         print(f"onlyfiles value: {onlyfiles}")
 
-
+    # New command to list down files in the 'playsounds' directory
+    @commands.command(name='listsoundsnew')
+    async def _listsoundsnew(self, ctx: commands.Context):
+        """ Get list of playsounds. Use pathlib """
+        # cwd = Path('bot2.py').resolve()
+        # playsounds = Path(f'{cwd}/playsounds')
+        playsounds = Path('/playsounds')
+        sound_files = [x for x in playsounds.glob('*.mp3') if x.is_file()]
+        print(f'Value of sound_files: {sound_files}')
+        
     @_join.before_invoke
     @_play.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
