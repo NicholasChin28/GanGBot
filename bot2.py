@@ -490,12 +490,15 @@ class Music(commands.Cog):
         
     # Customized version of the queue command
     # Shows the currently playing song as well
+    # Version 1.1
     @commands.command(name='queuenew')
     async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
         """Displays all the songs in the queue. 
 
         Includes the currently playing song in the queue as well.
         """
+        # 17 July 2020:
+        # - Current function may only list 10 items per page
 
         # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
         # Use discord.embed
@@ -789,7 +792,7 @@ class Music(commands.Cog):
     # TODO: Save the files in a dictionary with an alias for easier access
     @commands.command(name='listsounds')
     async def _listsounds(self, ctx: commands.Context):
-        """ Get list of playsounds """
+        """ Get list of playsounds. Version 1.0 """
         # Get all .mp3 files in the 'playsounds' directory
         mypath = './playsounds'
         onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f)) and os.path.splitext(join(mypath, f))[1] == '.mp3']
@@ -798,12 +801,13 @@ class Music(commands.Cog):
     # New command to list down files in the 'playsounds' directory
     @commands.command(name='listsoundsnew')
     async def _listsoundsnew(self, ctx: commands.Context):
-        """ Get list of playsounds. Use pathlib """
-        # cwd = Path('bot2.py').resolve()
-        # playsounds = Path(f'{cwd}/playsounds')
-        playsounds = Path('/playsounds')
-        sound_files = [x for x in playsounds.glob('*.mp3') if x.is_file()]
-        print(f'Value of sound_files: {sound_files}')
+        """ Get list of playsounds. Version 1.1 """
+        # Get playsounds in the playsounds folder
+        playsound_path = Path('./playsounds')
+        playsounds = [x.name for x in playsound_path.iterdir() if x.glob('*.mp3')]
+
+        # Create discord embed
+        
         
     @_join.before_invoke
     @_play.before_invoke
