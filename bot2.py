@@ -375,10 +375,6 @@ class VoiceState:
 
         self.next.set()
 
-    # Added function to set the volume immediately 
-    def set_volume(self):
-        self.current.source.volume = self._volume
-
     def skip(self):
         self.skip_votes.clear()
         print(f'Skip command cog is called')
@@ -386,7 +382,6 @@ class VoiceState:
         if self.is_playing:
             self.voice.stop()
             # Remove skipped song from the queuelist
-
 
     async def stop(self):
         self.songs.clear()
@@ -465,19 +460,6 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
 
-    @commands.command(name='volume')
-    async def _volume(self, ctx: commands.Context, *, volume: int):
-        """Sets the volume of the player."""
-
-        if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
-
-        if 0 >= volume >= 100:
-            return await ctx.send('Volume must be between 0 and 100')
-        # Edited here for live updating of volume
-        ctx.voice_state.volume = volume / 100
-        await ctx.send('Volume of the player set to {}%'.format(volume))
-
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
@@ -542,20 +524,19 @@ class Music(commands.Cog):
 
     # Customized version of the volume command
     # Updates the volume of the music in realtime. Uses the set_volume custom function created
-    @commands.command(name='volumenew')
-    async def _volumenew(self, ctx: commands.Context, *, volume: int):
+    @commands.command(name='volume')
+    async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
 
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
 
-        if 0 >= volume >= 100:
+        if volume not in range(0, 101):
             return await ctx.send('Volume must be between 0 and 100')
-
-        ctx.voice_state.volume = volume / 100
+        
+        ctx.voice_state.current.source.volume = volume / 100
         await ctx.send('Volume of the player set to {}%'.format(volume))
-        ctx.voice_state.set_volume()
-
+        
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
