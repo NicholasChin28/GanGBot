@@ -34,6 +34,9 @@ import lorem
 # Relative path
 from pathlib import Path
 
+# Import Spotify source custom class
+import spotify_source
+
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
@@ -646,34 +649,14 @@ class Music(commands.Cog):
             emoji = get(ctx.guild.emojis, name='Pepehands')
             await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
         '''
-            
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
-        """Vote to skip a song. The requester can automatically skip.
-        3 skip votes are needed for the song to be skipped.
-        """
-        # TODO: Update the currently playing song after skipping a song
-
-        print(f'Value of is_playing in skip command: {ctx.voice_state.is_playing}')
-
+        """ Vote to skip song. """
         if not ctx.voice_state.is_playing:
             return await ctx.send('Not playing any music right now...')
 
-        voter = ctx.message.author
-        if voter == ctx.voice_state.current.requester:
-            await ctx.message.add_reaction('⏭')
-            ctx.voice_state.skip()
-        elif voter.id not in ctx.voice_state.skip_votes:
-            ctx.voice_state.skip_votes.add(voter.id)
-            total_votes = len(ctx.voice_state.skip_votes)
-
-            if total_votes >= 3:
-                await ctx.message.add_reaction('⏭')
-                ctx.voice_state.skip()
-            else:
-                await ctx.send('Skip vote added, currently at **{}/3**'.format(total_votes))
-        else:
-            await ctx.send('You have already voted to skip this song.')
+        await ctx.message.add_reaction('⏭')
+        ctx.voice_state.skip()
 
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -807,6 +790,15 @@ class Music(commands.Cog):
         playsounds = [x.name for x in playsound_path.iterdir() if x.glob('*.mp3')]
 
         # Create discord embed
+        # TODO
+
+    # Command to play songs from spotify
+    @commands.command(name='playspotify')
+    async def _playspotify(self, ctx: commands.Context):
+        """ Plays songs from spotify. """
+        temp = spotify_source.SpotifySource()
+
+
         
         
     @_join.before_invoke
