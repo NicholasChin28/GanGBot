@@ -476,8 +476,8 @@ class Music(commands.Cog):
     # Customized version of the queue command
     # Shows the currently playing song as well
     # Version 1.1
-    @commands.command(name='queuenew')
-    async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
+    @commands.command(name='queue')
+    async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Displays all the songs in the queue. 
 
         Includes the currently playing song in the queue as well.
@@ -522,14 +522,20 @@ class Music(commands.Cog):
     async def _voicestate(self, ctx: commands.Context):
         print(f"Current voice state: {ctx.voice_state.current}")
 
-    # Customized version of the volume command
-    # Updates the volume of the music in realtime. Uses the set_volume custom function created
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
-
+        
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
+
+        # Check if volume value entered is a valid int
+        # TODO: Return message if user did not enter a valid data type.
+        '''
+        if not isinstance(volume, int):
+            print(type("Volume type: ", volume))
+            return await ctx.send('Invalid value. Volume must be between 0 and 100')
+        '''
 
         if volume not in range(0, 101):
             return await ctx.send('Volume must be between 0 and 100')
@@ -541,28 +547,10 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
-
-        '''
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
-            ctx.voice_state.voice.pause()
-            await ctx.message.add_reaction('⏯')
-        '''
-
-        
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             ctx.voice_state.voice.pause()
             await ctx.message.add_reaction('⏯')            
         
-
-        # TODO: Make pause function work
-        '''
-        if ctx.voice_state.is_playing:
-            ctx.voice_state.voice.pause()
-            await ctx.message.add_reaction('⏯')            
-        '''
-        
-
-
     @commands.command(name='resume')
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
@@ -587,11 +575,8 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
-
         ctx.voice_state.songs.clear()
         
-
-        # TODO: Clear the queue when stop command is called
         if ctx.voice_state.is_playing:
             ctx.voice_state.voice.stop()
             # Sets the current song to be None
@@ -603,33 +588,6 @@ class Music(commands.Cog):
         else:
             await ctx.send(f'This message should never happen. Message called from stop.')
         
-        '''
-        if not ctx.voice_state.is_playing:
-            ctx.voice_state.voice.stop()
-            await ctx.message.add_reaction('⏹')
-        else:
-            emoji = get(ctx.guild.emojis, name='Pepehands')
-            await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
-        '''
-
-        '''
-        if not ctx.voice_state.is_playing:
-            emoji = get(ctx.guild.emojis, name='Pepehands')
-            await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
-        else:
-            ctx.voice_state.voice_stop()
-            await ctx.message.add_reaction('⏹')
-            # emoji = ctx.guild.emojis
-        '''
-        
-        '''
-        if ctx.voice_state.voice.is_playing:
-            ctx.voice_state.voice.voice_stop()
-            await ctx.message.add_reaction('⏹')
-        else:
-            emoji = get(ctx.guild.emojis, name='Pepehands')
-            await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
-        '''
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         """ Vote to skip song. """
@@ -638,34 +596,6 @@ class Music(commands.Cog):
 
         await ctx.message.add_reaction('⏭')
         ctx.voice_state.skip()
-
-    @commands.command(name='queue')
-    async def _queue(self, ctx: commands.Context, *, page: int = 1):
-        """Shows the player's queue
-
-        You can optionally specify the page to show. Each page contains 10 elements.
-        """
-        # Original queue function
-        if len(ctx.voice_state.songs) == 0:
-            return await ctx.send('Empty queue')
-        
-        items_per_page = 10
-        pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
-
-        start = (page - 1) * items_per_page
-        end = start + items_per_page
-
-        queue = ''
-        for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
-            queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
-
-        embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs), queue))
-                .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-        await ctx.send(embed=embed)
-        
-        # Try using if with await
-        # await ctx.send(embed=embed) if embed is not None else await ctx.send(f'Empty embed in _queue function')
-        # await ctx.send(embed=embed)
 
     @commands.command(name='shuffle')
     async def _shuffle(self, ctx: commands.Context):
