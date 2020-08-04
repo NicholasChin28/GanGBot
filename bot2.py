@@ -37,6 +37,9 @@ from pathlib import Path
 # Import Spotify source custom class
 import spotify_source
 
+# For getting mp3 metadata
+import mutagen
+
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
@@ -525,23 +528,25 @@ class Music(commands.Cog):
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
-        
-        if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
+        try:
+            if not ctx.voice_state.is_playing:
+                return await ctx.send('Nothing being played at the moment.')
 
-        # Check if volume value entered is a valid int
-        # TODO: Return message if user did not enter a valid data type.
-        '''
-        if not isinstance(volume, int):
-            print(type("Volume type: ", volume))
-            return await ctx.send('Invalid value. Volume must be between 0 and 100')
-        '''
+            # Check if volume value entered is a valid int
+            # TODO: Return message if user did not enter a valid data type.
+            
+            if not isinstance(volume, int):
+                print(type("Volume type: ", volume))
+                return await ctx.send('Invalid value. Volume must be between 0 and 100')
+            
 
-        if volume not in range(0, 101):
-            return await ctx.send('Volume must be between 0 and 100')
-        
-        ctx.voice_state.current.source.volume = volume / 100
-        await ctx.send('Volume of the player set to {}%'.format(volume))
+            if volume not in range(0, 101):
+                return await ctx.send('Volume must be between 0 and 100')
+            
+            ctx.voice_state.current.source.volume = volume / 100
+            await ctx.send('Volume of the player set to {}%'.format(volume))
+        except ValueError as e:
+            return await ctx.send("Value error")
         
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
@@ -658,6 +663,28 @@ class Music(commands.Cog):
                 print(f"Size of queue: {ctx.voice_state.songs.qsize()}")
                 await ctx.send('Enqueued {}'.format(str(source)))
 
+    @commands.command(name='choose')
+    async def _choose(self, ctx: commands.Context, *argv):
+        """ Chooses a random item from options. """
+        if len(argv) < 2:
+            return await ctx.send("Two or more choices should be given")
+
+        items = [str(i) for i in argv]
+        return await ctx.send("Maldbot chose: ", random.choice(items))
+
+    # TODO: Add multiple choices picker
+    @commands.command(name='choosemany')
+    async def _choosemany(self, ctx: commands.Context, *argv, choices: int):
+        """ Chooses {choices} number of items from options. """
+        if len(argv) < 2:
+            return await ctx.send("Two or more choices should be given")
+
+        if (choices >= len(argv)):
+            return await ctx.send("Choices should be more than options given")
+
+        
+
+
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='playsound')
     async def _playsound(self, ctx: commands.Context, *, search: str):
@@ -679,11 +706,6 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(sound)
                 await ctx.send(f'Enqueued a playsound')
 
-    # Command to list down files in the 'playsounds' directory
-    # May want to use an alternative method to get a list of .mp3 playsounds
-    # https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
-    # TODO: Save the list of playsounds to be used by the .playsound command
-    # TODO: Save the files in a dictionary with an alias for easier access
     @commands.command(name='listsounds')
     async def _listsounds(self, ctx: commands.Context):
         """ Get list of playsounds. Version 1.0 """
@@ -696,21 +718,45 @@ class Music(commands.Cog):
     @commands.command(name='listsoundsnew')
     async def _listsoundsnew(self, ctx: commands.Context):
         """ Get list of playsounds. Version 1.1 """
-        # Get playsounds in the playsounds folder
-        playsound_path = Path('./playsounds')
-        playsounds = [x.name for x in playsound_path.iterdir() if x.glob('*.mp3')]
+        p = Path('playsounds')
+        sounds = [x.name for x in p.glob('*.mp3')]
 
-        # Create discord embed
-        # TODO
+        # If no playsounds
+        if len(sounds) == 0:
+            return await ctx.send("No playsounds found")
+        else:
+            word_wrap = 2048
+            pages = math.ceil(sum((len(x) for x in sounds)) / word_wrap)
+
+            
+
+            sounds = ''
+            # sounds += f""
+            # Add 
+            # cur_wrap = 0
+            
+            # Create string 
+            '''
+            for x in sounds:
+                if cur_wrap + len(x) >= wrap_at:
+                    embed = discord.Embed(title="Playsounds", description="List")
+            '''
+            # for s in sounds:
+                
+            '''
+            for line in textwrap.wrap(lorem.paragraph(), 40):
+                embed = discord.Embed(title="Lorem ipsum", description=line)
+                await ctx.send(embed=embed)
+            '''
+
+            # Create discord embed
+            # TODO
 
     # Command to play songs from spotify
     @commands.command(name='playspotify')
     async def _playspotify(self, ctx: commands.Context):
         """ Plays songs from spotify. """
         temp = spotify_source.SpotifySource()
-
-
-        
         
     @_join.before_invoke
     @_play.before_invoke
