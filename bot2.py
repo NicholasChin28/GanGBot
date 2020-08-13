@@ -1,4 +1,4 @@
-# TODO: After playing the last song in the queue, the queue does not remove the last item.
+# TODO: In the future, add cogs to organize the functions more neatly
 import os
 import random
 from dotenv import load_dotenv
@@ -258,10 +258,8 @@ class Sound:
                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
                 .set_thumbnail(url=self.source.thumbnail))
         '''
-        # print('Before creating embed')
+        
         embed = discord.Embed(title="Playing a local sound file")
-        # print('After creating embed')
-
         return embed
 
 class SongQueue(asyncio.Queue):
@@ -670,21 +668,52 @@ class Music(commands.Cog):
             return await ctx.send("Two or more choices should be given")
 
         items = [str(i) for i in argv]
-        return await ctx.send("Maldbot chose: ", random.choice(items))
+        return await ctx.send("Maldbot chose: " + random.choice(items))
 
     # TODO: Add multiple choices picker
     @commands.command(name='choosemany')
     async def _choosemany(self, ctx: commands.Context, *argv, choices: int):
         """ Chooses {choices} number of items from options. """
+        '''
         if len(argv) < 2:
             return await ctx.send("Two or more choices should be given")
 
         if (choices >= len(argv)):
             return await ctx.send("Choices should be more than options given")
+        '''
+        
+        # Prepares a Discord embed 
+        embed = (discord.Embed(title='Choices'),
+                                    description='List of choices...'))
+                        .add_field()
+
+    # TODO: Create poll function
+    # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
+    async def _poll(self, ctx: commands.Context, question: str, *options: str):
+        """ Creates a poll with choices. """
+        author = ctx.author
+        
+        if len(options) <= 1:
+            return await ctx.send("Error! A poll must have more than one option.")
+        
+        if len(options) >= 2:
+            reactions = ['👍', '👎']
+
+        description = []
+        for x, option in enumerate(options):
+            description += '\n {} {}'.format(reactions[x], option)
+
+        embed = discord.Embed(title = question, color = 3553599, description = ''.join(description))
+
+        react_message = await ctx.send(embed)
+
+        for reaction in reactions[:len(options)]:
+            await ctx.message.add_reaction(react_message, reaction)
+
+        embed.set_footer(text='Poll ID: {}'.format(react_message.id))
 
         
-
-
+        
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='playsound')
     async def _playsound(self, ctx: commands.Context, *, search: str):
