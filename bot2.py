@@ -519,6 +519,8 @@ class Music(commands.Cog):
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
             await ctx.send(embed=embed)
 
+    # TODO: Decide whether to use voicestate command.
+    # If yes, make it more user friendly and output more useful information.
     @commands.command(name='voicestate')
     async def _voicestate(self, ctx: commands.Context):
         print(f"Current voice state: {ctx.voice_state.current}")
@@ -529,7 +531,7 @@ class Music(commands.Cog):
         try:
             if not ctx.voice_state.is_playing:
                 return await ctx.send('Nothing being played at the moment.')
-
+            
             # Check if volume value entered is a valid int
             # TODO: Return message if user did not enter a valid data type.
             
@@ -638,9 +640,6 @@ class Music(commands.Cog):
     async def _play(self, ctx: commands.Context, *, search: str):
         """Plays a song.
 
-        If there are songs in the queue, this will be queued until the
-        other songs finished playing.
-
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found found at: https://rg3.github.io/youtube-dl/supportedsites.html
         """
@@ -683,9 +682,11 @@ class Music(commands.Cog):
         '''
         
         # Prepares a Discord embed 
+        '''
         embed = (discord.Embed(title='Choices'),
                                     description='List of choices...'))
                         .add_field()
+        '''
 
     # TODO: Create poll function
     # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
@@ -717,7 +718,7 @@ class Music(commands.Cog):
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='playsound')
     async def _playsound(self, ctx: commands.Context, *, search: str):
-        """ Plays a local file playsound. """
+        """ Plays sound. """
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
 
@@ -735,51 +736,31 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(sound)
                 await ctx.send(f'Enqueued a playsound')
 
+    # List .mp3 files in the playsounds directory
+    # TODO: Display it in a table format
     @commands.command(name='listsounds')
-    async def _listsounds(self, ctx: commands.Context):
-        """ Get list of playsounds. Version 1.0 """
-        # Get all .mp3 files in the 'playsounds' directory
-        mypath = './playsounds'
-        onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f)) and os.path.splitext(join(mypath, f))[1] == '.mp3']
-        print(f"onlyfiles value: {onlyfiles}")
-
-    # New command to list down files in the 'playsounds' directory
-    @commands.command(name='listsoundsnew')
-    async def _listsoundsnew(self, ctx: commands.Context):
-        """ Get list of playsounds. Version 1.1 """
+    async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
+        """ Get list of playsounds """
         p = Path('playsounds')
-        sounds = [x.name for x in p.glob('*.mp3')]
+        file_sounds = [x.name for x in p.glob('*.mp3')]
 
         # If no playsounds
-        if len(sounds) == 0:
+        if len(file_sounds) == 0:
             return await ctx.send("No playsounds found")
         else:
             word_wrap = 2048
-            pages = math.ceil(sum((len(x) for x in sounds)) / word_wrap)
+            pages = math.ceil(sum((len(x) for x in file_sounds)) / word_wrap)
 
-            
+            playsounds = ''
+            for i, sounds in enumerate(file_sounds[0:]):
+                playsounds += '`{0}.` `{1}`\n'.format(i + 1, sounds)
 
-            sounds = ''
-            # sounds += f""
-            # Add 
-            # cur_wrap = 0
-            
-            # Create string 
-            '''
-            for x in sounds:
-                if cur_wrap + len(x) >= wrap_at:
-                    embed = discord.Embed(title="Playsounds", description="List")
-            '''
-            # for s in sounds:
-                
-            '''
-            for line in textwrap.wrap(lorem.paragraph(), 40):
-                embed = discord.Embed(title="Lorem ipsum", description=line)
-                await ctx.send(embed=embed)
-            '''
+            print('Value of playsounds variable: ', playsounds)
 
-            # Create discord embed
-            # TODO
+            # Creating discord embed
+            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), playsounds))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            await ctx.send(embed=embed)
 
     # Command to play songs from spotify
     @commands.command(name='playspotify')
