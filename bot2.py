@@ -473,16 +473,38 @@ class Music(commands.Cog):
             await ctx.send(embed=ctx.voice_state.current.create_embed())
         
         # await ctx.send(embed=ctx.voice_state.current.create_embed())
-        
-    # Customized version of the queue command
-    # Shows the currently playing song as well
-    # Version 1.1
+    
+    # Version 1.2 of queue
+    # To solve the embed description length limit of 2048
+    @commands.command(name='queuenew')
+    async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
+            return await ctx.send('Empty queue')
+        else:
+            word_wrap = 2048
+            # pages = math.ceil((len(ctx.voice_state.songs) + 1) / word_wrap)
+
+            # print('Number of pages: ', pages)
+            print('ctx.voice_state.songs content: ', ctx.voice_state.songs)
+
+            # Holds a list of formatted embeds
+            queue_list = []
+            queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
+
+            for i, song in enumerate(ctx.voice_state.songs[0:]):
+                queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song))
+            
+
+            # print('Length of queue: ', len(enumerate(queue_list))) 
+            queue_list_length = sum([len(i) for i in queue_list])
+            print('Length of queue: ', queue_list_length)
+            pages = math.ceil(queue_list_length / word_wrap)
+            print('Num of pages: ', pages)
+
+
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
-        """Displays all the songs in the queue. 
-
-        Includes the currently playing song in the queue as well.
-        """
+        """ Displays songs in the queue. """
         # 17 July 2020:
         # - Current function may only list 10 items per page
 
@@ -496,8 +518,8 @@ class Music(commands.Cog):
         '''
         # if not ctx.voice_state.is_playing:
         # if len(ctx.voice_state.songs) == 0:
-        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
         # if len(ctx.voice_state.songs) == 0 and not ctx.voice_state.is_playing:
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
             items_per_page = 10
