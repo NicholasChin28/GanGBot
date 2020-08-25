@@ -1,4 +1,6 @@
 # TODO: In the future, add cogs to organize the functions more neatly
+
+# NOTE: Currently listsoundsnew has a while True loop. It will block the Discord heartbeat.
 import os
 import random
 from dotenv import load_dotenv
@@ -35,7 +37,7 @@ import lorem
 from pathlib import Path
 
 # Import Spotify source custom class
-import spotify_source
+# import spotify_source
 
 # For getting mp3 metadata
 import mutagen
@@ -492,6 +494,8 @@ class Music(commands.Cog):
             queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
 
             for i, song in enumerate(ctx.voice_state.songs[0:]):
+                print('Title length: ', len(song.source.title))
+                print('Url length: ', len(song.source.url))
                 queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song))
             
 
@@ -500,6 +504,7 @@ class Music(commands.Cog):
             print('Length of queue: ', queue_list_length)
             pages = math.ceil(queue_list_length / word_wrap)
             print('Num of pages: ', pages)
+
 
 
     @commands.command(name='queue')
@@ -757,6 +762,55 @@ class Music(commands.Cog):
 
                 await ctx.voice_state.songs.put(sound)
                 await ctx.send(f'Enqueued a playsound')
+    
+    @commands.command(name='listsoundsnew')
+    async def _listsoundsnew(self, ctx: commands.Context, *, page: int = 1):
+        """ Get list of playsounds """
+        p = Path('playsounds')
+        file_sounds = [x.name for x in p.glob('*.mp3')]
+
+        # If no playsounds
+        if len(file_sounds) == 0:
+            return await ctx.send("No playsounds found")
+        else:
+            word_wrap = 2048
+            pages = math.ceil(sum((len(x) for x in file_sounds)) / word_wrap)
+
+            playsounds = ''
+            for i, sounds in enumerate(file_sounds[0:]):
+                playsounds += '`{0}.` `{1}`\n'.format(i + 1, sounds)
+
+            print('Value of playsounds variable: ', playsounds)
+
+            # Creating discord embed
+            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), playsounds))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            message = await ctx.send(embed=embed)
+            await message.add_reaction('\u25c0')
+            await message.add_reaction('\u25b6')
+
+            def check(reaction, user):
+                return reaction.message.id == message.id and reaction.emoji == '\u25b6'
+
+            await bot.wait_for('on_message', check=check)
+            # await ctx.send('Left button clicked')
+
+            '''
+            embed2 = discord.Embed(description='Test')
+            await message.edit(embed=embed2)
+            '''
+
+            emoji = ''
+
+            '''
+            while True:
+                if emoji == '\u25c0':
+                    # print('Left button clicked')
+                    await ctx.send('Left button clicked')
+                if emoji == '\u25b6':
+                    # print('Right button clicked')
+                    await ctx.send('Right button clicked')
+            '''
 
     # List .mp3 files in the playsounds directory
     # TODO: Display it in a table format
@@ -789,6 +843,23 @@ class Music(commands.Cog):
     async def _playspotify(self, ctx: commands.Context):
         """ Plays songs from spotify. """
         temp = spotify_source.SpotifySource()
+
+    
+    '''
+    @bot.event
+    async def on_message(message):
+        # Reference code: https://stackoverflow.com/questions/63327347/listening-to-reaction-or-message-after-sending-embed-in-discord-py
+        async def on_message(message):
+            if message.content.startswith('$greet'):
+                channel = message.channel
+                await channel.send('Hello!')
+
+            def check(m):
+                return m.content == 'hello' and m.channel == channel
+
+            msg = await client.wait_for('message', check=check)
+            await channel.send('Hello {.author}!'.format(msg))
+    '''
         
     @_join.before_invoke
     @_play.before_invoke
@@ -802,6 +873,23 @@ class Music(commands.Cog):
 
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
+
+'''
+@bot.event
+async def on_connect():
+    # Set avatar of bot
+    with open('gravel.jpg', 'rb') as f:
+        image = f.read()
+    await bot.user.edit(avatar = image)
+'''
+
+@bot.event
+# TODO: 24 August 2020, doing here
+async def on_message(message, ctx: commands.Context):
+    if message.content.startswith('$greet'):
+        await ctx.send('Hello')
+        
+
 
 @bot.event
 async def on_ready():
