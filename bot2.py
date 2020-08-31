@@ -766,13 +766,74 @@ class Music(commands.Cog):
     @commands.command(name='listsoundsnew')
     async def _listsoundsnew(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds """
+        # 10 playsounds in each page
         p = Path('playsounds')
         file_sounds = [x.name for x in p.glob('*.mp3')]
+        print('Length of file_sounds variable: ', len(file_sounds))
 
         # If no playsounds
         if len(file_sounds) == 0:
             return await ctx.send("No playsounds found")
         else:
+            limit = 10      # Playsounds per page
+            embeds = []
+            playsounds = ''
+            print('Value of page: ', page)
+            
+            # Create an embeds from the file_sounds and store in a dictionary.
+            # Each item will contain 10 playsounds.
+            for i, sounds in enumerate(file_sounds[0:], start=1):
+                
+                if i % limit == 0:
+                    playsounds += '`{0}.` `{1}`\n'.format(i, sounds)
+                    embeds.append(playsounds)
+                    playsounds = ''
+                else:
+                    playsounds += '`{0}.` `{1}`\n'.format(i, sounds)
+                    if i == len(file_sounds):
+                        embeds.append(playsounds)
+                    # print('Length of sounds: ', len(sounds))
+                # print('Value of embed variable: ', embed)
+                
+
+            print('Value of embeds variable: ', embeds)
+            pages = len(embeds) # Total pages
+            print('Value of pages: ', pages)
+
+            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[0]))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            message = await ctx.send(embed=embed)
+
+            # Create reactions based on the number of pages
+            if page == pages:
+                pass    # Only 1 page. No reactions required
+            if page > 1:
+                await message.add_reaction('\u25c0')
+            if pages > page:
+                await message.add_reaction('\u25b6')
+
+            # Check function add
+            def check_add(reaction, user):
+                return reaction.message.id == message.id and (reaction.emoji == '\u25c0' or reaction.emoji == '\u25b6')
+
+            def check_remove(reaction, user):
+                return reaction.message.id == message.id and (reaction.emoji == '\u25c0' or reaction.emoji == '\u25b6')
+            # TODO: Continue here
+            try:
+                await bot.wait_for('reaction_add', timeout=60, check=check_add)
+                await bot.wait_for('reaction_remove', timeout=60, check=check_remove)
+            except asyncio.TimeoutError:
+                message.delete()
+            else:
+                print('wait_for event executed')
+                if reaction.emoji == '\u25c0':
+                    await ctx.send('Left arrow clicked')
+                elif reaction.emoji == '\u25b6':
+                    await ctx.send('Right arrow clicked')
+            # await bot.wait_for('reaction_remove', timeout=60, check=check_right)
+
+
+            '''
             word_wrap = 2048
             pages = math.ceil(sum((len(x) for x in file_sounds)) / word_wrap)
 
@@ -788,28 +849,20 @@ class Music(commands.Cog):
             message = await ctx.send(embed=embed)
             await message.add_reaction('\u25c0')
             await message.add_reaction('\u25b6')
+            await message.add_reaction('👍')
+
+            emoji = ''
 
             def check(reaction, user):
-                return reaction.message.id == message.id and reaction.emoji == '\u25b6'
+                return reaction.message.id == message.id and reaction.emoji == '\u25c0'
 
-            await bot.wait_for('on_message', check=check)
-            # await ctx.send('Left button clicked')
+            await bot.wait_for('reaction_add', timeout=60, check=check)
+            await ctx.send('Left arrow!')
+            '''
 
             '''
             embed2 = discord.Embed(description='Test')
             await message.edit(embed=embed2)
-            '''
-
-            emoji = ''
-
-            '''
-            while True:
-                if emoji == '\u25c0':
-                    # print('Left button clicked')
-                    await ctx.send('Left button clicked')
-                if emoji == '\u25b6':
-                    # print('Right button clicked')
-                    await ctx.send('Right button clicked')
             '''
 
     # List .mp3 files in the playsounds directory
@@ -883,11 +936,29 @@ async def on_connect():
     await bot.user.edit(avatar = image)
 '''
 
+'''
 @bot.event
+async def on_message(message):
+    if message.content.startswith('$thumb'):
+        channel = message.channel
+        await channel.send('Send me that 👍 reaction, mate')
+
+        def check(reaction, user):
+            return str(reaction.emoji) == '👍'
+
+        try:
+            reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await channel.send('👎')
+        else:
+            await channel.send('👍')
+'''
+
+
 # TODO: 24 August 2020, doing here
-async def on_message(message, ctx: commands.Context):
-    if message.content.startswith('$greet'):
-        await ctx.send('Hello')
+# async def on_message(message):
+    # if message.content.startswith('$greet'):
+        # await ctx.send('Hello')
         
 
 
