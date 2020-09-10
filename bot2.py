@@ -766,7 +766,6 @@ class Music(commands.Cog):
     @commands.command(name='listsoundsnew')
     async def _listsoundsnew(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds """
-        # 10 playsounds in each page
         p = Path('playsounds')
         file_sounds = [x.name for x in p.glob('*.mp3')]
         print('Length of file_sounds variable: ', len(file_sounds))
@@ -778,7 +777,6 @@ class Music(commands.Cog):
             limit = 10      # Playsounds per page
             embeds = []
             playsounds = ''
-            print('Value of page: ', page)
             
             # Create an embeds from the file_sounds and store in a dictionary.
             # Each item will contain 10 playsounds.
@@ -792,13 +790,8 @@ class Music(commands.Cog):
                     playsounds += '`{0}.` `{1}`\n'.format(i, sounds)
                     if i == len(file_sounds):
                         embeds.append(playsounds)
-                    # print('Length of sounds: ', len(sounds))
-                # print('Value of embed variable: ', embed)
                 
-
-            print('Value of embeds variable: ', embeds)
             pages = len(embeds) # Total pages
-            print('Value of pages: ', pages)
 
             embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
@@ -817,7 +810,6 @@ class Music(commands.Cog):
 
             # Recreates the embed
             async def refresh_embed():
-                print("Refresh_embed called")
                 await message.clear_reactions()
                 embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
@@ -825,69 +817,23 @@ class Music(commands.Cog):
                 await message.edit(embed = embed)
                 await add_reactions()
 
-            # New check function. Created on, 10.09.20 1127
+            # Check for reaction
             def check(reaction, user):
                 return user == ctx.message.author and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
-
-            # Check function add
-            def check_add(reaction, user):
-                return reaction.message.id == message.id and (reaction.emoji == '\u25c0' or reaction.emoji == '\u25b6')
-
-            def check_remove(reaction, user):
-                return reaction.message.id == message.id and (reaction.emoji == '\u25c0' or reaction.emoji == '\u25b6')
-            # TODO: Continue here
 
             while True:
                 try:
                     reaction, user = await bot.wait_for('reaction_add', timeout=5, check=check)
-                    # await bot.wait_for('reaction_remove', timeout=60, check=check_remove)
                 except asyncio.TimeoutError:
                     await message.delete()
                     break
                 else:
-                    print('wait_for event executed')
                     if reaction.emoji == '\u25c0':
-                        # await ctx.send('Left arrow clicked')
                         page -= 1
                         await refresh_embed()
                     elif reaction.emoji == '\u25b6':
-                        # await ctx.send('Right arrow clicked')
                         page += 1
                         await refresh_embed()
-            # await bot.wait_for('reaction_remove', timeout=60, check=check_right)
-
-
-            '''
-            word_wrap = 2048
-            pages = math.ceil(sum((len(x) for x in file_sounds)) / word_wrap)
-
-            playsounds = ''
-            for i, sounds in enumerate(file_sounds[0:]):
-                playsounds += '`{0}.` `{1}`\n'.format(i + 1, sounds)
-
-            print('Value of playsounds variable: ', playsounds)
-
-            # Creating discord embed
-            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), playsounds))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            message = await ctx.send(embed=embed)
-            await message.add_reaction('\u25c0')
-            await message.add_reaction('\u25b6')
-            await message.add_reaction('👍')
-
-            emoji = ''
-
-            def check(reaction, user):
-                return reaction.message.id == message.id and reaction.emoji == '\u25c0'
-
-            await bot.wait_for('reaction_add', timeout=60, check=check)
-            await ctx.send('Left arrow!')
-            '''
-
-            '''
-            embed2 = discord.Embed(description='Test')
-            await message.edit(embed=embed2)
-            '''
 
     # List .mp3 files in the playsounds directory
     # TODO: Display it in a table format
