@@ -1,4 +1,5 @@
 import youtube_dl
+from pathlib import Path
 
 class MyLogger(object):
     def debug(self, msg):
@@ -16,6 +17,8 @@ def my_hook(d):
 
 ydl_opts = {
     'format': 'bestaudio/best',
+    # 'outtmpl': 'C:/Users/nicho/anaconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
+    # 'outtmp1': Path('/themes/%(title)s.%(ext)s').mkdir(parents=True, exist_ok=True),
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
@@ -26,5 +29,5 @@ ydl_opts = {
 }
 
 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    ydl.download(['https://www.youtube.com/watch?v=hVq6eD6-U00'])
+    ydl.download(['http://www.youtube.com/watch?v=BaW_jenozKc'])
 

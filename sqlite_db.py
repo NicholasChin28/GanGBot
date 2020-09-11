@@ -45,15 +45,11 @@ def register_user(id: str, name: str, theme_url = None):
                 user_details = [id, name, theme_info.get('title', None), theme_info.get('id', None)]
                 c.execute("INSERT INTO themes values (?, ?, ?, ?)", user_details)
                 conn.commit()
-            else:
-                # TODO: Add else code. Can be optimized
-                pass
-        '''
-        theme_info =  
-        user_details = [id, name, theme]
-        c.execute("INSERT INTO theme values (?, ?, ?)", user_details)
-        conn.commit()
-        '''
+        else:
+            # TODO: Add else code. Can be optimized
+            user_details = [id, name, None, None]
+            c.execute("INSERT INTO themes values (?, ?, ?, ?)", user_details)
+            conn.commit()
     conn.close()
 
 # Changes the theme of the discord user
@@ -90,10 +86,12 @@ def change_theme(id: str, theme: str):
 # Gets all the users in the database
 def user_list():
     conn = create_connection()
+    print('Value of conn var: ', conn)
     c = conn.cursor()
+    print('Value of c var: ', c)
 
     for row in c.execute('SELECT * FROM themes ORDER BY user_id'):
-        print(row)
+        print('Value of row: ', row)
 
 # Creates a video_id column if it does not exist in the database.
 # Temp function
@@ -189,8 +187,7 @@ def youtube_mp3(url: str):
 
     ydl.YoutubeDL(ydl_opts).download([url])
     
-
-# register_user('15548', 'Yolo')
+register_user('15549', 'Test')
 # change_theme('15548', 'Violet')
 # change_theme('15546', 'http://www.youtube.com/watch?v=BaW_jenozKc')
 user_list()
