@@ -819,7 +819,7 @@ class Music(commands.Cog):
 
             # Check for reaction
             def check(reaction, user):
-                return user == ctx.message.author and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
+                return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
 
             while True:
                 try:
