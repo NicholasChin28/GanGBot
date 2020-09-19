@@ -1,6 +1,4 @@
 # TODO: In the future, add cogs to organize the functions more neatly
-
-# NOTE: Currently listsoundsnew has a while True loop. It will block the Discord heartbeat.
 import os
 import random
 from dotenv import load_dotenv
@@ -134,7 +132,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 raise YTDLError("Couldn't find anything that matches `{}`".format(search))
 
         webpage_url = process_info['webpage_url']
-        # await ctx.send(f'Value of webpage_url at line 110: {webpage_url}')
         partial = functools.partial(cls.ytdl.extract_info, webpage_url, download = False)
         processed_info = await loop.run_in_executor(None, partial)
 
@@ -546,11 +543,12 @@ class Music(commands.Cog):
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
             await ctx.send(embed=embed)
 
-    # TODO: Decide whether to use voicestate command.
-    # If yes, make it more user friendly and output more useful information.
+    # Not in use
+    '''
     @commands.command(name='voicestate')
     async def _voicestate(self, ctx: commands.Context):
         print(f"Current voice state: {ctx.voice_state.current}")
+    '''
 
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
@@ -835,54 +833,11 @@ class Music(commands.Cog):
                         page += 1
                         await refresh_embed()
 
-    # List .mp3 files in the playsounds directory
-    # TODO: Display it in a table format
-    @commands.command(name='listsounds')
-    async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
-        """ Get list of playsounds """
-        p = Path('playsounds')
-        file_sounds = [x.name for x in p.glob('*.mp3')]
-
-        # If no playsounds
-        if len(file_sounds) == 0:
-            return await ctx.send("No playsounds found")
-        else:
-            word_wrap = 2048
-            pages = math.ceil(sum((len(x) for x in file_sounds)) / word_wrap)
-
-            playsounds = ''
-            for i, sounds in enumerate(file_sounds[0:]):
-                playsounds += '`{0}.` `{1}`\n'.format(i + 1, sounds)
-
-            print('Value of playsounds variable: ', playsounds)
-
-            # Creating discord embed
-            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), playsounds))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            await ctx.send(embed=embed)
-
     # Command to play songs from spotify
     @commands.command(name='playspotify')
     async def _playspotify(self, ctx: commands.Context):
         """ Plays songs from spotify. """
         temp = spotify_source.SpotifySource()
-
-    
-    '''
-    @bot.event
-    async def on_message(message):
-        # Reference code: https://stackoverflow.com/questions/63327347/listening-to-reaction-or-message-after-sending-embed-in-discord-py
-        async def on_message(message):
-            if message.content.startswith('$greet'):
-                channel = message.channel
-                await channel.send('Hello!')
-
-            def check(m):
-                return m.content == 'hello' and m.channel == channel
-
-            msg = await client.wait_for('message', check=check)
-            await channel.send('Hello {.author}!'.format(msg))
-    '''
         
     @_join.before_invoke
     @_play.before_invoke
@@ -905,32 +860,6 @@ async def on_connect():
         image = f.read()
     await bot.user.edit(avatar = image)
 '''
-
-'''
-@bot.event
-async def on_message(message):
-    if message.content.startswith('$thumb'):
-        channel = message.channel
-        await channel.send('Send me that 👍 reaction, mate')
-
-        def check(reaction, user):
-            return str(reaction.emoji) == '👍'
-
-        try:
-            reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            await channel.send('👎')
-        else:
-            await channel.send('👍')
-'''
-
-
-# TODO: 24 August 2020, doing here
-# async def on_message(message):
-    # if message.content.startswith('$greet'):
-        # await ctx.send('Hello')
-        
-
 
 @bot.event
 async def on_ready():
