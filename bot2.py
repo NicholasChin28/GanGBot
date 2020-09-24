@@ -488,12 +488,12 @@ class Music(commands.Cog):
 
             # Holds a list of formatted embeds
             queue_list = []
-            queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
+            queue_list.append('`{0}.` {1.source.title}\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
 
             for i, song in enumerate(ctx.voice_state.songs[0:]):
                 print('Title length: ', len(song.source.title))
                 print('Url length: ', len(song.source.url))
-                queue_list.append('`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song))
+                queue_list.append('`{0}.` {1.source.title}\n'.format(i + 1, song))
             
 
             # print('Length of queue: ', len(enumerate(queue_list))) 
@@ -761,8 +761,8 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(sound)
                 await ctx.send(f'Enqueued a playsound')
     
-    @commands.command(name='listsoundsnew')
-    async def _listsoundsnew(self, ctx: commands.Context, *, page: int = 1):
+    @commands.command(name='listsounds')
+    async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds """
         p = Path('playsounds')
         file_sounds = [x.name for x in p.glob('*.mp3')]
