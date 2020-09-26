@@ -90,6 +90,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.channel = ctx.channel
         self.data = data
 
+        self.id = data.get('id')
         self.uploader = data.get('uploader')
         self.uploader_url = data.get('uploader_id')        # May not exist anymore. Changed from 'uploader_url' to 'uploader_id' Check youtube-dl docs.
         date = data.get('upload_date')
@@ -107,7 +108,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     def __str__(self):
         return '**{0.title}** by **{0.uploader}**'.format(self)
-        # return 'Test'
 
     @classmethod
     async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
@@ -147,7 +147,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     info = processed_info['entries'].pop(0)
                 except IndexError:
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
-
+        
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data = info)
 
     @staticmethod
@@ -488,12 +488,12 @@ class Music(commands.Cog):
 
             # Holds a list of formatted embeds
             queue_list = []
-            queue_list.append('`{0}.` {1.source.title}\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
+            queue_list.append('`{0}.` **{1.source.title}\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
 
             for i, song in enumerate(ctx.voice_state.songs[0:]):
                 print('Title length: ', len(song.source.title))
                 print('Url length: ', len(song.source.url))
-                queue_list.append('`{0}.` {1.source.title}\n'.format(i + 1, song))
+                queue_list.append('`{0}.` **{1.source.title}\n'.format(i + 1, song))
             
 
             # print('Length of queue: ', len(enumerate(queue_list))) 
@@ -501,6 +501,55 @@ class Music(commands.Cog):
             print('Length of queue: ', queue_list_length)
             pages = math.ceil(queue_list_length / word_wrap)
             print('Num of pages: ', pages)
+
+            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            await ctx.send(embed=embed)
+
+    # Version 1.3 of queue
+    # To solve the embed description length limit of 2048
+    @commands.command(name='queuenew2')
+    async def _queuenew2(self, ctx: commands.Context, *, page: int = 1):
+        """ Displays songs in the queue. """
+        # 17 July 2020:
+        # - Current function may only list 10 items per page
+
+        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
+        # Use discord.embed
+        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
+        '''
+        for line in textwrap.wrap(lorem.paragraph(), 40):
+            embed = discord.Embed(title="Lorem ipsum", description=line)
+            await ctx.send(embed=embed)
+        '''
+        # if not ctx.voice_state.is_playing:
+        # if len(ctx.voice_state.songs) == 0:
+        # if len(ctx.voice_state.songs) == 0 and not ctx.voice_state.is_playing:
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
+            return await ctx.send('Empty queue')
+        else:
+            items_per_page = 10
+            pages = math.ceil((len(ctx.voice_state.songs) + 1) / items_per_page)
+
+            start = (page - 1) * items_per_page
+            end = start + items_per_page
+
+            # Youtube link format
+            yt_link = 'https://www.youtube.com/watch?v='
+
+            queue = ''
+            # Add current song to queue
+            # queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current)
+            queue += f'1. {ctx.voice_state.current.source.title} {yt_link}{ctx.voice_state.current.source.id}\n'
+
+            for i, song in enumerate(ctx.voice_state.songs[start:end], start=1):
+                queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
+
+            # for line in textwrap.wrap()
+
+            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            await ctx.send(embed=embed)
 
 
 
@@ -532,10 +581,14 @@ class Music(commands.Cog):
 
             queue = ''
             # Add current song to queue
-            queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current)
+            queue += '`{0}.` [**{1.source.title}**]({1.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current)
+
+            # Prints the current playing source url
+            print("Youtube url: ", ctx.voice_state.current.source.url)
+            print("Uploader url: ", ctx.voice_state.current.source.title)
 
             for i, song in enumerate(ctx.voice_state.songs[start:end], start=1):
-                queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
+                queue += '`{0}.` [**{1.source.title}**]({1.url})\n'.format(i + 1, song)
 
             # for line in textwrap.wrap()
 
@@ -676,6 +729,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
                 print(f'Details of play source: {source}')
+                print(f'Source id: {source.id}')
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
             else:
@@ -837,7 +891,7 @@ class Music(commands.Cog):
     @commands.command(name='playspotify')
     async def _playspotify(self, ctx: commands.Context):
         """ Plays songs from spotify. """
-        temp = spotify_source.SpotifySource()
+        # temp = spotify_source.SpotifySource()
         
     @_join.before_invoke
     @_play.before_invoke
