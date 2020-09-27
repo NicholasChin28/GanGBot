@@ -475,40 +475,87 @@ class Music(commands.Cog):
     
     # Version 1.3 of queue
     # To solve the embed description length limit of 2048
+    # TODO: Continue queuenew function. Can refer to listsounds function
     @commands.command(name='queuenew')
     async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
         """ Cannot be used yet. """
         # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
         # Use discord.embed
         # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
+        # Generates embed description message
+        async def generate_embed_msg():
+            queue = ''
+            upper_limit = page * items_per_page
+            lower_limit = upper_limit - items_per_page
+            for i, song in enumerate(queue_list[lower_limit:upper_limit]):
+                queue += '`{0}.` **{1}\n'.format(i + 1, song)
+
         if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
-            word_wrap = 2048
-            # pages = math.ceil((len(ctx.voice_state.songs) + 1) / word_wrap)
-
-            # print('Number of pages: ', pages)
-            print('ctx.voice_state.songs content: ', ctx.voice_state.songs)
-
-            # Holds a list of formatted embeds
+            items_per_page = 5
             queue_list = []
+            queue = ''
+
             queue_list.append('`{0}.` **{1.source.title}\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
 
             for i, song in enumerate(ctx.voice_state.songs[0:]):
                 print('Title length: ', len(song.source.title))
                 print('Url length: ', len(song.source.url))
                 queue_list.append('`{0}.` **{1.source.title}\n'.format(i + 1, song))
+
+            pages = len(queue_list) / items_per_page + 1
+            
+            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, await generate_embed_msg()))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            message = await ctx.send(embed=embed)
+
+            # Create reactions based on the number of pages
+            async def add_page_reactions():
+                if page == pages:
+                    pass    # Only 1 page. No reactions required
+                if page > 1:
+                    await message.add_reaction('\u25c0')
+                if pages > page:
+                    await message.add_reaction('\u25b6')
+            
+            await add_page_reactions()
+
             
 
-            # print('Length of queue: ', len(enumerate(queue_list))) 
-            queue_list_length = sum([len(i) for i in queue_list])
-            print('Length of queue: ', queue_list_length)
-            pages = math.ceil(queue_list_length / word_wrap)
-            print('Num of pages: ', pages)
-
-            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
+            # Recreates the embed
+            async def refresh_embed():
+                await message.clear_reactions()
+                embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), await generate_embed_msg()))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            await ctx.send(embed=embed)
+
+                await message.edit(embed = embed)
+                await add_page_reactions()
+
+            # Check for reaction
+            def check(reaction, user):
+                return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
+
+            while True:
+                try:
+                    reaction, user = await bot.wait_for('reaction_add', timeout=5, check=check)
+                except asyncio.TimeoutError:
+                    await message.delete()
+                    break
+                else:
+                    if reaction.emoji == '\u25c0':
+                        page -= 1
+                        await refresh_embed()
+                    elif reaction.emoji == '\u25b6':
+                        page += 1
+                        await refresh_embed()
+
+        '''
+        queue_list_length = sum([len(i) for i in queue_list])
+        print('Length of queue: ', queue_list_length)
+        pages = math.ceil(queue_list_length / word_wrap)
+        print('Num of pages: ', pages)
+        '''
 
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -529,7 +576,7 @@ class Music(commands.Cog):
 
             queue = ''
             # Add current song to queue
-            queue += f'{start + 1}. [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id}) - NOW PLAYING\n'
+            queue += f'`{start + 1}.` [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id}) - NOW PLAYING\n'
             
             for i, song in enumerate(ctx.voice_state.songs[start:end - 1], start=start):
                 queue += f'`{i + 2}.` [{song.source.title}]({yt_link}{song.source.id})\n'
@@ -797,15 +844,15 @@ class Music(commands.Cog):
             message = await ctx.send(embed=embed)
 
             # Create reactions based on the number of pages
-            async def add_reactions():
+            async def add_page_reactions():
                 if page == pages:
                     pass    # Only 1 page. No reactions required
                 if page > 1:
                     await message.add_reaction('\u25c0')
                 if pages > page:
                     await message.add_reaction('\u25b6')
-
-            await add_reactions()
+            
+            await add_page_reactions()
 
             # Recreates the embed
             async def refresh_embed():
@@ -814,7 +861,7 @@ class Music(commands.Cog):
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
 
                 await message.edit(embed = embed)
-                await add_reactions()
+                await add_page_reactions()
 
             # Check for reaction
             def check(reaction, user):
@@ -849,7 +896,7 @@ class Music(commands.Cog):
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Bot is already in a voice channel.')
-
+    
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
 
