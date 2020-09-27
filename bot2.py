@@ -473,10 +473,14 @@ class Music(commands.Cog):
         
         # await ctx.send(embed=ctx.voice_state.current.create_embed())
     
-    # Version 1.2 of queue
+    # Version 1.3 of queue
     # To solve the embed description length limit of 2048
     @commands.command(name='queuenew')
     async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
+        """ Cannot be used yet. """
+        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
+        # Use discord.embed
+        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
         if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
@@ -506,46 +510,30 @@ class Music(commands.Cog):
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
             await ctx.send(embed=embed)
 
-    # Version 1.3 of queue
-    # To solve the embed description length limit of 2048
-    @commands.command(name='queuenew2')
-    async def _queuenew2(self, ctx: commands.Context, *, page: int = 1):
+    @commands.command(name='queue')
+    async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays songs in the queue. """
-        # 17 July 2020:
-        # - Current function may only list 10 items per page
-
-        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
-        # Use discord.embed
-        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
-        '''
-        for line in textwrap.wrap(lorem.paragraph(), 40):
-            embed = discord.Embed(title="Lorem ipsum", description=line)
-            await ctx.send(embed=embed)
-        '''
-        # if not ctx.voice_state.is_playing:
-        # if len(ctx.voice_state.songs) == 0:
-        # if len(ctx.voice_state.songs) == 0 and not ctx.voice_state.is_playing:
         if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
-            items_per_page = 10
+            items_per_page = 4
             pages = math.ceil((len(ctx.voice_state.songs) + 1) / items_per_page)
 
             start = (page - 1) * items_per_page
+            print('Value of start: ', start)
             end = start + items_per_page
+            print('Value of end: ', end)
 
             # Youtube link format
             yt_link = 'https://www.youtube.com/watch?v='
 
             queue = ''
             # Add current song to queue
-            # queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current)
-            queue += f'1. {ctx.voice_state.current.source.title} {yt_link}{ctx.voice_state.current.source.id}\n'
+            queue += f'{start + 1}. [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id}) - NOW PLAYING\n'
+            
+            for i, song in enumerate(ctx.voice_state.songs[start:end - 1], start=start):
+                queue += f'`{i + 2}.` [{song.source.title}]({yt_link}{song.source.id})\n'
 
-            for i, song in enumerate(ctx.voice_state.songs[start:end], start=1):
-                queue += '`{0}.` [**{1.source.title}**]({1.source.url})\n'.format(i + 1, song)
-
-            # for line in textwrap.wrap()
 
             embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
@@ -553,48 +541,7 @@ class Music(commands.Cog):
 
 
 
-    @commands.command(name='queue')
-    async def _queue(self, ctx: commands.Context, *, page: int = 1):
-        """ Displays songs in the queue. """
-        # 17 July 2020:
-        # - Current function may only list 10 items per page
-
-        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
-        # Use discord.embed
-        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
-        '''
-        for line in textwrap.wrap(lorem.paragraph(), 40):
-            embed = discord.Embed(title="Lorem ipsum", description=line)
-            await ctx.send(embed=embed)
-        '''
-        # if not ctx.voice_state.is_playing:
-        # if len(ctx.voice_state.songs) == 0:
-        # if len(ctx.voice_state.songs) == 0 and not ctx.voice_state.is_playing:
-        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
-            return await ctx.send('Empty queue')
-        else:
-            items_per_page = 10
-            pages = math.ceil((len(ctx.voice_state.songs) + 1) / items_per_page)
-
-            start = (page - 1) * items_per_page
-            end = start + items_per_page
-
-            queue = ''
-            # Add current song to queue
-            queue += '`{0}.` [**{1.source.title}**]({1.url})\n - NOW PLAYING\n'.format(1, ctx.voice_state.current)
-
-            # Prints the current playing source url
-            print("Youtube url: ", ctx.voice_state.current.source.url)
-            print("Uploader url: ", ctx.voice_state.current.source.title)
-
-            for i, song in enumerate(ctx.voice_state.songs[start:end], start=1):
-                queue += '`{0}.` [**{1.source.title}**]({1.url})\n'.format(i + 1, song)
-
-            # for line in textwrap.wrap()
-
-            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            await ctx.send(embed=embed)
+    
 
     # Not in use
     '''
