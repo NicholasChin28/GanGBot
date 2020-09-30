@@ -471,45 +471,41 @@ class Music(commands.Cog):
             # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
             await ctx.send(embed=ctx.voice_state.current.create_embed())
         
-        # await ctx.send(embed=ctx.voice_state.current.create_embed())
+        
     
-    # Version 1.3 of queue
-    # To solve the embed description length limit of 2048
-    # TODO: Continue queuenew function. Can refer to listsounds function
-    @commands.command(name='queuenew')
-    async def _queuenew(self, ctx: commands.Context, *, page: int = 1):
-        """ Cannot be used yet. """
-        # Use the below block quote method to bypass discord.Embed character limit by using multiple embeds
-        # Use discord.embed
-        # Reference code: https://stackoverflow.com/questions/52903394/python-how-to-split-messages/52903618#52903618
-        # Generates embed description message
+
+    @commands.command(name='queue')
+    async def _queue(self, ctx: commands.Context, *, page: int = 1):
+        """ Displays items in the queue """
         async def generate_embed_msg():
             queue = ''
-            upper_limit = page * items_per_page
-            lower_limit = upper_limit - items_per_page
-            for i, song in enumerate(queue_list[lower_limit:upper_limit]):
-                queue += '`{0}.` **{1}\n'.format(i + 1, song)
+            upper_limit = page * items_per_page 
+            lower_limit = (page - 1) * items_per_page
+            for i, song in enumerate(queue_list[lower_limit:upper_limit], start=lower_limit):
+                queue += queue_list[i]
+            return queue
 
         if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
             items_per_page = 5
             queue_list = []
-            queue = ''
 
-            queue_list.append('`{0}.` **{1.source.title}\n - NOW PLAYING\n'.format(1, ctx.voice_state.current))
+            # Youtube link format
+            yt_link = 'https://www.youtube.com/watch?v='
 
-            for i, song in enumerate(ctx.voice_state.songs[0:]):
-                print('Title length: ', len(song.source.title))
-                print('Url length: ', len(song.source.url))
-                queue_list.append('`{0}.` **{1.source.title}\n'.format(i + 1, song))
+            queue_list.append(f'`1.` [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id})- NOW PLAYING\n')
 
-            pages = len(queue_list) / items_per_page + 1
+            for i, song in enumerate(ctx.voice_state.songs[0:], start=1):
+                queue_list.append(f'`{i + 1}.` [{song.source.title}]({yt_link}{song.source.id})\n')
+
+            pages = math.ceil(len(queue_list) / items_per_page)
             
-            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, await generate_embed_msg()))
+            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(queue_list), await generate_embed_msg()))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            
             message = await ctx.send(embed=embed)
-
+            
             # Create reactions based on the number of pages
             async def add_page_reactions():
                 if page == pages:
@@ -521,12 +517,11 @@ class Music(commands.Cog):
             
             await add_page_reactions()
 
-            
-
             # Recreates the embed
             async def refresh_embed():
                 await message.clear_reactions()
-                embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), await generate_embed_msg()))
+                # embed_msg = await generate_embed_msg()
+                embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(queue_list), await generate_embed_msg()))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
 
                 await message.edit(embed = embed)
@@ -549,46 +544,6 @@ class Music(commands.Cog):
                     elif reaction.emoji == '\u25b6':
                         page += 1
                         await refresh_embed()
-
-        '''
-        queue_list_length = sum([len(i) for i in queue_list])
-        print('Length of queue: ', queue_list_length)
-        pages = math.ceil(queue_list_length / word_wrap)
-        print('Num of pages: ', pages)
-        '''
-
-    @commands.command(name='queue')
-    async def _queue(self, ctx: commands.Context, *, page: int = 1):
-        """ Displays songs in the queue. """
-        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
-            return await ctx.send('Empty queue')
-        else:
-            items_per_page = 4
-            pages = math.ceil((len(ctx.voice_state.songs) + 1) / items_per_page)
-
-            start = (page - 1) * items_per_page
-            print('Value of start: ', start)
-            end = start + items_per_page
-            print('Value of end: ', end)
-
-            # Youtube link format
-            yt_link = 'https://www.youtube.com/watch?v='
-
-            queue = ''
-            # Add current song to queue
-            queue += f'`{start + 1}.` [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id}) - NOW PLAYING\n'
-            
-            for i, song in enumerate(ctx.voice_state.songs[start:end - 1], start=start):
-                queue += f'`{i + 2}.` [{song.source.title}]({yt_link}{song.source.id})\n'
-
-
-            embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(ctx.voice_state.songs) + 1, queue))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            await ctx.send(embed=embed)
-
-
-
-    
 
     # Not in use
     '''
