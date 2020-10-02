@@ -542,21 +542,17 @@ class Music(commands.Cog):
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
         print('Volume command called')
+        print('Value of volume variable: ', volume)
+        print('Type of volume variable: ', type(volume))
         
-        if isinstance(volume, int):
-            print(type("Volume type: ", volume))
-            if volume not in range(0, 101):
-                return await ctx.send('Volume must be between 0 and 100')
-            ctx.voice_state.current.source.volume = volume / 100
-            return await ctx.send('Volume of the player set to {}%'.format(volume))
-
-        if not isinstance(volume, int):
-            print(type("Volume type: ", volume))
-            return await ctx.send('Not a valid data type')
-
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
 
+        if volume not in range(0, 101):
+            return await ctx.send('Volume must be between 0 and 100')
+            
+        ctx.voice_state.current.source.volume = volume / 100
+        return await ctx.send('Volume of the player set to {}%'.format(volume))
         '''
         if isinstance(volume, int):
             ctx.voice_state.current.source.volume = volume / 100
@@ -596,14 +592,19 @@ class Music(commands.Cog):
         except ValueError as e:
             return await ctx.send(e)
         '''
-        
-
-        
-        
     @_volume.error
     async def volume_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.BadArgument):
+            raise commands.BadArgument(await ctx.send('Volume must be a number'))
+            # await ctx.send("Bad argument")
+        # Below errors are not being used. Merely inserted for testing
+        # TODO: Remove unused errors
+        if isinstance(error, commands.ArgumentParsingError):
+            await ctx.send("Parse error")
+        if isinstance(error, commands.ConversionError):
+            await ctx.send("Conversion error")
+        '''
         if isinstance(error, (commands.BadArgument, commands.UserInputError)):
-            # raise commands.BadArgument("Conversion failed")
             await ctx.send("Bad argument")
         elif isinstance(error, commands.ArgumentParsingError):
             await ctx.send("Parse error")
@@ -612,6 +613,8 @@ class Music(commands.Cog):
         else:
             raise error
         
+        '''
+
         '''
         try:
             if not ctx.voice_state.is_playing:
