@@ -168,9 +168,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return ', '.join(duration)
 
-# Structure of local sound file 
-# TODO: Create structure of local sound file
 class LocalSource(discord.PCMVolumeTransformer):
+    # TODO: Get metadata of local sound files to display in queue function
+
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
@@ -187,19 +187,14 @@ class LocalSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
-    # async def get_source(cls, ctx: commands.Context, search: str):
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.parse_availability, search)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
-            # Temporarily use YTDLError
-            raise YTDLError("Specified file could not be found")
+            raise SoundError("Specified playsound could not be found")
 
-        # Create local source
-        # return cls(ctx, discord.FFmpegPCMAudio('Star Platinum Ora Ora Ora.mp3', **cls.FFMPEG_OPTIONS))
-        # return cls(ctx, discord.FFmpegPCMAudio('./playsounds/Star Platinum Ora Ora Ora.mp3'))
         location = f"./playsounds/{search}.mp3"
         print(f"Location of get_source: {location}")
         return cls(ctx, discord.FFmpegPCMAudio(f'./playsounds/{search}.mp3'))
@@ -211,13 +206,6 @@ class LocalSource(discord.PCMVolumeTransformer):
             return "Yes"
         else:
             print("File does not exist")
-        ''' Old code
-        if os.path.isfile('Star Platinum Ora Ora Ora.mp3'):
-            print('File exists')
-            return "Yes"
-        else:
-            print('File does not exist')
-        '''
 
 class Song:
     __slots__ = ('source', 'requester')
@@ -372,19 +360,20 @@ class VoiceState:
             self.songs.clear()
             print(f'play_next_song error occurred')
             raise VoiceError(str(error))
-
+        
+        # TODO: If loop is next, dont set to next.
         self.next.set()
 
     def skip(self):
         self.skip_votes.clear()
-        print(f'Skip command cog is called')
-        print(f'Current queue size in skip function: {self.songs.qsize()}')
+        # self._loop = False  
         if self.is_playing:
             self.voice.stop()
             # Remove skipped song from the queuelist
 
     async def stop(self):
         self.songs.clear()
+        # self._loop = False
         # Manually added
         self.current = None
         if self.voice:
@@ -471,9 +460,6 @@ class Music(commands.Cog):
             # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
             await ctx.send(embed=ctx.voice_state.current.create_embed())
         
-        
-    
-
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays items in the queue """
@@ -555,6 +541,78 @@ class Music(commands.Cog):
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
+        print('Volume command called')
+        
+        if isinstance(volume, int):
+            print(type("Volume type: ", volume))
+            if volume not in range(0, 101):
+                return await ctx.send('Volume must be between 0 and 100')
+            ctx.voice_state.current.source.volume = volume / 100
+            return await ctx.send('Volume of the player set to {}%'.format(volume))
+
+        if not isinstance(volume, int):
+            print(type("Volume type: ", volume))
+            return await ctx.send('Not a valid data type')
+
+        if not ctx.voice_state.is_playing:
+            return await ctx.send('Nothing being played at the moment.')
+
+        '''
+        if isinstance(volume, int):
+            ctx.voice_state.current.source.volume = volume / 100
+            return await ctx.send('Volume of the player set to {}%'.format(volume))
+
+        if not isinstance(volume, int):
+            print(type("Volume type: ", volume))
+            return await ctx.send('Not a valid data type')
+
+        if volume not in range(0, 101):
+            return await ctx.send('Volume must be between 0 and 100')
+
+        if not ctx.voice_state.is_playing:
+            return await ctx.send('Nothing being played at the moment.')
+        '''
+
+        '''
+        try:
+            if not isinstance(volume, int):
+                print(type("Volume type: ", volume))
+                raise ValueError("Not a valid argument")
+
+            if volume not in range(0, 101):
+                return await ctx.send('Volume must be between 0 and 100')
+
+            if not ctx.voice_state.is_playing:
+                return await ctx.send('Nothing being played at the moment.')
+
+            ctx.voice_state.current.source.volume = volume / 100
+            await ctx.send('Volume of the player set to {}%'.format(volume))
+            
+            print('Outside of volume try block')
+            if isinstance(volume, int):
+                ctx.voice_state.current.source.volume = volume / 100
+                await ctx.send('Volume of the player set to {}%'.format(volume))
+            
+        except ValueError as e:
+            return await ctx.send(e)
+        '''
+        
+
+        
+        
+    @_volume.error
+    async def volume_error(self, ctx: commands.Context, error):
+        if isinstance(error, (commands.BadArgument, commands.UserInputError)):
+            # raise commands.BadArgument("Conversion failed")
+            await ctx.send("Bad argument")
+        elif isinstance(error, commands.ArgumentParsingError):
+            await ctx.send("Parse error")
+        elif isinstance(error, commands.ConversionError):
+            await ctx.send("Conversion error")
+        else:
+            raise error
+        
+        '''
         try:
             if not ctx.voice_state.is_playing:
                 return await ctx.send('Nothing being played at the moment.')
@@ -574,6 +632,7 @@ class Music(commands.Cog):
             await ctx.send('Volume of the player set to {}%'.format(volume))
         except ValueError as e:
             return await ctx.send("Value error")
+        '''
         
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
@@ -622,7 +681,7 @@ class Music(commands.Cog):
         
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
-        """ Vote to skip song. """
+        """ Skips current track. """
         if not ctx.voice_state.is_playing:
             return await ctx.send('Not playing any music right now...')
 
@@ -641,7 +700,7 @@ class Music(commands.Cog):
 
     @commands.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int):
-        """Removes a song from the queue at a given index."""
+        """Removes a track from the queue at a given index."""
 
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send('Empty queue.')
@@ -651,17 +710,21 @@ class Music(commands.Cog):
 
     @commands.command(name='loop')
     async def _loop(self, ctx: commands.Context):
-        """Loops the currently playing song.
+        """Loops the currently playing track.
 
-        Invoke this command again to unloop the song.
+        Invoke this command again to unloop the track.
         """
 
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment')
 
         # Inverse boolean value to loop and unloop
+        print('Before change loop status: ', ctx.voice_state.loop)
         ctx.voice_state.loop = not ctx.voice_state.loop
+        print('After change loop status: ', ctx.voice_state.loop)
         await ctx.message.add_reaction('✅')
+
+        # Replay the song
 
     @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
@@ -677,15 +740,12 @@ class Music(commands.Cog):
         async with ctx.typing():
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
-                print(f'Details of play source: {source}')
-                print(f'Source id: {source.id}')
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
             else:
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
-                print(f"Size of queue: {ctx.voice_state.songs.qsize()}")
                 await ctx.send('Enqueued {}'.format(str(source)))
 
     @commands.command(name='choose')
@@ -754,7 +814,6 @@ class Music(commands.Cog):
             try:
                 # async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
                 source = await LocalSource.get_source(ctx, search, loop=self.bot.loop)
-                print(f'Details of playsound source: {source}')
                 # source = await LocalSource.get_source(ctx, search)
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: playsound does not exist')
@@ -780,7 +839,7 @@ class Music(commands.Cog):
             playsounds = ''
             
             # Create an embeds from the file_sounds and store in a dictionary.
-            # Each item will contain 10 playsounds.
+            # Each item will contain {limit} playsounds.
             for i, sounds in enumerate(file_sounds[0:], start=1):
                 
                 if i % limit == 0:
