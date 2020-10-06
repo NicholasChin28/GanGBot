@@ -459,7 +459,7 @@ class Music(commands.Cog):
         else:
             # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
             await ctx.send(embed=ctx.voice_state.current.create_embed())
-        
+
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays items in the queue """
@@ -541,10 +541,10 @@ class Music(commands.Cog):
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
-        print('Volume command called')
+        print('Volume command called') 
         print('Value of volume variable: ', volume)
         print('Type of volume variable: ', type(volume))
-        
+
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
 
@@ -553,89 +553,12 @@ class Music(commands.Cog):
             
         ctx.voice_state.current.source.volume = volume / 100
         return await ctx.send('Volume of the player set to {}%'.format(volume))
-        '''
-        if isinstance(volume, int):
-            ctx.voice_state.current.source.volume = volume / 100
-            return await ctx.send('Volume of the player set to {}%'.format(volume))
-
-        if not isinstance(volume, int):
-            print(type("Volume type: ", volume))
-            return await ctx.send('Not a valid data type')
-
-        if volume not in range(0, 101):
-            return await ctx.send('Volume must be between 0 and 100')
-
-        if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
-        '''
-
-        '''
-        try:
-            if not isinstance(volume, int):
-                print(type("Volume type: ", volume))
-                raise ValueError("Not a valid argument")
-
-            if volume not in range(0, 101):
-                return await ctx.send('Volume must be between 0 and 100')
-
-            if not ctx.voice_state.is_playing:
-                return await ctx.send('Nothing being played at the moment.')
-
-            ctx.voice_state.current.source.volume = volume / 100
-            await ctx.send('Volume of the player set to {}%'.format(volume))
-            
-            print('Outside of volume try block')
-            if isinstance(volume, int):
-                ctx.voice_state.current.source.volume = volume / 100
-                await ctx.send('Volume of the player set to {}%'.format(volume))
-            
-        except ValueError as e:
-            return await ctx.send(e)
-        '''
+        
     @_volume.error
     async def volume_error(self, ctx: commands.Context, error):
+        # Checks if volume argument is of int data type
         if isinstance(error, commands.BadArgument):
             raise commands.BadArgument(await ctx.send('Volume must be a number'))
-            # await ctx.send("Bad argument")
-        # Below errors are not being used. Merely inserted for testing
-        # TODO: Remove unused errors
-        if isinstance(error, commands.ArgumentParsingError):
-            await ctx.send("Parse error")
-        if isinstance(error, commands.ConversionError):
-            await ctx.send("Conversion error")
-        '''
-        if isinstance(error, (commands.BadArgument, commands.UserInputError)):
-            await ctx.send("Bad argument")
-        elif isinstance(error, commands.ArgumentParsingError):
-            await ctx.send("Parse error")
-        elif isinstance(error, commands.ConversionError):
-            await ctx.send("Conversion error")
-        else:
-            raise error
-        
-        '''
-
-        '''
-        try:
-            if not ctx.voice_state.is_playing:
-                return await ctx.send('Nothing being played at the moment.')
-            
-            # Check if volume value entered is a valid int
-            # TODO: Return message if user did not enter a valid data type.
-            
-            if not isinstance(volume, int):
-                print(type("Volume type: ", volume))
-                return await ctx.send('Invalid value. Volume must be between 0 and 100')
-            
-
-            if volume not in range(0, 101):
-                return await ctx.send('Volume must be between 0 and 100')
-            
-            ctx.voice_state.current.source.volume = volume / 100
-            await ctx.send('Volume of the player set to {}%'.format(volume))
-        except ValueError as e:
-            return await ctx.send("Value error")
-        '''
         
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
@@ -649,19 +572,9 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
-
-        '''
-        if not ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+        if ctx.voice_state.current and ctx.voice_state.voice.is_paused():
             ctx.voice_state.voice.resume()
             await ctx.message.add_reaction('⏯')
-        '''
-
-        if ctx.voice_state.current:
-            if ctx.voice_state.voice.is_paused():
-                ctx.voice_state.voice.resume()
-                await ctx.message.add_reaction('⏯')
-            else:
-                await ctx.send("Unable to resume current song. This error should not happen")
         else:
             await ctx.send('There is no song to resume')
 
@@ -751,6 +664,7 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
+    # TODO: Implement {0}, {1} placeholders to allow choose options with white spaces
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *argv):
         """ Chooses a random item from options. """
