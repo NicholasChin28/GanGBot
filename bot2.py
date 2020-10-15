@@ -325,43 +325,28 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
-                    print('Try block start')
                     async with timeout(180):    # 3 minutes
-                        # async with timeout
-                        print('Inside async with block')
-                        print(f'Value of self.current: {self.current}')
-                        # Temporary fix? 22 May 2020, 16:11, check if qsize is 0
-                        # Remove the last song from the song queue
-                        print(f'Queue size check in audio_player_task: {self.songs.qsize()}')
-                        if (self.songs.qsize() == 0):
-                            print(f"Queue size is 0")
-                            self.current = None
-
                         self.current = await self.songs.get()
-                         
-                        
-                        print(f'Getting value of self.current in audio_player_task: {self.current}')
                 except asyncio.TimeoutError:
                     self.exists = False
                     self.bot.loop.create_task(self.stop())
                     return
 
-            print('Init source details')
-            self.current.source.volume = self._volume
-            print(f'Type of current source {type(self.current.source)}')
-            self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
+                print('Init source details')
+                self.current.source.volume = self._volume
+                print(f'Type of current source {type(self.current.source)}')
+                self.voice.play(self.current.source, after=self.play_next_song)
+                await self.current.source.channel.send(embed=self.current.create_embed())
+            else:
+                self.now = discord.FFmpegPCMAudio(self.current.source.stream_url, **YTDLSource.FFMPEG_OPTIONS)
+                self.voice.play(self.now, after=self.play_next_song)
 
             await self.next.wait()
 
     def play_next_song(self, error=None):
         if error:
-            self.current = None
-            self.songs.clear()
-            print(f'play_next_song error occurred')
             raise VoiceError(str(error))
         
-        # TODO: If loop is next, dont set to next.
         self.next.set()
 
     def skip(self):
@@ -541,10 +526,6 @@ class Music(commands.Cog):
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
-        print('Volume command called') 
-        print('Value of volume variable: ', volume)
-        print('Type of volume variable: ', type(volume))
-
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
 
