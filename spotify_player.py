@@ -10,8 +10,29 @@ from spotipy.oauth2 import SpotifyOAuth
 from pprint import pprint
 from time import sleep
 
+# Add discord.PCMVolumeTransformer 
+# Add listener to detect when the current track has finished playing
 class SpotifySource:
-    def search_song(query: str):
+
+    search_results = []
+    # Duration is in seconds
+    # Not calculating days. Assuming spotify track would never exceed 24 hours
+    @staticmethod
+    def parse_duration(duration: int):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+
+        duration = []
+        if hours > 0:
+            duration.append(f'{hours} h')
+        if minutes > 0:
+            duration.append(f'{minutes} m')
+        if seconds > 0:
+            duration.append(f'{seconds} s')
+
+        return ' '.join(duration)
+
+    def search_song(self, query: str):
         # Refer to https://developer.spotify.com/documentation/web-api/reference/search/search/
         scope = 'user-library-read'
         sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
@@ -20,9 +41,51 @@ class SpotifySource:
 
         tracks = res['tracks']
         for item in tracks['items']:
-            print(f"{item['name']} - {item['artists'][0]['name']}")
-        
-SpotifySource.search_song('Toxic')
+            '''
+            Gets track values:
+            1. Track name - Track Artist
+            2. Track duration
+            3. Track URI
+            '''
+            name = f"{item['name']} - {item['artists'][0]['name']}"
+            duration = f"Duration: {self.parse_duration(item['duration_ms'] // 1000)}"
+            uri = f"{item['uri']}"
+
+            print("Track name: ", name)
+            print("Track duration: ", duration)
+            print("Track uri: ", uri)
+            
+            track_details = {"name": name, "duration": duration, "uri": uri}
+            self.search_results.append(track_details)
+            
+            
+    def play_song(self, link: str):
+        scope = 'user-read-playback-state, user-modify-playback-state'
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+
+        # Shows playing devices
+        res = sp.devices()
+        pprint(res)
+
+        # Set volume 
+        sp.volume(100)
+
+        # Change track
+        sp.start_playback(uris=[link])
+
+    # Temporary function to print results of search_results variable
+    def search_results_list(self):
+        pprint(self.search_results)
+
+    # TODO: Add to playlist queue
+    # def add_to_queue(self, link: str):
+
+
+
+spot = SpotifySource()
+spot.search_song('Daddy daddy do')
+spot.search_results_list()
+# SpotifySource.play_song('spotify:track:6gdLoMygLsgktydTQ71b15')
 '''
 scope = "user-library-read"
 
