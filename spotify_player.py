@@ -78,13 +78,20 @@ class SpotifySource:
         pprint(self.search_results)
 
     # TODO: Add to playlist queue
-    # def add_to_queue(self, link: str):
+    # May need to manually monitor queue. Spotipy does not seem to monitor queue
+    def add_to_queue(self, link: str):
+        scope = 'user-read-playback-state, user-modify-playback-state'
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+
+        sp.add_to_queue(link)
 
 
 
 spot = SpotifySource()
 spot.search_song('Daddy daddy do')
 spot.search_results_list()
+spot.play_song('spotify:track:2TVUmfNirOmgg9anvXJmZY')
+spot.add_to_queue('spotify:track:6gdLoMygLsgktydTQ71b15')
 # SpotifySource.play_song('spotify:track:6gdLoMygLsgktydTQ71b15')
 '''
 scope = "user-library-read"
