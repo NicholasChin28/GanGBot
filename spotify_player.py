@@ -1,6 +1,7 @@
 # Player for Discord Spotify Bot
 import os
 import sys
+import asyncio
 
 import spotipy
 import spotipy.util as util
@@ -27,6 +28,11 @@ class SpotifySource:
         self.artist = metadata['artist']
         self.uri = metadata['uri']
         '''
+
+    async def spotify_player_task(self):
+        while True:
+            await asyncio.get_running_loop()
+
 
     @staticmethod
     def parse_duration(duration: int):
@@ -133,8 +139,16 @@ class SpotifySource:
         sp.start_playback()
 
 
+
+spot = SpotifySource('Daddy daddy do amalee')
+# asyncio.run(spot.spotify_player_task())
+loop = asyncio.get_event_loop()
+asyncio.get_running_loop()
+'''
 spot = SpotifySource('Daddy daddy do amalee')
 spot.pause()
+'''
+
 '''
 spot = SpotifySource()
 spot.search_song('Daddy daddy do')
