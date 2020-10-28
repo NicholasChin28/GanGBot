@@ -1,6 +1,7 @@
 # Player for Discord Spotify Bot
 import os
 import sys
+import asyncio
 
 import spotipy
 import spotipy.util as util
@@ -11,12 +12,28 @@ from pprint import pprint
 from time import sleep
 
 # Add discord.PCMVolumeTransformer 
-# Add listener to detect when the current track has finished playing
+# TODO: Add listener to detect when the current track has finished playing
 class SpotifySource:
 
-    search_results = []
-    # Duration is in seconds
-    # Not calculating days. Assuming spotify track would never exceed 24 hours
+    # TODO: Implement SpotifySource(link)
+    def __init__(self, uri: str):
+        metadata = self.get_metadata(uri)
+        self.title = metadata.get('title')
+        self.duration = metadata.get('duration')
+        self.artist = metadata.get('artist')
+        self.uri = metadata.get('uri')
+        '''
+        self.title = metadata['title']
+        self.duration = metadata['duration']
+        self.artist = metadata['artist']
+        self.uri = metadata['uri']
+        '''
+
+    async def spotify_player_task(self):
+        while True:
+            await asyncio.get_running_loop()
+
+
     @staticmethod
     def parse_duration(duration: int):
         minutes, seconds = divmod(duration, 60)
@@ -77,110 +94,75 @@ class SpotifySource:
     def search_results_list(self):
         pprint(self.search_results)
 
-    # TODO: Add to playlist queue
+    # Use bot2.py queue. (Currently will have YTDLSource, LocalSource, SpotifySource)
     # May need to manually monitor queue. Spotipy does not seem to monitor queue
-    def add_to_queue(self, link: str):
+    def add_to_queue(self, uri: str):
         scope = 'user-read-playback-state, user-modify-playback-state'
         sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
-        sp.add_to_queue(link)
+        sp.add_to_queue(uri)
+
+    # Get spotify track metadata
+    def get_metadata(self, uri: str):
+        """
+        1. Title
+        2. Duration
+        3. URI
+        4. Artist
+        """
+        search_results = []
+        scope = 'user-library-read'
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+
+        res = sp.search(q=uri)
+
+        tracks = res['tracks']
+        for item in tracks['items']:
+            title = f"{item['name']}"
+            duration = f"Duration: {self.parse_duration(item['duration_ms'] // 1000)}"
+            uri = f"{item['uri']}"
+            artist = f"{item['artists'][0]['name']}"
+
+            print("Track name: ", title)
+            print("Track duration: ", duration)
+            print("Track uri: ", uri)
+            print("Track artist: ", artist)
+            
+            track_details = {"title": title, "duration": duration, "uri": uri, "artist": artist}
+            # search_results.append(track_details)
+            # self.search_results.append(track_details)
+            return track_details
+
+    def pause(self):
+        scope = 'user-library-read, user-modify-playback-state'
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        sp.start_playback()
 
 
 
+spot = SpotifySource('Daddy daddy do amalee')
+# asyncio.run(spot.spotify_player_task())
+loop = asyncio.get_event_loop()
+asyncio.get_running_loop()
+'''
+spot = SpotifySource('Daddy daddy do amalee')
+spot.pause()
+'''
+
+'''
 spot = SpotifySource()
 spot.search_song('Daddy daddy do')
 spot.search_results_list()
 spot.play_song('spotify:track:2TVUmfNirOmgg9anvXJmZY')
-spot.add_to_queue('spotify:track:6gdLoMygLsgktydTQ71b15')
-# SpotifySource.play_song('spotify:track:6gdLoMygLsgktydTQ71b15')
-'''
-scope = "user-library-read"
-
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
-
-results = sp.current_user_saved_tracks()
-for idx, item in enumerate(results['items']):
-    track = item['track']
-    print(idx, track['artists'][0]['name'], " – ", track['name'])
-'''
-
-# player.py from https://github.com/plamere/spotipy/blob/master/examples/player.py
-'''
-scope = 'user-read-playback-state,user-modify-playback-state'
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
-
-
-# Shows playing devices
-res = sp.devices()
-pprint(res)
-
-# Change track
-sp.start_playback(uris=['spotify:track:6gdLoMygLsgktydTQ71b15'])
-
-# Change volume
-sp.volume(100)
-sleep(2)
-sp.volume(50)
-sleep(2)
-sp.volume(100)
+spot.add_to_queue('spotify:track:3MnmutTVHSZ5g2Ybl1P6JT') # Violet Evergarden
+SpotifySource.play_song('spotify:track:6gdLoMygLsgktydTQ71b15')
 '''
 
 
 
 
-# Read a user's saved tracks
-'''
-scope = 'user-library-read'
 
-if len(sys.argv) > 1:
-    username =  sys.argv[1]
-else:
-    print("Usage: %s username" % (sys.argv[0],))
-    sys.exit()
 
-token = util.prompt_for_user_token(username, scope)
-print(f'Value of token: {token}')
 
-if token:
-    sp = spotipy.Spotify(auth=token)
-    results = sp.current_user_saved_tracks()
-    for item in results['items']:
-        track = item['track']
-        print(track['name'] + ' - ' + track['artists'][0]['name'])
-else:
-    print("Can't get token for", username)
-'''
-
-# Uses Spotify Premium
-'''
-scope = 'user-read-playback-state,user-modify-playback-state'
-
-if len(sys.argv) > 1:
-    username = sys.argv[1]
-else:
-    print("Usage: %s username" % (sys.argv[0],))
-    sys.exit()
-
-token = util.prompt_for_user_token(username, scope)
-print(f'Value of token: {token}')
-
-if token:
-    sp = spotipy.Spotify(auth=token)
-    # Shows playing devices
-    res = sp.devices()
-    pprint(res)
-
-    # Change track
-    sp.start_playback(uris=['spotify:track:6gdLoMygLsgktydTQ71b15'])
-
-    # Change volume
-    sp.volume(100)
-    sleep(2)
-    sp.volume(50)
-    sleep(2)
-    sp.volume(100)
-else:
-    print("Can't get token for", username)
-'''
 
 
