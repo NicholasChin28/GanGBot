@@ -26,7 +26,8 @@ from async_timeout import timeout
 # Logging errors to the console
 import logging
 
-import youtube_dl
+# Added updated fork of youtube_dl
+import youtube_dlc
 
 # Wrap text
 import lorem
@@ -38,12 +39,12 @@ from pathlib import Path
 # import spotify_source
 
 # For getting mp3 metadata
-import mutagen
+from mutagen.mp3 import MP3
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
-youtube_dl.utils.bug_reports_message = lambda: ''
+youtube_dlc.utils.bug_reports_message = lambda: ''
 
 # Set the logging command line messages
 logging.basicConfig(level=logging.INFO)
@@ -81,7 +82,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'options': '-vn',
     }
 
-    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl = youtube_dlc.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
@@ -167,6 +168,32 @@ class YTDLSource(discord.PCMVolumeTransformer):
             duration.append('{} seconds'.format(seconds))
 
         return ', '.join(duration)
+
+# New Playsound class
+class Playsound():
+
+    def __init__(self, filename: str):
+        self.duration = self.parse_duration(int((MP3(filename).info.length)))
+        self.name = filename.name.split('.mp3')[0]
+
+    @staticmethod
+    def parse_duration(duration: int):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        days, hours = divmod(hours, 24)
+
+        duration = []
+        if days > 0:
+            duration.append(f'{days} days')
+        if hours > 0:
+            duration.append(f'{hours} hours')
+        if minutes > 0:
+            duration.append(f'{minutes} minutes')
+        if seconds > 0:
+            duration.append(f'{seconds} seconds')
+
+        return ', '.join(duration)
+
 
 class LocalSource(discord.PCMVolumeTransformer):
     # TODO: Get metadata of local sound files to display in queue function
@@ -337,6 +364,8 @@ class VoiceState:
                 print(f'Type of current source {type(self.current.source)}')
                 self.voice.play(self.current.source, after=self.play_next_song)
                 await self.current.source.channel.send(embed=self.current.create_embed())
+            # If loop is true
+            # Credit to "guac420": https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
             else:
                 self.now = discord.FFmpegPCMAudio(self.current.source.stream_url, **YTDLSource.FFMPEG_OPTIONS)
                 self.voice.play(self.now, after=self.play_next_song)
