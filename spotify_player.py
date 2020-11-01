@@ -15,6 +15,8 @@ from time import sleep
 # TODO: Add listener to detect when the current track has finished playing
 class SpotifySource:
 
+    search_results = []
+
     # TODO: Implement SpotifySource(link)
     def __init__(self, uri: str):
         metadata = self.get_metadata(uri)
@@ -28,11 +30,6 @@ class SpotifySource:
         self.artist = metadata['artist']
         self.uri = metadata['uri']
         '''
-
-    async def spotify_player_task(self):
-        while True:
-            await asyncio.get_running_loop()
-
 
     @staticmethod
     def parse_duration(duration: int):
@@ -112,7 +109,7 @@ class SpotifySource:
         """
         search_results = []
         scope = 'user-library-read'
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope, cache_path='.cache'))
 
         res = sp.search(q=uri)
 
@@ -138,12 +135,26 @@ class SpotifySource:
         sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
         sp.start_playback()
 
+    
+
+    # In development functions
+    def get_current_playback(self):
+        scope = 'user-library-read, user-read-playback-state'
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        details = sp.currently_playing()
+        print('Details: ', details)
+
+    async def spotify_player_task(self):
+        while True:
+            await asyncio.get_running_loop()
+
 
 
 spot = SpotifySource('Daddy daddy do amalee')
+spot.get_current_playback()
 # asyncio.run(spot.spotify_player_task())
-loop = asyncio.get_event_loop()
-asyncio.get_running_loop()
+# loop = asyncio.get_event_loop()
+# asyncio.get_running_loop()
 '''
 spot = SpotifySource('Daddy daddy do amalee')
 spot.pause()
