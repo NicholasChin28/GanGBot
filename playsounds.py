@@ -5,11 +5,12 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from mutagen.mp3 import MP3
+import hashlib
 
 load_dotenv()
 
-# TODO: Compare local files with AWS S3 Bucket. Only upload files that are different / new
-# May be possible to use e_tag to compare local files and S3 files
+# TODO: Getting the MD5 from Etag of AWS S3 objects will not be the same if the files are multi part uploaded
+# Find a way of possibly getting MD5 checksum regardless of multipart uploaded or individually uploaded
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
 # Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
 
@@ -72,20 +73,28 @@ def store_playsounds():
         print('File uploaded...')
 
 # Downloads playsounds from AWS S3 bucket
-# Version 1.0: Downloads playsounds based on S3 Object key
-# TODO: Compare checksum of files and download only differing files
 def download_playsounds():
     # Creating download folder
     p = Path('download_sounds')
     p.mkdir(parents=True, exist_ok=True)
 
+    local_file_checksum = get_files_hash()
+
+    print('local_file_checksum: ', local_file_checksum[0][0])
+
     s3 = create_s3_connection()
     playsound_bucket = s3.Bucket('discord-playsounds')
- 
+    
     for obj in playsound_bucket.objects.all():
         print('Getting S3 file...')
-        playsound_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
-        print('S3 file downloaded')
+        print('Filename of file', obj.key)
+        print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
+
+        if obj.e_tag.replace('"', '') not in local_file_checksum:                   # Remove " character from obj.e_tag
+            playsound_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
+            print('S3 file downloaded')
+        else:
+            print('File already exists... skipping file')
 
 # Upload playsound files from ~/upload_sounds
 def upload_playsounds2():
@@ -107,15 +116,35 @@ def upload_playsounds2():
         print('Uploading file...')
         s3.Bucket('discord-playsounds').upload_file(Filename=str(item), Key=item.name)
         print('File uploaded...')
-    
 
-upload_playsounds2()
-# download_playsounds()
+# Get all the hashes of the files in local folder
+def get_files_hash():
+    hashes = []
+    p = Path('download_sounds').glob('**/*')
+    files = [x for x in p if x.is_file()]
+    for x in files:
+        hash_md5 = hashlib.md5()
+        with open(x, 'rb') as f:
+            for chunk in iter(lambda: f.read(4096), b''):
+                hash_md5.update(chunk)
+        hashes.append(hash_md5.hexdigest())
+
+    return hashes
+
+# TODO: Helper function
+# Get all objects in a bucket
+def get_bucket_objects():
+    pass
+
+
+# get_files_hash()
+# upload_playsounds2()
+download_playsounds()
 # upload_playsounds()
 
     
 
-# playsounds_storage = s3_resource.Bucket('discord-playsounds')
+
 
 
 
