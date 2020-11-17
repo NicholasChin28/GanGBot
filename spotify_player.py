@@ -13,6 +13,10 @@ from time import sleep
 
 # Add discord.PCMVolumeTransformer 
 # TODO: Add listener to detect when the current track has finished playing
+# TODO: Use SpotDl instead to get .mp3 files of Spotify tracks and to download
+# TODO: Store some of the downloaded .mp3 files in the file system. For faster access
+# TODO: Store references to the file in a database
+# https://towardsdatascience.com/sql-on-the-cloud-with-python-c08a30807661
 class SpotifySource:
 
     search_results = []
