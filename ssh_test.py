@@ -5,9 +5,11 @@ import io
 import time
 from pathlib import Path
 
+
+# TODO: Tidy up the code. Functional code is in list_all function
 # Kills current running instance of MaldBot
 def kill_process(client):
-    stdin, stdout, stderr = client.exec_command('pidof python bot2.py')
+    stdin, stdout, stderr = client.exec_command('pidof python bot2.py', get_pty=True)
     print(type(stdout.readline()))
     print(stderr.readline())
     if len(stdout.readline()) > 1:
@@ -19,19 +21,50 @@ def kill_process(client):
         client.exec_command(f'kill -9 {pid}')
     '''
 
+def list_all(client, channel):
+    out = channel.recv(9999)
+
+    channel.send('ps aux\n')
+    channel.send('pidof python bot2.py\n')
+    channel.send('cd ~/miniconda3/envs/GanGBot/\n')
+    channel.send('conda activate GanGBot\n')
+    channel.send('nohup python bot2.py &\n')
+
+    while not channel.recv_ready():
+        time.sleep(3)
+
+    out = channel.recv(9999)
+    print(out.decode('ascii'))
+
+    client.close()
+
+
+    # channel = client.invoke_shell()
+    # channel.send('ps aux')
+    # channel.send('kill -9 29928')
+    
+    '''
+    stdin, stdout, stderr = client.exec_command('cd ~')
+
+    stdin, stdout, stderr = client.exec_command('sudo echo $PATH')
+    print(stdout.readline())
+    print('error', stderr.readline())
+    '''
+    
+
 # Starts a MaldBot instance
 def start_process(client):
-    stdin, stdout, stderr = client.exec_command('cd ~/miniconda3/envs/GanGBot/')
+    stdin, stdout, stderr = client.exec_command('cd ~/miniconda3/envs/GanGBot/', get_pty=True)
     print("stdout: ", stdout.readline())
     print('stderr: ', stderr.readline())
 
 
-    stdin, stdout, stderr = client.exec_command('conda activate GanGBot')
+    stdin, stdout, stderr = client.exec_command('conda activate GanGBot', get_pty=True)
     print("stdout: ", stdout.readline())
     print('stderr: ', stderr.readline())
 
 
-    stdin, stdout, stderr = client.exec_command('nohup python bot2.py &; sleep 10', get_pty=True)
+    stdin, stdout, stderr = client.exec_command('nohup python bot2.py &', get_pty=True)
     print("stdout: ", stdout.readline())
     print('stderr: ', stderr.readline())
 
@@ -50,9 +83,13 @@ client.get_host_keys().add('34.87.24.87', 'ssh-rsa', host_key)
 # client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 client.connect('34.87.24.87', username='nicho', pkey=key)
 
+channel = client.invoke_shell()
+
 # start_process(client)
-restart_bot(client)
-time.sleep(10)
+# restart_bot(client)
+list_all(client, channel)
+# time.sleep(10)
+
 
 '''
 stdin, stdout, stderr = client.exec_command('pidof python bot2.py')
