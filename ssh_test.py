@@ -6,20 +6,67 @@ import time
 from pathlib import Path
 
 
-# TODO: Tidy up the code. Functional code is in list_all function
+# TODO: Tidy up the code. Functional code is in restart_bot, kill_process2, start_process2 functions
 # Kills current running instance of MaldBot
 def kill_process(client):
-    stdin, stdout, stderr = client.exec_command('pidof python bot2.py', get_pty=True)
+    stdin, stdout, stderr = client.exec_command('bash -l -c "ls;bash"', get_pty=True)
     print(type(stdout.readline()))
-    print(stderr.readline())
+    print(stdout.readline())
     if len(stdout.readline()) > 1:
         pid = int(stdout.readline()) 
         client.exec_command(f'kill -9 {pid}')
+        print(f'Killed pid: {pid}')
     '''
     pid = int(stdout.readline())
     if pid is not None:
         client.exec_command(f'kill -9 {pid}')
     '''
+
+def kill_process2(shell):
+    '''
+    out = shell.recv(9999)
+    shell.send('\nps aux\n')
+    shell.send('pidof python bot2.py\n')
+    print('first', out)
+    if len(out.decode('ascii')) > 0:
+        pid = out.decode('ascii')
+        shell.send(f'\nkill -9 {pid}\n')
+        print(f'Killed pid: {pid}')
+
+    print(out.decode)
+    '''
+    # shell.exec_command('shopt -s expand_aliases')
+    # stdin, stdout, stderr = shell.exec_command('/home/nicho/miniconda3/bin/conda activate GanGBot')
+    stdin, stdout, stderr = shell.exec_command('/usr/bin/pidof python bot2.py')
+    temp = stdout.readline().split()
+    pids = []
+    pids.extend(temp)
+
+    if len(pids) > 0:
+        stdin, stdout, stderr = shell.exec_command(f'/usr/bin/kill -9 {pids[0]}')
+
+def start_process2(shell):
+    stdin, stdout, stderr = shell.exec_command('/home/nicho/miniconda3/bin/conda activate GanGBot')
+    stdin, stdout, stderr = shell.exec_command('/usr/bin/nohup /home/nicho/miniconda3/envs/GanGBot/bin/python /home/nicho/miniconda3/envs/GanGBot/bot2.py')
+
+    # stdin, stdout, stderr = shell.exec_command(' ')
+
+    
+    # stdin, stdout, stderr = shell.exec_command('conda activate')
+    # print(stdout.readline())
+
+    '''
+    shell.get_pty()
+    stdin, stdout, stderr = shell.exec_command('echo $PATH')
+    print(f'stdin: {stdin.readline() }\n stdout: {stdout.readline()}\n stderr: {stderr.readline()}')
+    '''
+
+    # shell.
+
+
+def restart_bot(shell):
+    kill_process2(shell)
+    start_process2(shell)
 
 def list_all(client, channel):
     out = channel.recv(9999)
@@ -68,10 +115,22 @@ def start_process(client):
     print("stdout: ", stdout.readline())
     print('stderr: ', stderr.readline())
 
+def print_path(client):
+    stdin, stdout, stderr = client.exec_command('sudo source "~/.bashrc"')
+    print(stderr.readline())
+
+    stdin, stdout, stderr = client.exec_command('bash -lc "echo $PATH"')
+    print(stdout.readline())
+
+    stdin, stdout, stderr = client.exec_command('ls')
+    print(stdout.readline())
+
 # Restarts a MaldBot instance
+'''
 def restart_bot(client):
     kill_process(client)
     start_process(client)
+'''
 
 key_path = Path(r"C:\Users\nicho\.ssh\maldbot.pem")
 key = paramiko.RSAKey.from_private_key_file(key_path)
@@ -85,10 +144,14 @@ client.connect('34.87.24.87', username='nicho', pkey=key)
 
 channel = client.invoke_shell()
 
+
+# kill_process(client)
 # start_process(client)
 # restart_bot(client)
-list_all(client, channel)
+# list_all(client, channel)
 # time.sleep(10)
+# print_path(client)
+restart_bot(client)
 
 
 '''
