@@ -80,12 +80,13 @@ def upload_playsounds():
 # Downloads playsounds from AWS S3 bucket
 def download_playsounds():
     # Creating download folder
-    p = Path('download_sounds')
+    p = Path('playsounds')
     p.mkdir(parents=True, exist_ok=True)
 
     local_file_checksum = get_files_hash()
 
-    print('local_file_checksum: ', local_file_checksum[0][0])
+    if local_file_checksum:
+        print('local_file_checksum: ', local_file_checksum[0][0])
 
     s3 = create_s3_connection()
     playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
@@ -94,7 +95,6 @@ def download_playsounds():
         print('Getting S3 file...')
         print('Filename of file', obj.key)
         print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
-
         if obj.e_tag.replace('"', '') not in local_file_checksum:                   # Remove " character from obj.e_tag
             playsound_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
             print('S3 file downloaded')
