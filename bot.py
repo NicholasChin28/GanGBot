@@ -1,4 +1,5 @@
 # TODO: In the future, add cogs to organize the functions more neatly
+# TODO: Refactor LocalSource and Playsound class so that .queue can work with custom playsounds as well
 import os
 import random
 from dotenv import load_dotenv
