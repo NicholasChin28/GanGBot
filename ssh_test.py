@@ -109,7 +109,7 @@ def start_process(client):
     stdin, stdout, stderr = client.exec_command('conda activate GanGBot', get_pty=True)
     print("stdout: ", stdout.readline())
     print('stderr: ', stderr.readline())
-
+ 
 
     stdin, stdout, stderr = client.exec_command('nohup python bot2.py &', get_pty=True)
     print("stdout: ", stdout.readline())
