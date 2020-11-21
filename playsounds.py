@@ -53,7 +53,7 @@ for item in s3_resource.Bucket('discord-playsounds').objects.all():
 '''
 
 # TODO: Refactor function to store all the downloaded playsounds as the "Master" list
-def store_playsounds():
+def upload_playsounds():
     # Check if valid playsound
     p = Path('playsounds')
     valid_playsounds = [x for x in p.glob('*.mp3') if is_valid_playsound(x) is not None]
@@ -66,6 +66,11 @@ def store_playsounds():
 
     print('Creating AWS S3 connection')
     s3 = create_s3_connection()
+
+    # TODO: Compare hash
+    s3_objects = s3.Bucket('discord-playsounds').objects.all()
+    
+
 
     for item in valid_playsounds:
         print('Uploading file...')
@@ -83,7 +88,7 @@ def download_playsounds():
     print('local_file_checksum: ', local_file_checksum[0][0])
 
     s3 = create_s3_connection()
-    playsound_bucket = s3.Bucket('discord-playsounds')
+    playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
     
     for obj in playsound_bucket.objects.all():
         print('Getting S3 file...')
@@ -96,31 +101,10 @@ def download_playsounds():
         else:
             print('File already exists... skipping file')
 
-# Upload playsound files from ~/upload_sounds
-def upload_playsounds2():
-    # Check if valid playsound
-    p = Path('upload_sounds')
-
-    valid_playsounds = [x for x in p.glob('*.mp3') if is_valid_playsound(x) is not None]
-    print('valid_playsounds: ', valid_playsounds)
-    # valid_playsounds = get_valid_playsounds(file_sounds)
-
-    for valid in valid_playsounds:
-        print('valid values: ', valid)
-        # print('valid values name: ', valid.name)
-
-    print('Creating AWS S3 connection')
-    s3 = create_s3_connection()
-
-    for item in valid_playsounds:
-        print('Uploading file...')
-        s3.Bucket('discord-playsounds').upload_file(Filename=str(item), Key=item.name)
-        print('File uploaded...')
-
 # Get all the hashes of the files in local folder
 def get_files_hash():
     hashes = []
-    p = Path('download_sounds').glob('**/*')
+    p = Path('playsounds').glob('**/*')
     files = [x for x in p if x.is_file()]
     for x in files:
         hash_md5 = hashlib.md5()
@@ -134,7 +118,10 @@ def get_files_hash():
 # TODO: Helper function
 # Get all objects in a bucket
 def get_bucket_objects():
-    pass
+    print('Creating AWS S3 connection')
+    s3 = create_s3_connection()
+
+    playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
 
 
 # get_files_hash()
