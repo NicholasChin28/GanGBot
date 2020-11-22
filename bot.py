@@ -221,12 +221,10 @@ class LocalSource(discord.PCMVolumeTransformer):
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
-            raise SoundError("Specified playsound could not be found")
+            # raise SoundError(await ctx.send('Playsound does not exist'))
+            raise SoundError('Playsound does not exist')
 
-        # location = f"./playsounds/{search}.mp3"
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
-        print(f"Location of get_source: {location}")
-        # return cls(ctx, discord.FFmpegPCMAudio(f'./playsounds/{search}.mp3'))
         return cls(ctx, discord.FFmpegPCMAudio(location))
 
     @staticmethod
@@ -537,7 +535,7 @@ class Music(commands.Cog):
 
             while True:
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=5, check=check)
+                    reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await message.delete()
                     break
@@ -746,13 +744,20 @@ class Music(commands.Cog):
                 # async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
                 source = await LocalSource.get_source(ctx, search, loop=self.bot.loop)
                 # source = await LocalSource.get_source(ctx, search)
-            except YTDLError as e:
-                await ctx.send('An error occurred while processing this request: playsound does not exist')
+            except SoundError as e:
+                await ctx.send(e)
             else:
                 sound = Sound(source)
 
                 await ctx.voice_state.songs.put(sound)
                 await ctx.send(f'Enqueued a playsound')
+
+    '''
+    @_playsound.error
+    async def playsound_error(self, ctx: commands.Context, error):
+        if isinstance(error, commands.SoundError):
+            raise commands.BadArgument(await ctx.send('Playsound does not exist'))
+    '''
     
     @commands.command(name='listsounds')
     async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
@@ -814,7 +819,7 @@ class Music(commands.Cog):
 
             while True:
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=5, check=check)
+                    reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await message.delete()
                     break
