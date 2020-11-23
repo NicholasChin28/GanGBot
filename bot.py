@@ -1,5 +1,5 @@
 # TODO: In the future, add cogs to organize the functions more neatly
-# TODO: Refactor LocalSource and Playsound class so that .queue can work with custom playsounds as well
+# TODO: Refactor PlaysoundSource and Playsound class so that .queue can work with custom playsounds as well
 import os
 import random
 from dotenv import load_dotenv
@@ -196,7 +196,7 @@ class Playsound():
         return ', '.join(duration)
 
 
-class LocalSource(discord.PCMVolumeTransformer):
+class PlaysoundSource(discord.PCMVolumeTransformer):
     # TODO: Get metadata of local sound files to display in queue function
 
     FFMPEG_OPTIONS = {
@@ -211,7 +211,7 @@ class LocalSource(discord.PCMVolumeTransformer):
         self.channel = ctx.channel
      
     def __str__(self):
-        return f'LocalSource class __str__ function'
+        return f'PlaysoundSource class __str__ function'
 
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
@@ -259,7 +259,7 @@ class Song:
 class Sound:
     __slots__ = ('source', 'requester')
 
-    def __init__(self, source: LocalSource):
+    def __init__(self, source: PlaysoundSource):
         self.source = source
         self.requester = source.requester
 
@@ -763,7 +763,7 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await LocalSource.get_source(ctx, search, loop=self.bot.loop)
+                source = await PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
             except SoundError as e:
                 await ctx.send(e)
             else:
@@ -776,8 +776,7 @@ class Music(commands.Cog):
     async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds """
         p = Path(f"{os.getenv('APP_PATH')}/playsounds")
-        file_sounds = [x.name for x in p.glob('*.mp3')]
-        print('Length of file_sounds variable: ', len(file_sounds))
+        file_sounds = [os.path.splitext(x.name)[0] for x in p.glob('*.mp3')]
 
         # If no playsounds
         if len(file_sounds) == 0:
