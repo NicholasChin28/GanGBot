@@ -51,8 +51,9 @@ def print_path(client):
     print(stdout.readline())
 
 
+env_vals = dotenv_values('.env')
 
-key_path = Path(rf"C:\Users\Nicholas\.ssh\maldbot.pem")
+key_path = Path(f"{env_vals['PEM_FILE']}")
 key = paramiko.RSAKey.from_private_key_file(key_path)
 # the_string = "test"
 host_key = paramiko.RSAKey(data=base64.b64decode(b'AAAAB3NzaC1yc2EAAAADAQABAAABAQC4vNFo2d9WVg47daoyawx1rcM9Pdva4QA4z0IcEP/oVz+VlkD/9semgf+Wj5NqP8wgEwhTi1xnY+grrkkVEeNMQpUShjSymwpHua6BdPMcKfsvjus6TkGUrXfox8BuRsdnvMbk6ITCIcMMsQMwZKYOL4iwQKB1ba+CnJzbOspqxQ5Xx0Rh8sWowx2etBsK7rcQ4oA/kaDpwBGKM6zYewJUCDjDnj3k0DrPJcdR4C/b8LNTdJfMuGYoTHXpRxzNKgFOWlooJh9HkXO6tAYPXRkAMQ6xy5qvS8epM63dgPA3y6RX8/o+i4Feeb9FcpF0AQ5UsTOmRjnGyHPhPVm09M4j'))
@@ -64,12 +65,8 @@ client.connect('34.87.24.87', username='nicho', pkey=key)
 
 channel = client.invoke_shell()
 
-env_vals = dotenv_values('.env')
+
 
 restart_bot(client)
 # get_process(client)
-
-
-
-
 client.close()
