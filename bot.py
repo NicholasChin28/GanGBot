@@ -1,5 +1,7 @@
 # TODO: In the future, add cogs to organize the functions more neatly
+# TODO: Fix remove function
 # TODO: Run playsounds.py code on bot startup
+# For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 import os
 import random
 from dotenv import load_dotenv
@@ -251,18 +253,6 @@ class Sound:
         self.requester = source.requester
 
     def create_embed(self):
-        '''
-        embed = (discord.Embed(title='Now playing',
-                                description='```css\n{0.source.title}\n```'.format(self),
-                                color=discord.Color.blurple())
-                .add_field(name='Duration', value=self.source.duration)
-                .add_field(name='Requested by', value=self.requester.mention)
-                .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
-                .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
-                .set_thumbnail(url=self.source.thumbnail))
-        '''
-        
-        # embed = discord.Embed(title="Playing a local sound file")
         embed = (discord.Embed(title='Now playing',
                                 description='```css\n{0.source.title}\n```'.format(self),
                                 color=discord.Color.blurple())
@@ -309,7 +299,7 @@ class VoiceState:
 
         self._loop = False
         self._volume = 0.5
-        self.skip_votes = set()
+        # self.skip_votes = set()
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -348,6 +338,7 @@ class VoiceState:
                 # reasons.
                 try:
                     async with timeout(180):    # 3 minutes
+                        self.current = None
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
                     self.exists = False
@@ -369,12 +360,13 @@ class VoiceState:
 
     def play_next_song(self, error=None):
         if error:
+            print('play_next_song function')
             raise VoiceError(str(error))
         
         self.next.set()
 
     def skip(self):
-        self.skip_votes.clear()
+        # self.skip_votes.clear()
         # self._loop = False  
         if self.is_playing:
             self.voice.stop()
@@ -483,9 +475,8 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
-
         # If current is None, means that there is no song being played
-        if ctx.voice_state.current is None:
+        if ctx.voice_state.current is None :
             await ctx.send('Not playing any song right now.')
         else:
             # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
@@ -503,7 +494,7 @@ class Music(commands.Cog):
                 queue += queue_list[i]
             return queue
 
-        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None :
             return await ctx.send('Empty queue')
         else:
             items_per_page = 5
@@ -579,6 +570,7 @@ class Music(commands.Cog):
     @commands.command(name='volume')
     async def _volume(self, ctx: commands.Context, *, volume: int):
         """ Sets the volume of the player """
+        # if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
         if not ctx.voice_state.is_playing:
             return await ctx.send('Nothing being played at the moment.')
 
@@ -636,6 +628,7 @@ class Music(commands.Cog):
             return await ctx.send('Not playing any music right now...')
 
         await ctx.message.add_reaction('⏭')
+
         ctx.voice_state.skip()
 
     @commands.command(name='shuffle')
@@ -651,12 +644,20 @@ class Music(commands.Cog):
     @commands.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int):
         """Removes a track from the queue at a given index."""
-
-        if len(ctx.voice_state.songs) == 0:
+        # If index 1, remove / skip current playing song
+        if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
+        
+        if index == 1:
+            ctx.voice_state.skip()
+            await ctx.message.add_reaction('✅')
+            return
 
-        ctx.voice_state.songs.remove(index - 1)
-        await ctx.message.add_reaction('✅')
+        try:
+            ctx.voice_state.songs.remove(index - 2)
+            await ctx.message.add_reaction('✅')
+        except IndexError:
+            return await ctx.send('Invalid queue index')
 
     @commands.command(name='loop')
     async def _loop(self, ctx: commands.Context):
@@ -673,8 +674,6 @@ class Music(commands.Cog):
         ctx.voice_state.loop = not ctx.voice_state.loop
         print('After change loop status: ', ctx.voice_state.loop)
         await ctx.message.add_reaction('✅')
-
-        # Replay the song
 
     @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
