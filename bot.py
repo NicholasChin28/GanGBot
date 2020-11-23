@@ -1,5 +1,5 @@
 # TODO: In the future, add cogs to organize the functions more neatly
-# TODO: Refactor PlaysoundSource and Playsound class so that .queue can work with custom playsounds as well
+# TODO: Run playsounds.py code on bot startup
 import os
 import random
 from dotenv import load_dotenv
@@ -41,6 +41,7 @@ from pathlib import Path
 
 # For getting mp3 metadata
 from mutagen.mp3 import MP3
+import mutagen
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
@@ -170,71 +171,57 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return ', '.join(duration)
 
-# New Playsound class
-class Playsound():
-
-    def __init__(self, filename: str):
-        self.duration = self.parse_duration(int((MP3(filename).info.length)))
-        self.name = filename.name.split('.mp3')[0]
-
-    @staticmethod
-    def parse_duration(duration: int):
-        minutes, seconds = divmod(duration, 60)
-        hours, minutes = divmod(minutes, 60)
-        days, hours = divmod(hours, 24)
-
-        duration = []
-        if days > 0:
-            duration.append(f'{days} days')
-        if hours > 0:
-            duration.append(f'{hours} hours')
-        if minutes > 0:
-            duration.append(f'{minutes} minutes')
-        if seconds > 0:
-            duration.append(f'{seconds} seconds')
-
-        return ', '.join(duration)
-
-
 class PlaysoundSource(discord.PCMVolumeTransformer):
-    # TODO: Get metadata of local sound files to display in queue function
-
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
     }
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, volume: float = 0.5):
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
 
         self.requester = ctx.author
         self.channel = ctx.channel
+        self.data = data
+
+        self.duration = YTDLSource.parse_duration(data.get('duration'))
+        self.title = data.get('title')
+        
      
     def __str__(self):
         return f'PlaysoundSource class __str__ function'
 
+
+    # TODO: Refactor this function to check if the playsound is available
+    # Then get the metadata from the playsound
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
-        partial = functools.partial(cls.parse_availability, search)
+        # partial = functools.partial(cls.extract_info, search)
+        partial = functools.partial(PlaysoundSource.extract_info, search)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
-            # raise SoundError(await ctx.send('Playsound does not exist'))
             raise SoundError('Playsound does not exist')
 
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
-        return cls(ctx, discord.FFmpegPCMAudio(location))
+        return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
 
+    # TODO: Get metadata of local sound files to display in queue function
     @staticmethod
-    def parse_availability(search: str):
+    def extract_info(search: str):
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
         if location.is_file():
-            print('File exists')
-            return "Yes"
+            details = {}
+            playsound = mutagen.File(location)
+
+            details['duration'] = int(playsound.info.length)
+            details['title'] = search
+            
+            return details
         else:
-            print("File does not exist")
+            return details
 
 class Song:
     __slots__ = ('source', 'requester')
@@ -275,7 +262,13 @@ class Sound:
                 .set_thumbnail(url=self.source.thumbnail))
         '''
         
-        embed = discord.Embed(title="Playing a local sound file")
+        # embed = discord.Embed(title="Playing a local sound file")
+        embed = (discord.Embed(title='Now playing',
+                                description='```css\n{0.source.title}\n```'.format(self),
+                                color=discord.Color.blurple())
+                .add_field(name='Duration', value=self.source.duration)
+                .add_field(name='Requested by', value=self.requester.mention))
+
         return embed
 
 class SongQueue(asyncio.Queue):
@@ -498,6 +491,7 @@ class Music(commands.Cog):
             # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
             await ctx.send(embed=ctx.voice_state.current.create_embed())
 
+    # TODO: Fix queue function for playsounds
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays items in the queue """
@@ -518,10 +512,16 @@ class Music(commands.Cog):
             # Youtube link format
             yt_link = 'https://www.youtube.com/watch?v='
 
-            queue_list.append(f'`1.` [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id})- NOW PLAYING\n')
+            try:
+                queue_list.append(f'`1.` [{ctx.voice_state.current.source.title}]({yt_link}{ctx.voice_state.current.source.id})- NOW PLAYING\n')
+            except AttributeError:
+                queue_list.append(f'`1.` {ctx.voice_state.current.source.title} (Playsound) - NOW PLAYING\n')
 
             for i, song in enumerate(ctx.voice_state.songs[0:], start=1):
-                queue_list.append(f'`{i + 1}.` [{song.source.title}]({yt_link}{song.source.id})\n')
+                try:
+                    queue_list.append(f'`{i + 1}.` [{song.source.title}]({yt_link}{song.source.id})\n')
+                except AttributeError:
+                    queue_list.append(f'`{i + 1}.` {song.source.title} (Playsound)\n')
 
             pages = math.ceil(len(queue_list) / items_per_page)
             
@@ -709,8 +709,8 @@ class Music(commands.Cog):
         return await ctx.send("Maldbot chose: " + random.choice(items))
 
     # TODO: Add multiple choices picker
-    @commands.command(name='choosemany')
-    async def _choosemany(self, ctx: commands.Context, *argv, choices: int):
+    # @commands.command(name='choosemany')
+    # async def _choosemany(self, ctx: commands.Context, *argv, choices: int):
         """ Chooses {choices} number of items from options. """
         '''
         if len(argv) < 2:
@@ -844,8 +844,8 @@ class Music(commands.Cog):
                         await refresh_embed()
 
     # Command to play songs from spotify
-    @commands.command(name='playspotify')
-    async def _playspotify(self, ctx: commands.Context):
+    # @commands.command(name='playspotify')
+    # async def _playspotify(self, ctx: commands.Context):
         """ Plays songs from spotify. """
         # temp = spotify_source.SpotifySource()
         
@@ -861,7 +861,7 @@ class Music(commands.Cog):
     
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
-bot.add_cog(Greetings(bot))
+# bot.add_cog(Greetings(bot))
 
 '''
 @bot.event
