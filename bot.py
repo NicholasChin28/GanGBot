@@ -373,12 +373,12 @@ class VoiceState:
             # Remove skipped song from the queuelist
 
     async def stop(self):
-        self.songs.clear()
         # self._loop = False
+        self.songs.clear()
         # Manually added
-        self.current = None
         if self.voice:
             await self.voice.disconnect()
+            # self.current = None
             self.voice = None
 
 # Testing cog
@@ -479,10 +479,8 @@ class Music(commands.Cog):
         if ctx.voice_state.current is None :
             await ctx.send('Not playing any song right now.')
         else:
-            # await ctx.send(f'The current item in queue is: {ctx.songs.__getitem__(0)}')
             await ctx.send(embed=ctx.voice_state.current.create_embed())
 
-    # TODO: Fix queue function for playsounds
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays items in the queue """
@@ -608,9 +606,11 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
+        ctx.voice_state.loop = False    # Unloops the queue 
         ctx.voice_state.songs.clear()
         
         if ctx.voice_state.is_playing:
+            # ctx.voice_state.loop = False
             ctx.voice_state.voice.stop()
             # Sets the current song to be None
             ctx.voice_state.current = None
@@ -620,7 +620,8 @@ class Music(commands.Cog):
             await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
         else:
             await ctx.send(f'This message should never happen. Message called from stop.')
-        
+    
+    # TODO: Set loop to false if skip is called?
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         """ Skips current track. """
@@ -670,9 +671,7 @@ class Music(commands.Cog):
             return await ctx.send('Nothing being played at the moment')
 
         # Inverse boolean value to loop and unloop
-        print('Before change loop status: ', ctx.voice_state.loop)
         ctx.voice_state.loop = not ctx.voice_state.loop
-        print('After change loop status: ', ctx.voice_state.loop)
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='play')
