@@ -9,26 +9,11 @@ import hashlib
 
 load_dotenv()
 
+# TODO: Allow for audio file formats other than .mp3
 # TODO: Getting the MD5 from Etag of AWS S3 objects will not be the same if the files are multi part uploaded
 # Find a way of possibly getting MD5 checksum regardless of multipart uploaded or individually uploaded
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
 # Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
-
-# Checks if the file is a valid playsound
-def get_valid_playsounds(filenames):
-    '''
-    Valid playsound criteria:
-    Duration: <= 15 seconds
-    File type: .mp3
-    '''
-    playsounds = []
-    for item in filenames:
-        print('Item value: ', item)
-        playsound = MP3(item)
-        if playsound.info.length <= 15:
-            playsounds.append(item.name)
-
-    return playsounds
 
 def create_s3_connection():
     print('Creating AWS S3 connection...')
@@ -56,9 +41,11 @@ for item in s3_resource.Bucket('discord-playsounds').objects.all():
 def upload_playsounds():
     # Check if valid playsound
     p = Path('playsounds')
-    valid_playsounds = [x for x in p.glob('*.mp3') if is_valid_playsound(x) is not None]
+    # valid_playsounds = [x for x in p.glob('*.mp3') if is_valid_playsound(x) is not None]
+    valid_playsounds = get_valid_playsounds()
     print('valid_playsounds: ', valid_playsounds)
     # valid_playsounds = get_valid_playsounds(file_sounds)
+    
 
     for valid in valid_playsounds:
         print('valid values: ', valid)
@@ -69,6 +56,44 @@ def upload_playsounds():
 
     # TODO: Compare hash
     s3_objects = s3.Bucket('discord-playsounds').objects.all()
+
+    '''
+    for obj in s3_objects:
+        if [(d['name'], d['hexdigest']) for d in valid_playsounds] not in obj.e_tag.replace('"', ''): # Remove " character from obj.e_tag
+            s3.Bucket('discord-playsounds').upload_file(Filename=d['name'], Key=d['name'])
+    '''
+
+    # TODO: Fix this logic
+    '''
+    for obj in s3_objects:
+        for d in valid_playsounds:
+            if d['hexdigest'] not in obj.e_tag.replace('"', ''):
+                print('Uploading file...')
+                # s3.Bucket('discord-playsounds').upload_file(Filename=str(d['name']), Key=d['name'].name)
+                print('File uploaded...')
+            else:
+                print('File exists, skipping ...')
+    '''
+    compile_list = [(d['name'], d['hexdigest']) for d in valid_playsounds]
+    digests = [d['hexdigest'] for d in valid_playsounds]
+
+    for obj in s3_objects:
+        if obj.e_tag.replace('"', '') not in digests:
+            print('Uploading file...')
+            print('name of file: ', )
+            # print('name of file: ', x['name'])
+            # s3.Bucket('discord-playsounds').upload_file(Filename=str(d['name']), Key=d['name'].name)
+            print('File uploaded...')
+        else:
+            # print('name of file: ', x['name'])
+            print('File exists, skipping ...')
+
+
+    '''
+    for obj in s3_objects:
+        print('Getting S3 file...')
+        print('Filename of file ', obj.key)
+        print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
     
 
 
@@ -76,6 +101,7 @@ def upload_playsounds():
         print('Uploading file...')
         s3.Bucket('discord-playsounds').upload_file(Filename=str(item), Key=item.name)
         print('File uploaded...')
+    '''
 
 # Downloads playsounds from AWS S3 bucket
 def download_playsounds():
@@ -83,10 +109,10 @@ def download_playsounds():
     p = Path('playsounds')
     p.mkdir(parents=True, exist_ok=True)
 
-    local_file_checksum = get_files_hash()
+    local_file_checksum = get_valid_playsounds()
 
     if local_file_checksum:
-        print('local_file_checksum: ', local_file_checksum[0][0])
+        print('local_file_checksum: ', local_file_checksum)
 
     s3 = create_s3_connection()
     playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
@@ -95,23 +121,29 @@ def download_playsounds():
         print('Getting S3 file...')
         print('Filename of file', obj.key)
         print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
-        if obj.e_tag.replace('"', '') not in local_file_checksum:                   # Remove " character from obj.e_tag
+        if obj.e_tag.replace('"', '') not in [d['hexdigest'] for d in local_file_checksum]: # Remove " character from obj.e_tag
             playsound_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
             print('S3 file downloaded')
         else:
             print('File already exists... skipping file')
 
-# Get all the hashes of the files in local folder
-def get_files_hash():
+def get_valid_playsounds():
+    '''
+    Valid playsound criteria:
+    Duration: <= 15 seconds
+    File type: .mp3
+    '''
     hashes = []
-    p = Path('playsounds').glob('**/*')
-    files = [x for x in p if x.is_file()]
+    p = Path('playsounds').glob('**/*.mp3')
+
+    files = [x for x in p if MP3(x).info.length <= 15]
+
     for x in files:
         hash_md5 = hashlib.md5()
         with open(x, 'rb') as f:
             for chunk in iter(lambda: f.read(4096), b''):
                 hash_md5.update(chunk)
-        hashes.append(hash_md5.hexdigest())
+        hashes.append({"name": x, "hexdigest": hash_md5.hexdigest()})
 
     return hashes
 
@@ -124,10 +156,10 @@ def get_bucket_objects():
     playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
 
 
-# get_files_hash()
+# get_valid_playsounds()
 # upload_playsounds2()
-download_playsounds()
-# upload_playsounds()
+# download_playsounds()
+upload_playsounds()
 
     
 
