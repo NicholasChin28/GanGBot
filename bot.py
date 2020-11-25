@@ -1,6 +1,6 @@
 # TODO: In the future, add cogs to organize the functions more neatly
-# TODO: Fix remove function
 # TODO: Run playsounds.py code on bot startup
+# TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 import os
 import random
@@ -193,9 +193,6 @@ class PlaysoundSource(discord.PCMVolumeTransformer):
     def __str__(self):
         return f'PlaysoundSource class __str__ function'
 
-
-    # TODO: Refactor this function to check if the playsound is available
-    # Then get the metadata from the playsound
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
@@ -366,14 +363,11 @@ class VoiceState:
         self.next.set()
 
     def skip(self):
-        # self.skip_votes.clear()
-        # self._loop = False  
         if self.is_playing:
             self.voice.stop()
-            # Remove skipped song from the queuelist
 
     async def stop(self):
-        # self._loop = False
+        
         self.songs.clear()
         # Manually added
         if self.voice:
@@ -475,12 +469,12 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
-        # If current is None, means that there is no song being played
         if ctx.voice_state.current is None :
             await ctx.send('Not playing any song right now.')
         else:
             await ctx.send(embed=ctx.voice_state.current.create_embed())
 
+    # TODO: Update queue generate_embed_msg after removing an item
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """ Displays items in the queue """
@@ -488,7 +482,7 @@ class Music(commands.Cog):
             queue = ''
             upper_limit = page * items_per_page 
             lower_limit = (page - 1) * items_per_page
-            for i, song in enumerate(queue_list[lower_limit:upper_limit], start=lower_limit):
+            for i, _ in enumerate(queue_list[lower_limit:upper_limit], start=lower_limit):
                 queue += queue_list[i]
             return queue
 
@@ -546,7 +540,7 @@ class Music(commands.Cog):
 
             while True:
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                    reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await message.delete()
                     break
@@ -621,13 +615,13 @@ class Music(commands.Cog):
         else:
             await ctx.send(f'This message should never happen. Message called from stop.')
     
-    # TODO: Set loop to false if skip is called?
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         """ Skips current track. """
         if not ctx.voice_state.is_playing:
             return await ctx.send('Not playing any music right now...')
 
+        ctx.voice_state.loop = False    # Unloops the queue
         await ctx.message.add_reaction('⏭')
 
         ctx.voice_state.skip()
@@ -829,7 +823,7 @@ class Music(commands.Cog):
 
             while True:
                 try:
-                    reaction, user = await bot.wait_for('reaction_add', timeout=60, check=check)
+                    reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=check)
                 except asyncio.TimeoutError:
                     await message.delete()
                     break
