@@ -26,82 +26,29 @@ def create_s3_connection():
     print('AWS S3 connection established')
     return s3_resource
 
-# Alternate method
-def is_valid_playsound(filename):
-    playsound = MP3(filename)
-    if playsound.info.length <= 15:
-        return filename
-
-'''
-for item in s3_resource.Bucket('discord-playsounds').objects.all():
-    print(item.key)
-'''
-
-# TODO: Refactor function to store all the downloaded playsounds as the "Master" list
 def upload_playsounds():
     # Check if valid playsound
-    p = Path('playsounds')
-    # valid_playsounds = [x for x in p.glob('*.mp3') if is_valid_playsound(x) is not None]
     valid_playsounds = get_valid_playsounds()
     print('valid_playsounds: ', valid_playsounds)
-    # valid_playsounds = get_valid_playsounds(file_sounds)
-    
 
     for valid in valid_playsounds:
         print('valid values: ', valid)
-        # print('valid values name: ', valid.name)
 
-    print('Creating AWS S3 connection')
-    s3 = create_s3_connection()
+    s3_bucket = get_bucket()
+    s3_objects = s3_bucket.objects.all()
+    s3_hashes = [obj.e_tag.replace('"', '') for obj in s3_objects]
 
-    # TODO: Compare hash
-    s3_objects = s3.Bucket('discord-playsounds').objects.all()
-
-    '''
-    for obj in s3_objects:
-        if [(d['name'], d['hexdigest']) for d in valid_playsounds] not in obj.e_tag.replace('"', ''): # Remove " character from obj.e_tag
-            s3.Bucket('discord-playsounds').upload_file(Filename=d['name'], Key=d['name'])
-    '''
-
-    # TODO: Fix this logic
-    '''
-    for obj in s3_objects:
-        for d in valid_playsounds:
-            if d['hexdigest'] not in obj.e_tag.replace('"', ''):
-                print('Uploading file...')
-                # s3.Bucket('discord-playsounds').upload_file(Filename=str(d['name']), Key=d['name'].name)
-                print('File uploaded...')
-            else:
-                print('File exists, skipping ...')
-    '''
-    compile_list = [(d['name'], d['hexdigest']) for d in valid_playsounds]
-    digests = [d['hexdigest'] for d in valid_playsounds]
-
-    for obj in s3_objects:
-        if obj.e_tag.replace('"', '') not in digests:
+    for d in valid_playsounds:
+        local_hash = d['hexdigest']
+        if local_hash not in s3_hashes:
+            print('local_name: ', d['name'])
+            print('filename: ', d['name'].name)
             print('Uploading file...')
-            print('name of file: ', )
-            # print('name of file: ', x['name'])
-            # s3.Bucket('discord-playsounds').upload_file(Filename=str(d['name']), Key=d['name'].name)
-            print('File uploaded...')
+            s3_bucket.upload_file(Filename=str(d['name']), Key=d['name'].name)
+            print('File uploaded') 
         else:
-            # print('name of file: ', x['name'])
-            print('File exists, skipping ...')
+            print('File exists.. skipping')
 
-
-    '''
-    for obj in s3_objects:
-        print('Getting S3 file...')
-        print('Filename of file ', obj.key)
-        print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
-    
-
-
-    for item in valid_playsounds:
-        print('Uploading file...')
-        s3.Bucket('discord-playsounds').upload_file(Filename=str(item), Key=item.name)
-        print('File uploaded...')
-    '''
 
 # Downloads playsounds from AWS S3 bucket
 def download_playsounds():
@@ -114,15 +61,15 @@ def download_playsounds():
     if local_file_checksum:
         print('local_file_checksum: ', local_file_checksum)
 
-    s3 = create_s3_connection()
-    playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
+    s3_bucket = get_bucket()
+    s3_objects = s3_bucket.objects.all()
     
-    for obj in playsound_bucket.objects.all():
+    for obj in s3_objects:
         print('Getting S3 file...')
         print('Filename of file', obj.key)
         print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
         if obj.e_tag.replace('"', '') not in [d['hexdigest'] for d in local_file_checksum]: # Remove " character from obj.e_tag
-            playsound_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
+            s3_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
             print('S3 file downloaded')
         else:
             print('File already exists... skipping file')
@@ -146,20 +93,20 @@ def get_valid_playsounds():
         hashes.append({"name": x, "hexdigest": hash_md5.hexdigest()})
 
     return hashes
+    # print(hashes)
 
-# TODO: Helper function
 # Get all objects in a bucket
-def get_bucket_objects():
+def get_bucket():
     print('Creating AWS S3 connection')
     s3 = create_s3_connection()
 
     playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
-
+    return playsound_bucket
 
 # get_valid_playsounds()
 # upload_playsounds2()
-# download_playsounds()
-upload_playsounds()
+download_playsounds()
+# upload_playsounds()
 
     
 
