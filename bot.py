@@ -2,6 +2,7 @@
 # TODO: Run playsounds.py code on bot startup
 # TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
+from playsounds import Playsound
 import os
 import random
 from dotenv import load_dotenv
@@ -375,28 +376,6 @@ class VoiceState:
             # self.current = None
             self.voice = None
 
-# Testing cog
-class Greetings(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        self._last_member = None
-
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        channel = member.guild.system_channel
-        if channel is not None:
-            await channel.send('Welcome {0.mention}.'.format(member))
-
-    @commands.command()
-    async def hello(self, ctx, *, member: discord.Member = None):
-        """ Says hello """
-        member = member or ctx.author
-        if self._last_member is None or self._last_member.id != member.id:
-            await ctx.send('Hello {0.name}~'.format(member))
-        else:
-            await ctx.send('Hello {0.name}... This feels familiar'.format(member))
-        self._last_member = member
-            
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -853,6 +832,7 @@ class Music(commands.Cog):
     
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
+bot.add_cog(Playsound(bot))
 # bot.add_cog(Greetings(bot))
 
 '''

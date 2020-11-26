@@ -15,6 +15,45 @@ load_dotenv()
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
 # Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
 
+import discord
+from discord.ext import commands
+from discord.utils import get
+
+# TODO: Create Playsound Cog
+class Playsound(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @commands.command()
+    async def _addsound(self, ctx):
+        await ctx.send('addsound function')
+
+# Testing cog
+'''
+class Greetings(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self._last_member = None
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        channel = member.guild.system_channel
+        if channel is not None:
+            await channel.send('Welcome {0.mention}.'.format(member))
+
+    @commands.command()
+    async def hello(self, ctx, *, member: discord.Member = None):
+        """ Says hello """
+        member = member or ctx.author
+        if self._last_member is None or self._last_member.id != member.id:
+            await ctx.send('Hello {0.name}~'.format(member))
+        else:
+            await ctx.send('Hello {0.name}... This feels familiar'.format(member))
+        self._last_member = member
+'''
+
+
+
 def create_s3_connection():
     print('Creating AWS S3 connection...')
     s3_resource = boto3.resource(
@@ -105,7 +144,7 @@ def get_bucket():
 
 # get_valid_playsounds()
 # upload_playsounds2()
-download_playsounds()
+# download_playsounds()
 # upload_playsounds()
 
     
