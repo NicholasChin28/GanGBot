@@ -669,15 +669,16 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
-    # TODO: Implement {0}, {1} placeholders to allow choose options with white spaces
+    # TODO: Ignore white spaces
     @commands.command(name='choose')
-    async def _choose(self, ctx: commands.Context, *argv):
-        """ Chooses a random item from options. """
-        if len(argv) < 2:
-            return await ctx.send("Two or more choices should be given")
+    async def _choose(self, ctx: commands.Context, *, choose: str):
+        """ Chooses a random item """
+        options = [x.strip() for x in choose.split(',') if len(x) > 0]
+        print('options: ', options)
+        if len(options) < 2:
+            return await ctx.send('Two or more choices should be given')
 
-        items = [str(i) for i in argv]
-        return await ctx.send("Maldbot chose: " + random.choice(items))
+        return await ctx.send('Maldbot chose: ' + random.choice(options))
 
     # TODO: Add multiple choices picker
     # @commands.command(name='choosemany')
