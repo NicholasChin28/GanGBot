@@ -2,7 +2,7 @@
 # TODO: Run playsounds.py code on bot startup
 # TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
-from playsounds import Playsound
+# from playsounds import Playsound
 import os
 import random
 from dotenv import load_dotenv
@@ -833,7 +833,7 @@ class Music(commands.Cog):
     
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
-bot.add_cog(Playsound(bot))
+# bot.add_cog(Playsound(bot))
 # bot.add_cog(Greetings(bot))
 
 '''

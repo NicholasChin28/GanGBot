@@ -28,12 +28,12 @@ def get_process(client):
 
 def start_process(client):
     stdin, stdout, stderr = client.exec_command(f'{env_vals["CONDA_PATH"]} activate GanGBot')
-    print('Output: ', stdout.readline())
-    print('Error: ', stderr.readline())
+    print('Output activate: ', stdout.readline())
+    print('Error activate: ', stderr.readline())
 
     stdin, stdout, stderr = client.exec_command(f'nohup {env_vals["PYTHON_PATH"]} {env_vals["PYTHON_FILE"]}')
-    print('Output: ', stdout.readline())
-    print('Error: ', stderr.readline())
+    print('Output nohup: ', stdout.readline())
+    print('Error nohup: ', stderr.readline())
 
 
 def restart_bot(client):
