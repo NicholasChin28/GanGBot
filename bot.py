@@ -2,7 +2,7 @@
 # TODO: Run playsounds.py code on bot startup
 # TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
-# from playsounds import Playsound
+from playsounds import Playsound
 import os
 import random
 from dotenv import load_dotenv
@@ -669,11 +669,10 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
-    # TODO: Ignore white spaces
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
         """ Chooses a random item """
-        options = [x.strip() for x in choose.split(',') if len(x) > 0]
+        options = [x.strip() for x in choose.split(',') if len(x.strip()) > 0]
         print('options: ', options)
         if len(options) < 2:
             return await ctx.send('Two or more choices should be given')
@@ -833,7 +832,7 @@ class Music(commands.Cog):
     
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
-# bot.add_cog(Playsound(bot))
+bot.add_cog(Playsound(bot))
 # bot.add_cog(Greetings(bot))
 
 '''

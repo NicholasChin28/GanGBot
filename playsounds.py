@@ -1,5 +1,6 @@
 # Storing and retrieving playsounds from AWS S3 bucket
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
+# TODO: Add file watcher
 import boto3
 from dotenv import load_dotenv
 import os
@@ -19,41 +20,81 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 
-# TODO: Create Playsound Cog
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command()
-    async def _addsound(self, ctx):
-        await ctx.send('addsound function')
-
-# Testing cog
-'''
-class Greetings(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-        self._last_member = None
-
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        channel = member.guild.system_channel
-        if channel is not None:
-            await channel.send('Welcome {0.mention}.'.format(member))
+    async def on_ready(self):
+        print('Playsound cog loaded!')
+        download_playsounds()
 
-    @commands.command()
-    async def hello(self, ctx, *, member: discord.Member = None):
-        """ Says hello """
-        member = member or ctx.author
-        if self._last_member is None or self._last_member.id != member.id:
-            await ctx.send('Hello {0.name}~'.format(member))
-        else:
-            await ctx.send('Hello {0.name}... This feels familiar'.format(member))
-        self._last_member = member
-'''
+    async def create_s3_connection(self):
+        print('Creating AWS S3 connection...')
+        s3_resource = boto3.resource(
+            service_name = 's3',
+            region_name = 'ap-southeast-1',
+            aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+        print('AWS S3 connection established')
+        return s3_resource
+
+    # Downloads playsounds from AWS S3 bucket
+    async def download_playsounds(self):
+        # Creating download folder
+        p = Path('playsounds')
+        p.mkdir(parents=True, exist_ok=True)
+
+        local_file_checksum = await get_valid_playsounds()
+
+        if local_file_checksum:
+            print('local_file_checksum: ', local_file_checksum)
+
+        s3_bucket = await get_bucket()
+        s3_objects = await s3_bucket.objects.all()
+        
+        for obj in s3_objects:
+            print('Getting S3 file...')
+            print('Filename of file', obj.key)
+            print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
+            if obj.e_tag.replace('"', '') not in [d['hexdigest'] for d in local_file_checksum]: # Remove " character from obj.e_tag
+                await s3_bucket.download_file(Key=obj.key, Filename=(p / obj.key).__str__())
+                print('S3 file downloaded')
+            else:
+                print('File already exists... skipping file')
 
 
+    async def get_valid_playsounds(self):
+        '''
+        Valid playsound criteria:
+        Duration: <= 15 seconds
+        File type: .mp3
+        '''
+        hashes = []
+        p = Path('playsounds').glob('**/*.mp3')
 
+        files = [x for x in p if MP3(x).info.length <= 15]
+
+        for x in files:
+            hash_md5 = hashlib.md5()
+            with open(x, 'rb') as f:
+                for chunk in iter(lambda: f.read(4096), b''):
+                    hash_md5.update(chunk)
+            hashes.append({"name": x, "hexdigest": hash_md5.hexdigest()})
+
+        return hashes
+        # print(hashes)
+
+    # Get all objects in a bucket
+    async def get_bucket(self):
+        print('Creating AWS S3 connection')
+        s3 = await create_s3_connection()
+
+        playsound_bucket = await s3.Bucket(os.getenv('AWS_BUCKET'))
+        return playsound_bucket
+
+# First revision of functions
 def create_s3_connection():
     print('Creating AWS S3 connection...')
     s3_resource = boto3.resource(
