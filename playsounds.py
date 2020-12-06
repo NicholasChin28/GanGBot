@@ -5,12 +5,11 @@ import boto3
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-from mutagen.mp3 import MP3
+import mutagen
 import hashlib
 
 load_dotenv()
 
-# TODO: Allow for audio file formats other than .mp3
 # TODO: Getting the MD5 from Etag of AWS S3 objects will not be the same if the files are multi part uploaded
 # Find a way of possibly getting MD5 checksum regardless of multipart uploaded or individually uploaded
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
@@ -69,12 +68,12 @@ class Playsound(commands.Cog):
         '''
         Valid playsound criteria:
         Duration: <= 15 seconds
-        File type: .mp3
+        File type: Valid file format supported by mutagen
         '''
         hashes = []
-        p = Path('playsounds').glob('**/*.mp3')
+        p = Path('playsounds').glob('**/*')
 
-        files = [x for x in p if MP3(x).info.length <= 15]
+        files = [x for x in p if mutagen.File(x) is not None and mutagen.File(x).info.length <= 15 ]
 
         for x in files:
             hash_md5 = hashlib.md5()
@@ -94,7 +93,11 @@ class Playsound(commands.Cog):
         playsound_bucket = await s3.Bucket(os.getenv('AWS_BUCKET'))
         return playsound_bucket
 
+# 
+#
 # First revision of functions
+#
+#
 def create_s3_connection():
     print('Creating AWS S3 connection...')
     s3_resource = boto3.resource(
@@ -154,16 +157,17 @@ def download_playsounds():
         else:
             print('File already exists... skipping file')
 
+
 def get_valid_playsounds():
     '''
     Valid playsound criteria:
     Duration: <= 15 seconds
-    File type: .mp3
+    File type: Valid audio file format supported by mutagen
     '''
     hashes = []
-    p = Path('playsounds').glob('**/*.mp3')
+    p = Path('playsounds').glob('**/*')
 
-    files = [x for x in p if MP3(x).info.length <= 15]
+    files = [x for x in p if mutagen.File(x) is not None and mutagen.File(x).info.length <= 15 ]
 
     for x in files:
         hash_md5 = hashlib.md5()
@@ -172,8 +176,11 @@ def get_valid_playsounds():
                 hash_md5.update(chunk)
         hashes.append({"name": x, "hexdigest": hash_md5.hexdigest()})
 
+
     return hashes
     # print(hashes)
+
+
 
 # Get all objects in a bucket
 def get_bucket():
