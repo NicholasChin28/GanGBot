@@ -1,8 +1,12 @@
+# TODO: Pass context between different cogs
+# TODO: Tidy up code
 # TODO: In the future, add cogs to organize the functions more neatly
 # TODO: Run playsounds.py code on bot startup
 # TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 from playsounds import Playsound
+from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
+from custom_poll import MyMenu
 import os
 import random
 from dotenv import load_dotenv
@@ -223,6 +227,109 @@ class PlaysoundSource(discord.PCMVolumeTransformer):
         else:
             return details
 
+# class SpotifySource(discord.PCMVolumeTransformer):
+class SpotError(Exception):
+    pass
+
+class SpotifyRealSource(discord.PCMVolumeTransformer):
+    FFMPEG_OPTIONS = {
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options': '-vn',
+    }
+
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+        super().__init__(source, volume)
+
+        self.requester = ctx.author
+        self.channel = ctx.channel
+        self.data = data
+
+        # self.duration = YTDLSource.parse_duration(data.get('duration'))
+        # self.title = data.get('title')
+
+    def __str__(self):
+        return f'PlaysoundSource class __str__ function'
+
+    @classmethod
+    async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+        loop = loop or asyncio.get_event_loop()
+
+        partial = functools.partial(SpotifyRealSource.extract_info, search)
+        data = await loop.run_in_executor(None, partial)
+
+        if data is None:
+            raise SpotError('Spotify track does not exist')
+
+        location = Path(f"{os.getenv('APP_PATH')}/{search}.mp3")
+        return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
+
+    @staticmethod
+    def extract_info(search: str):
+        location = Path(f"{os.getenv('APP_PATH')}/{search}.mp3")
+        if location.is_file():
+            return True
+
+class SpotTrack():
+    __slots__ = ('source', 'requester')
+
+    def __init__(self, source: SpotifyRealSource):
+        self.source = source
+        self.requester = source.requester
+
+    def create_embed(self):
+        embed = discord.Embed(title='Spotify embed')
+
+        return embed
+
+class SpotifyCog(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print('Spotify cog loaded!')
+        
+    @commands.command(name='spsearch')
+    async def _spsearch(self, ctx: commands.Context, *, search: str):
+        """ Searches Spotify for the track. """
+        results = await SpotifyRealSource.search_track(search)
+
+        # Generate Spotify search embed message
+        base_embed = discord.Embed(title='Spotify Search',
+                                    description='Spotify search results',
+                                    color=discord.Color.blurple())
+                            
+        temp_embed = discord.Embed().add_field(name='Test', value='test')
+                        
+        
+        for num, i in enumerate(results, start=1):
+            base_embed.add_field(name=f'```Track {num}```',
+                                    value=f'```Title: {i["title"]}\n Artist: {i["artist"]}\n {i["duration"]}\n URL: {i["url"]}```')
+            # base_embed.add_field(name=chr(173), value=chr(173))   # Causes very weird orientation
+            # base_embed += (discord.Embed) 
+        
+        # base_embed.add_field(name='Track', value=f'Name: Something\n Duration: 3ms 4s\n URL: Something/something')
+
+        await ctx.send(embed=base_embed)
+
+    # TODO: Download and play track
+    @commands.command(name='splay')
+    async def _splay(self, ctx: commands.Context, *, search: str):
+        """ Plays downloaded Spotify track. """
+        # if not ctx.voice_state.voice:
+        #     await ctx.invoke(self._join)
+
+        async with ctx.typing():
+            try:
+                source = await SpotifyRealSource.get_source(ctx, search, loop=self.bot.loop)
+            except SpotError as e:
+                await ctx.send(e)
+            else:
+                sound = SpotTrack(source)
+
+                await ctx.voice_state.songs.put(sound)
+                await ctx.send(f'Enqueued a spotify track')
+
 class Song:
     __slots__ = ('source', 'requester')
 
@@ -258,6 +365,18 @@ class Sound:
                 .add_field(name='Requested by', value=self.requester.mention))
 
         return embed
+
+# Custom added class for Spotify tracks
+'''
+class SpotTrack:
+    __slots__ = ('source', 'requester')
+
+    def __init__()
+
+    def search_embed(self):
+        # embed = (discord.Embed())
+        pass
+'''
 
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
@@ -680,23 +799,13 @@ class Music(commands.Cog):
         return await ctx.send('Maldbot chose: ' + random.choice(options))
 
     # TODO: Add multiple choices picker
-    # @commands.command(name='choosemany')
-    # async def _choosemany(self, ctx: commands.Context, *argv, choices: int):
+    '''
+    @commands.command(name='choosemany')
+    async def _choosemany(self, ctx: commands.Context):
         """ Chooses {choices} number of items from options. """
-        '''
-        if len(argv) < 2:
-            return await ctx.send("Two or more choices should be given")
-
-        if (choices >= len(argv)):
-            return await ctx.send("Choices should be more than options given")
-        '''
-        
-        # Prepares a Discord embed 
-        '''
-        embed = (discord.Embed(title='Choices'),
-                                    description='List of choices...'))
-                        .add_field()
-        '''
+        m = MyMenu()
+        await m.start(ctx)
+    '''
 
     # TODO: Create poll function
     # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
@@ -814,11 +923,47 @@ class Music(commands.Cog):
                         page += 1
                         await refresh_embed()
 
-    # Command to play songs from spotify
-    # @commands.command(name='playspotify')
-    # async def _playspotify(self, ctx: commands.Context):
-        """ Plays songs from spotify. """
-        # temp = spotify_source.SpotifySource()
+    @commands.command(name='spsearch')
+    async def _spsearch(self, ctx: commands.Context, *, search: str):
+        """ Searches Spotify for the track. """
+        results = await SpotifyRealSource.search_track(search)
+
+        # Generate Spotify search embed message
+        base_embed = discord.Embed(title='Spotify Search',
+                                    description='Spotify search results',
+                                    color=discord.Color.blurple())
+                            
+        temp_embed = discord.Embed().add_field(name='Test', value='test')
+                        
+        
+        for num, i in enumerate(results, start=1):
+            base_embed.add_field(name=f'```Track {num}```',
+                                    value=f'```Title: {i["title"]}\n Artist: {i["artist"]}\n {i["duration"]}\n URL: {i["url"]}```')
+            # base_embed.add_field(name=chr(173), value=chr(173))   # Causes very weird orientation
+            # base_embed += (discord.Embed) 
+        
+        # base_embed.add_field(name='Track', value=f'Name: Something\n Duration: 3ms 4s\n URL: Something/something')
+
+        await ctx.send(embed=base_embed)
+
+    # TODO: Download and play track
+    @commands.command(name='splay')
+    async def _splay(self, ctx: commands.Context, *, search: str):
+        """ Plays downloaded Spotify track. """
+        # if not ctx.voice_state.voice:
+        #     await ctx.invoke(self._join)
+
+        async with ctx.typing():
+            try:
+                source = await SpotifyRealSource.get_source(ctx, search, loop=self.bot.loop)
+            except SpotError as e:
+                await ctx.send(e)
+            else:
+                sound = SpotTrack(source)
+
+                await ctx.voice_state.songs.put(sound)
+                await ctx.send(f'Enqueued a spotify track')
+    
         
     @_join.before_invoke
     @_play.before_invoke
@@ -829,10 +974,15 @@ class Music(commands.Cog):
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Bot is already in a voice channel.')
+
     
 bot = commands.Bot('.', description='GanG スター Bot')
 bot.add_cog(Music(bot))
-bot.add_cog(Playsound(bot))
+# bot.add_cog(Playsound(bot))
+
+# Temporary cog for SpotifyCog
+# bot.add_cog(SpotifyCog(bot))
+
 # bot.add_cog(Greetings(bot))
 
 '''

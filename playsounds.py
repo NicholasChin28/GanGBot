@@ -26,7 +26,7 @@ class Playsound(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print('Playsound cog loaded!')
-        download_playsounds()
+        await self.download_playsounds()
 
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')
@@ -45,13 +45,13 @@ class Playsound(commands.Cog):
         p = Path('playsounds')
         p.mkdir(parents=True, exist_ok=True)
 
-        local_file_checksum = await get_valid_playsounds()
+        local_file_checksum = await self.get_valid_playsounds()
 
         if local_file_checksum:
             print('local_file_checksum: ', local_file_checksum)
 
-        s3_bucket = await get_bucket()
-        s3_objects = await s3_bucket.objects.all()
+        s3_bucket = await self.get_bucket()
+        s3_objects = s3_bucket.objects.all()
         
         for obj in s3_objects:
             print('Getting S3 file...')
@@ -88,9 +88,9 @@ class Playsound(commands.Cog):
     # Get all objects in a bucket
     async def get_bucket(self):
         print('Creating AWS S3 connection')
-        s3 = await create_s3_connection()
+        s3 = await self.create_s3_connection()
 
-        playsound_bucket = await s3.Bucket(os.getenv('AWS_BUCKET'))
+        playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
         return playsound_bucket
 
 # 
@@ -98,6 +98,7 @@ class Playsound(commands.Cog):
 # First revision of functions
 #
 #
+"""
 def create_s3_connection():
     print('Creating AWS S3 connection...')
     s3_resource = boto3.resource(
@@ -189,6 +190,7 @@ def get_bucket():
 
     playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
     return playsound_bucket
+"""
 
 # get_valid_playsounds()
 # upload_playsounds2()
