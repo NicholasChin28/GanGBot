@@ -21,6 +21,8 @@ from discord.ext import commands
 import functools
 from pathlib import Path
 
+# from bot import Music
+
 # Add discord.PCMVolumeTransformer 
 # TODO: Add listener to detect when the current track has finished playing
 # TODO: Use SpotDl instead to get .mp3 files of Spotify tracks and to download
@@ -51,6 +53,7 @@ class SpotifyRealSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+    # async def get_source(cls, )
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(SpotifyRealSource.extract_info, search)
@@ -61,6 +64,19 @@ class SpotifyRealSource(discord.PCMVolumeTransformer):
 
         location = Path(f"{os.getenv('APP_PATH')}/{search}.mp3")
         return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
+
+    @classmethod
+    async def get_source2(cls, search: str, *, loop: asyncio.BaseEventLoop = None):
+        loop = loop or asyncio.get_event_loop()
+
+        partial = functools.partial(SpotifyRealSource.extract_info, search)
+        data = await loop.run_in_executor(None, partial)
+
+        if data is None:
+            raise SpotError('Spotify track does not exist')
+
+        location = Path(f"{os.getenv('APP_PATH')}/{search}.mp3")
+        return cls(data, discord.FFmpegPCMAudio(location), data = data)
 
     @staticmethod
     def extract_info(search: str):
@@ -84,11 +100,11 @@ class SpotifyCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener()
+    # @commands.Cog.listener()
     async def on_ready(self):
         print('Spotify cog loaded!')
         
-    @commands.command(name='spsearch')
+    # @commands.command(name='spsearch')
     async def _spsearch(self, ctx: commands.Context, *, search: str):
         """ Searches Spotify for the track. """
         results = await SpotifySource.search_track(search)
@@ -112,23 +128,50 @@ class SpotifyCog(commands.Cog):
         await ctx.send(embed=base_embed)
 
     # TODO: Download and play track
-    @commands.command(name='splay')
-    async def _splay(self, ctx: commands.Context, *, search: str):
+    # @commands.command(name='splay')
+    # async def splay(self, ctx: commands.Context, *, search: str):
+    async def splay(self, ctx: commands.Context, *, search: str):
         """ Plays downloaded Spotify track. """
         # if not ctx.voice_state.voice:
         #     await ctx.invoke(self._join)
-
+        print('splay called in spotify_player')
         async with ctx.typing():
             try:
                 source = await SpotifyRealSource.get_source(ctx, search, loop=self.bot.loop)
             except SpotError as e:
-                await ctx.send(e)
+                await ctx.send('Error here: ', e)
             else:
                 sound = SpotTrack(source)
 
-                await ctx.voice_state.songs.put(sound)
-                await ctx.send(f'Enqueued a spotify track')
+                print('sound datatype: ', type(sound))
+                print('sound value: ', sound)
+                # await ctx.voice_state.songs.put(sound)
+                # print(vars(self.bot))
+                # print(vars(Music))
+                # await ctx.send(f'Enqueued a spotify track')
+                return sound
+    
+    @staticmethod
+    async def splay2(ctx: commands.Context, search: str):
+        """ Plays downloaded Spotify track. """
+        # if not ctx.voice_state.voice:
+        #     await ctx.invoke(self._join)
+        print('splay called in spotify_player')
+        async with ctx.typing():
+            try:
+                source = await SpotifyRealSource.get_source(ctx, search, loop=ctx.voice_state.loop)
+            except SpotError as e:
+                await ctx.send('Error here: ', e)
+            else:
+                sound = SpotTrack(source)
 
+                print('sound datatype: ', type(sound))
+                print('sound value: ', sound)
+                # await ctx.voice_state.songs.put(sound)
+                # print(vars(self.bot))
+                # print(vars(Music))
+                # await ctx.send(f'Enqueued a spotify track')
+                return sound
 
 
 class SpotifySource:
