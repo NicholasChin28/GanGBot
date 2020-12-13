@@ -51,6 +51,9 @@ from pathlib import Path
 from mutagen.mp3 import MP3
 import mutagen
 
+# For voting 
+import re
+
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
@@ -689,15 +692,26 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
+    
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
         """ Chooses a random item """
-        options = [x.strip() for x in choose.split(',') if len(x.strip()) > 0]
+        options = [x.strip() for x in choose.split('|') if len(x.strip()) > 0]
         print('options: ', options)
         if len(options) < 2:
             return await ctx.send('Two or more choices should be given')
 
         return await ctx.send('Maldbot chose: ' + random.choice(options))
+    
+    # New implementation of choose function
+    @commands.command(name='choose_new')
+    async def _choosenew(self, ctx: commands.Context, *choose: str):
+        """ Chooses a random item. """
+        print('Value of choose tuple: ', choose)
+        if len(choose) < 2:
+            return await ctx.send('Two or more choices must be given')
+
+        return await ctx.send(f'Maldbot chose: {random.choice(choose)}')
 
     # TODO: Add multiple choices picker
     '''
@@ -708,30 +722,56 @@ class Music(commands.Cog):
         await m.start(ctx)
     '''
 
-    # TODO: Create poll function
+    # Voting feature using embeds and reactions
     # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
-    async def _poll(self, ctx: commands.Context, question: str, *options: str):
-        """ Creates a poll with choices. """
-        author = ctx.author
-        
+    @commands.command(name='vote')
+    async def _vote(self, ctx: commands.Context, question, *options: str):
+        # TODO: Use [] or {} to allow options and questions with white spaces
         if len(options) <= 1:
-            return await ctx.send("Error! A poll must have more than one option.")
+            await ctx.send("Error! A poll must have more than one options")
+            return
         
-        if len(options) >= 2:
-            reactions = ['👍', '👎']
-
+        option_emoji = [':one:', ':two:', ':three:']
+        option_emoji2 = ['1️⃣', '2️⃣', '3️⃣']
         description = []
+
         for x, option in enumerate(options):
-            description += '\n {} {}'.format(reactions[x], option)
+            description += '\n {} {}'.format(option_emoji[x], option)
 
         embed = discord.Embed(title = question, color = 3553599, description = ''.join(description))
 
-        react_message = await ctx.send(embed)
+        react_message = await ctx.send(embed=embed)
 
-        for reaction in reactions[:len(options)]:
-            await ctx.message.add_reaction(react_message, reaction)
+        for option in option_emoji2[:len(options)]:
+            print('Value of option: ', option)
+            await react_message.add_reaction(option)
 
         embed.set_footer(text='Poll ID: {}'.format(react_message.id))
+
+        await react_message.edit(embed=embed)
+
+    # TODO: See whether the list comprehension can be simplified or tidied up
+    @commands.command(name='vote2')
+    async def _vote2(self, ctx: commands.Context, *args):
+        # TODO: Use [] for adding options
+        # TODO2: Use regular expressions instead
+        print('Value of args: ', args)
+        title = ' '.join([''.join(x).replace('{', '').replace('}', '') for x in args if x.find('{') == 0 or x.find('}') == len(x) - 1])
+
+        # options = ' '.join([''.join(x).replace('[', '').replace(']', '') for x in args if x.find('[') == 0 or x.find(']') == len(x) - 1])
+        options = ' '.join([''.join(x) for x in args if x.find('[') == 0 or x.find(']') == len(x) - 1])
+
+        # for x, option in enumerate(options):
+        # options = 
+
+        # title_start = ' '.join(title_start)
+        print('Value of title_start: ', title)
+        print('Value of options: ', options)
+
+    '''
+    @commands.Command(name='vote3')
+    async def _vote3(self, ctx: commands.Context)
+    '''
 
         
         
@@ -825,6 +865,7 @@ class Music(commands.Cog):
                         await refresh_embed()
 
     # Try creating splay command here
+    '''
     @commands.command(name='splay')
     async def _splay(self, ctx: commands.Context, search: str):
         spotify_cog = self.bot.get_cog('SpotifyCog')
@@ -837,9 +878,25 @@ class Music(commands.Cog):
             return await ctx.send(f'Enqueued a spotify track')
         
         await ctx.send('Cannot add track spot track')
+    '''
 
-    
-    
+    @commands.command(name='splay_temp')
+    async def _splay(self, ctx: commands.Context, search: str):
+        track = await SpotifyCog.splay2(ctx, search)
+        await ctx.voice_state.songs.put(track)
+
+        return await ctx.send(f'Enqueued a spotify track')
+
+    '''
+    embed = (discord.Embed(title='Now playing',
+                                description='```css\n{0.source.title}\n```'.format(self),
+                                color=discord.Color.blurple())
+                .add_field(name='Duration', value=self.source.duration)
+                .add_field(name='Requested by', value=self.requester.mention)
+                .add_field(name='Uploader', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
+                .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
+                .set_thumbnail(url=self.source.thumbnail))
+    '''
         
     @_join.before_invoke
     @_play.before_invoke
