@@ -53,6 +53,9 @@ import mutagen
 
 # For voting 
 import re
+import string
+import emoji
+from unicodedata import lookup
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
@@ -320,6 +323,7 @@ class VoiceState:
         self._loop = False
         self._volume = 0.5
         # self.skip_votes = set()
+        self.votes = set()
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -768,10 +772,67 @@ class Music(commands.Cog):
         print('Value of title_start: ', title)
         print('Value of options: ', options)
 
-    '''
-    @commands.Command(name='vote3')
-    async def _vote3(self, ctx: commands.Context)
-    '''
+    
+    @commands.command(name='vote3')
+    async def _vote3(self, ctx: commands.Context, *args):
+        arg_string = ''.join(args)
+        print('Value of arg_string', type(arg_string))
+
+        # Creating options
+
+        # Emojis for embed
+        option_emoji = [''.join((':regional_indicator_', x, ':')) for x in list(string.ascii_lowercase)]
+        print('Value of option_emoji: ', option_emoji)
+
+        # Actual emojis for reaction
+        option_emoji2 = [emoji.emojize(x, use_aliases=True) for x in option_emoji]
+        print('Value of option_emoji2: ', option_emoji2)
+
+
+        # Finds the title
+        title = re.findall("^{.*}", arg_string)
+        print('Value of title: ', title)
+
+        # Finds the options
+        options = re.findall(r'\[.*?\]', arg_string)
+        print('Value of options: ', options)
+
+        formatted_options = []
+        for x, option in enumerate(options):
+            formatted_options += '\n {} {}'.format(option_emoji2[x], option[1:-1])
+
+        # Creates a slice formatter for title and options
+        # formatter = slice()
+
+        # Create embed from title and options
+        embed = discord.Embed(title = title[0][1:-1], color = 3553599, description = ''.join(formatted_options))
+
+        react_message = await ctx.send(embed=embed)
+
+        # For tracking the voters
+        voter = ctx.message.author
+        if voter.id not in ctx.voice_state.votes:
+            ctx.voice_state.votes.add(voter.id)
+            total_votes = len(ctx.voice_state.votes)
+
+            if total_votes >= 1:
+                await ctx.send(f'A total of {total_votes} have been casted')
+
+        for option in option_emoji2[:len(options)]:
+            print('Value of options: ', option)
+            await react_message.add_reaction(option)
+
+        await react_message.edit(embed=embed)
+
+
+
+        # Temporarily prints the number of reactions
+        await ctx.send(f'Total number of reactions: {len(react_message.reactions)}') 
+
+        '''
+        title = re.search(r"\{.*\}", args)
+        print('Value of title: ', title)
+        '''
 
         
         
