@@ -1,8 +1,4 @@
 # TODO: Pass context between different cogs
-# TODO: Tidy up code
-# TODO: In the future, add cogs to organize the functions more neatly
-# TODO: Run playsounds.py code on bot startup
-# TODO: Update the queue function after removing an item from the queue
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 from playsounds import Playsound
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
@@ -11,9 +7,6 @@ from spotify_player import SpotifyCog
 import os
 import random
 from dotenv import load_dotenv
-
-# For the discord.Embed 2048 character limit
-import textwrap
 
 from os import listdir
 from os.path import isfile, join
@@ -38,9 +31,6 @@ import logging
 # Added updated fork of youtube_dl
 import youtube_dlc
 
-# Wrap text
-import lorem
-
 # Relative path
 from pathlib import Path
 
@@ -48,7 +38,6 @@ from pathlib import Path
 # import spotify_source
 
 # For getting mp3 metadata
-from mutagen.mp3 import MP3
 import mutagen
 
 # For voting 
@@ -271,18 +260,6 @@ class Sound:
                 .add_field(name='Requested by', value=self.requester.mention))
 
         return embed
-
-# Custom added class for Spotify tracks
-'''
-class SpotTrack:
-    __slots__ = ('source', 'requester')
-
-    def __init__()
-
-    def search_embed(self):
-        # embed = (discord.Embed())
-        pass
-'''
 
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
@@ -754,27 +731,8 @@ class Music(commands.Cog):
 
         await react_message.edit(embed=embed)
 
-    # TODO: See whether the list comprehension can be simplified or tidied up
     @commands.command(name='vote2')
     async def _vote2(self, ctx: commands.Context, *args):
-        # TODO: Use [] for adding options
-        # TODO2: Use regular expressions instead
-        print('Value of args: ', args)
-        title = ' '.join([''.join(x).replace('{', '').replace('}', '') for x in args if x.find('{') == 0 or x.find('}') == len(x) - 1])
-
-        # options = ' '.join([''.join(x).replace('[', '').replace(']', '') for x in args if x.find('[') == 0 or x.find(']') == len(x) - 1])
-        options = ' '.join([''.join(x) for x in args if x.find('[') == 0 or x.find(']') == len(x) - 1])
-
-        # for x, option in enumerate(options):
-        # options = 
-
-        # title_start = ' '.join(title_start)
-        print('Value of title_start: ', title)
-        print('Value of options: ', options)
-
-    
-    @commands.command(name='vote3')
-    async def _vote3(self, ctx: commands.Context, *args):
         arg_string = ''.join(args)
         print('Value of arg_string', type(arg_string))
 
