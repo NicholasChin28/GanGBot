@@ -791,6 +791,43 @@ class Music(commands.Cog):
         def check(reaction, user):
             return not user.bot and reaction.message.id == react_message.id
         
+        # Search in discordpy discord channel
+        # Search for "timeout wait_for". Find comment by "Eviee"
+        # Working iteration of the voting feature
+        # TODO: Tidy up the code and set on timeout to display the results of the vote
+        try:
+            async with timeout(10):
+                while True:
+                    try:
+                        reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
+                    except Exception:
+                        await ctx.send('Normal exception occurred. Should not happen')
+                    else:
+                        async with ctx.channel.typing():
+                            await ctx.send(f'Added reaction: {reaction.emoji}')
+                            await ctx.send(f'Total number of reactions: {reaction.count}')
+                            the_list = await ctx.channel.fetch_message(react_message.id)
+                            await ctx.send(f'reaction list: {the_list.reactions}')
+                            await ctx.send(f'reaction list length: {len(the_list.reactions)}')
+        except asyncio.TimeoutError:
+            await ctx.send('Reaction timeout reached')
+            
+        
+            
+        # templen = 0
+        # async for count in react_message.reactions.count
+        """
+        for reaction in react_message.reactions:
+            await ctx.send(f'Reaction object: {reaction}')
+            
+            templen += reaction.count
+            print('Length: ', len(reaction.count))
+            
+            async for count in reaction.count():
+                await ctx.send(f'Value of count: {count}')
+        """
+        # await ctx.send(f'Total overall reactions: {templen}')
+        '''
         while True:
             try:
                 reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
@@ -810,21 +847,19 @@ class Music(commands.Cog):
                     """
                     for reaction in react_message.reactions:
                         await ctx.send(f'Reaction object: {reaction}')
-                        '''
+                        
                         templen += reaction.count
                         print('Length: ', len(reaction.count))
-                        '''
+                        
                         async for count in reaction.count():
                             await ctx.send(f'Value of count: {count}')
                     """
                     # await ctx.send(f'Total overall reactions: {templen}')
 
-        '''
+        
         title = re.search(r"\{.*\}", args)
         print('Value of title: ', title)
         '''
-
-        
         
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='playsound')
