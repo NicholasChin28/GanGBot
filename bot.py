@@ -785,7 +785,39 @@ class Music(commands.Cog):
 
 
         # Temporarily prints the number of reactions
-        await ctx.send(f'Total number of reactions: {len(react_message.reactions)}') 
+        # await ctx.send(f'Total number of reactions: {len(react_message.reactions)}') 
+
+        # Check for reaction
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == react_message.id
+        
+        while True:
+            try:
+                reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
+            except asyncio.TimeoutError:
+
+                await ctx.send('Reaction add timeout')
+                return
+            else:
+                async with ctx.channel.typing():
+                    # await ctx.send(f'Added reaction: {reaction.emoji}')
+                    # await ctx.send(f'Total number of reactions: {reaction.count}')
+                    the_list = await ctx.channel.fetch_message(react_message.id)
+                    # await ctx.send(f'reaction list: {the_list.reactions}')
+                    # await ctx.send(f'reaction list length: {len(the_list.reactions)}')
+                    # templen = 0
+                    # async for count in react_message.reactions.count
+                    """
+                    for reaction in react_message.reactions:
+                        await ctx.send(f'Reaction object: {reaction}')
+                        '''
+                        templen += reaction.count
+                        print('Length: ', len(reaction.count))
+                        '''
+                        async for count in reaction.count():
+                            await ctx.send(f'Value of count: {count}')
+                    """
+                    # await ctx.send(f'Total overall reactions: {templen}')
 
         '''
         title = re.search(r"\{.*\}", args)
@@ -944,6 +976,12 @@ async def on_connect():
     with open('gravel.jpg', 'rb') as f:
         image = f.read()
     await bot.user.edit(avatar = image)
+'''
+# Try adding bot.event here for this command
+'''
+@bot.event
+async def on_reaction_add(reaction, user):
+    print(user, "added", reaction, "to", reaction.message)
 '''
 
 @bot.event
