@@ -733,10 +733,8 @@ class Music(commands.Cog):
 
     @commands.command(name='vote2')
     async def _vote2(self, ctx: commands.Context, *args):
-        arg_string = ''.join(args)
-        print('Value of arg_string', type(arg_string))
-
-        # Creating options
+        arg_string = ' '.join(args)
+        print('Value of arg_string', arg_string)
 
         # Emojis for embed
         option_emoji = [''.join((':regional_indicator_', x, ':')) for x in list(string.ascii_lowercase)]
@@ -755,9 +753,17 @@ class Music(commands.Cog):
         options = re.findall(r'\[.*?\]', arg_string)
         print('Value of options: ', options)
 
+        
         formatted_options = []
         for x, option in enumerate(options):
             formatted_options += '\n {} {}'.format(option_emoji2[x], option[1:-1])
+        
+
+        '''
+        formatted_options = []
+        for x, option in enumerate(options):
+            formatted_options += '\n {} {}'.format(option_emoji2[x], ''.join([x for x in options]))
+        '''
 
         # Creates a slice formatter for title and options
         # formatter = slice()
