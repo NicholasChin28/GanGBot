@@ -705,6 +705,7 @@ class Music(commands.Cog):
 
     # Voting feature using embeds and reactions
     # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
+    """
     @commands.command(name='vote')
     async def _vote(self, ctx: commands.Context, question, *options: str):
         # TODO: Use [] or {} to allow options and questions with white spaces
@@ -730,9 +731,10 @@ class Music(commands.Cog):
         embed.set_footer(text='Poll ID: {}'.format(react_message.id))
 
         await react_message.edit(embed=embed)
+    """
 
-    @commands.command(name='vote2')
-    async def _vote2(self, ctx: commands.Context, *args):
+    @commands.command(name='vote')
+    async def _vote(self, ctx: commands.Context, *args):
         arg_string = ' '.join(args)
         print('Value of arg_string', arg_string)
 
@@ -779,8 +781,10 @@ class Music(commands.Cog):
             ctx.voice_state.votes.add(voter.id)
             total_votes = len(ctx.voice_state.votes)
 
+            '''
             if total_votes >= 1:
                 await ctx.send(f'A total of {total_votes} have been casted')
+            '''
 
         for option in option_emoji2[:len(options)]:
             print('Value of options: ', option)
@@ -802,21 +806,61 @@ class Music(commands.Cog):
         # Working iteration of the voting feature
         # TODO: Tidy up the code and set on timeout to display the results of the vote
         try:
-            async with timeout(10):
+            async with timeout(15):
                 while True:
                     try:
                         reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
                     except Exception:
                         await ctx.send('Normal exception occurred. Should not happen')
+                    """
+                    else:
+                        the_list = await ctx.channel.fetch_message(react_message.id)
+                    """
+                    """
                     else:
                         async with ctx.channel.typing():
-                            await ctx.send(f'Added reaction: {reaction.emoji}')
-                            await ctx.send(f'Total number of reactions: {reaction.count}')
+                            # await ctx.send(f'Added reaction: {reaction.emoji}')
+                            # await ctx.send(f'Total number of reactions: {reaction.count}')
                             the_list = await ctx.channel.fetch_message(react_message.id)
+                            '''
                             await ctx.send(f'reaction list: {the_list.reactions}')
                             await ctx.send(f'reaction list length: {len(the_list.reactions)}')
+                            '''
+                            # await ctx.send(f'reaction list: {the_list.reactions}')
+                            
+                            '''
+                            total = 0
+                            [total := total + x for x in [1, 2, 3, 4, 5]]
+                            # 15
+                            '''
+
+                            total = 0
+                            [total := total + x.count - 1 for x in the_list.reactions]
+                            # await ctx.send(f'reaction list length: {total}')
+                    """
         except asyncio.TimeoutError:
-            await ctx.send('Reaction timeout reached')
+            # Display results here
+            the_list = await ctx.channel.fetch_message(react_message.id)
+            await ctx.send('Voting ended. Calculating results...')
+            # await ctx.send('Calculating results...')
+
+            # 1. Get the highest vote count in the votes
+            # 2. Check if there are more than one element that has the highest vote count
+            # 3. If no, then announce the highest vote
+            # 4. Else, say no winner. More than one vote has the highest amount
+            # 5. option[1:-1]
+            vote_counts = [x.count - 1 for x in the_list.reactions]
+            print('vote_counts: ', vote_counts)
+            highest_count = max(vote_counts)    # Highest vote count
+            if vote_counts.count(highest_count) > 1:
+                await ctx.send('More than one vote has the highest votes. No winner :(')
+            else:
+                await ctx.send(f'Winner found! The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
+
+            # vote_counts = [x.count - 1 for x in the_list.reactions]
+
+
+            # vote_count = [x.count - 1 for x in the_list.reactions]
             
         
             
