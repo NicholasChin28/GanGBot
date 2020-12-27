@@ -684,16 +684,6 @@ class Music(commands.Cog):
 
         return await ctx.send('Maldbot chose: ' + random.choice(options))
     
-    # New implementation of choose function
-    @commands.command(name='choose_new')
-    async def _choosenew(self, ctx: commands.Context, *choose: str):
-        """ Chooses a random item. """
-        print('Value of choose tuple: ', choose)
-        if len(choose) < 2:
-            return await ctx.send('Two or more choices must be given')
-
-        return await ctx.send(f'Maldbot chose: {random.choice(choose)}')
-
     # TODO: Add multiple choices picker
     '''
     @commands.command(name='choosemany')
@@ -704,35 +694,6 @@ class Music(commands.Cog):
     '''
 
     # Voting feature using embeds and reactions
-    # Reference code: https://stackoverflow.com/questions/62248341/poll-command-discord-py
-    """
-    @commands.command(name='vote')
-    async def _vote(self, ctx: commands.Context, question, *options: str):
-        # TODO: Use [] or {} to allow options and questions with white spaces
-        if len(options) <= 1:
-            await ctx.send("Error! A poll must have more than one options")
-            return
-        
-        option_emoji = [':one:', ':two:', ':three:']
-        option_emoji2 = ['1️⃣', '2️⃣', '3️⃣']
-        description = []
-
-        for x, option in enumerate(options):
-            description += '\n {} {}'.format(option_emoji[x], option)
-
-        embed = discord.Embed(title = question, color = 3553599, description = ''.join(description))
-
-        react_message = await ctx.send(embed=embed)
-
-        for option in option_emoji2[:len(options)]:
-            print('Value of option: ', option)
-            await react_message.add_reaction(option)
-
-        embed.set_footer(text='Poll ID: {}'.format(react_message.id))
-
-        await react_message.edit(embed=embed)
-    """
-
     @commands.command(name='vote')
     async def _vote(self, ctx: commands.Context, *args):
         arg_string = ' '.join(args)
@@ -760,16 +721,6 @@ class Music(commands.Cog):
         for x, option in enumerate(options):
             formatted_options += '\n {} {}'.format(option_emoji2[x], option[1:-1])
         
-
-        '''
-        formatted_options = []
-        for x, option in enumerate(options):
-            formatted_options += '\n {} {}'.format(option_emoji2[x], ''.join([x for x in options]))
-        '''
-
-        # Creates a slice formatter for title and options
-        # formatter = slice()
-
         # Create embed from title and options
         embed = discord.Embed(title = title[0][1:-1], color = 3553599, description = ''.join(formatted_options))
 
@@ -781,21 +732,11 @@ class Music(commands.Cog):
             ctx.voice_state.votes.add(voter.id)
             total_votes = len(ctx.voice_state.votes)
 
-            '''
-            if total_votes >= 1:
-                await ctx.send(f'A total of {total_votes} have been casted')
-            '''
-
         for option in option_emoji2[:len(options)]:
             print('Value of options: ', option)
             await react_message.add_reaction(option)
 
         await react_message.edit(embed=embed)
-
-
-
-        # Temporarily prints the number of reactions
-        # await ctx.send(f'Total number of reactions: {len(react_message.reactions)}') 
 
         # Check for reaction
         def check(reaction, user):
@@ -812,43 +753,11 @@ class Music(commands.Cog):
                         reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
                     except Exception:
                         await ctx.send('Normal exception occurred. Should not happen')
-                    """
-                    else:
-                        the_list = await ctx.channel.fetch_message(react_message.id)
-                    """
-                    """
-                    else:
-                        async with ctx.channel.typing():
-                            # await ctx.send(f'Added reaction: {reaction.emoji}')
-                            # await ctx.send(f'Total number of reactions: {reaction.count}')
-                            the_list = await ctx.channel.fetch_message(react_message.id)
-                            '''
-                            await ctx.send(f'reaction list: {the_list.reactions}')
-                            await ctx.send(f'reaction list length: {len(the_list.reactions)}')
-                            '''
-                            # await ctx.send(f'reaction list: {the_list.reactions}')
-                            
-                            '''
-                            total = 0
-                            [total := total + x for x in [1, 2, 3, 4, 5]]
-                            # 15
-                            '''
-
-                            total = 0
-                            [total := total + x.count - 1 for x in the_list.reactions]
-                            # await ctx.send(f'reaction list length: {total}')
-                    """
         except asyncio.TimeoutError:
             # Display results here
             the_list = await ctx.channel.fetch_message(react_message.id)
             await ctx.send('Voting ended. Calculating results...')
-            # await ctx.send('Calculating results...')
 
-            # 1. Get the highest vote count in the votes
-            # 2. Check if there are more than one element that has the highest vote count
-            # 3. If no, then announce the highest vote
-            # 4. Else, say no winner. More than one vote has the highest amount
-            # 5. option[1:-1]
             vote_counts = [x.count - 1 for x in the_list.reactions]
             print('vote_counts: ', vote_counts)
             highest_count = max(vote_counts)    # Highest vote count
@@ -857,60 +766,6 @@ class Music(commands.Cog):
             else:
                 await ctx.send(f'Winner found! The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-            # vote_counts = [x.count - 1 for x in the_list.reactions]
-
-
-            # vote_count = [x.count - 1 for x in the_list.reactions]
-            
-        
-            
-        # templen = 0
-        # async for count in react_message.reactions.count
-        """
-        for reaction in react_message.reactions:
-            await ctx.send(f'Reaction object: {reaction}')
-            
-            templen += reaction.count
-            print('Length: ', len(reaction.count))
-            
-            async for count in reaction.count():
-                await ctx.send(f'Value of count: {count}')
-        """
-        # await ctx.send(f'Total overall reactions: {templen}')
-        '''
-        while True:
-            try:
-                reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
-            except asyncio.TimeoutError:
-
-                await ctx.send('Reaction add timeout')
-                return
-            else:
-                async with ctx.channel.typing():
-                    # await ctx.send(f'Added reaction: {reaction.emoji}')
-                    # await ctx.send(f'Total number of reactions: {reaction.count}')
-                    the_list = await ctx.channel.fetch_message(react_message.id)
-                    # await ctx.send(f'reaction list: {the_list.reactions}')
-                    # await ctx.send(f'reaction list length: {len(the_list.reactions)}')
-                    # templen = 0
-                    # async for count in react_message.reactions.count
-                    """
-                    for reaction in react_message.reactions:
-                        await ctx.send(f'Reaction object: {reaction}')
-                        
-                        templen += reaction.count
-                        print('Length: ', len(reaction.count))
-                        
-                        async for count in reaction.count():
-                            await ctx.send(f'Value of count: {count}')
-                    """
-                    # await ctx.send(f'Total overall reactions: {templen}')
-
-        
-        title = re.search(r"\{.*\}", args)
-        print('Value of title: ', title)
-        '''
-        
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='playsound')
     async def _playsound(self, ctx: commands.Context, *, search: str):
@@ -1061,12 +916,6 @@ async def on_connect():
     with open('gravel.jpg', 'rb') as f:
         image = f.read()
     await bot.user.edit(avatar = image)
-'''
-# Try adding bot.event here for this command
-'''
-@bot.event
-async def on_reaction_add(reaction, user):
-    print(user, "added", reaction, "to", reaction.message)
 '''
 
 @bot.event
