@@ -716,6 +716,10 @@ class Music(commands.Cog):
         options = re.findall(r'\[.*?\]', arg_string)
         print('Value of options: ', options)
 
+        # Finds the voting duration
+        vote_time = re.findall(r'\(.*?\)', arg_string)
+        print('Value of vote_time: ', vote_time)
+
         
         formatted_options = []
         for x, option in enumerate(options):
@@ -747,7 +751,7 @@ class Music(commands.Cog):
         # Working iteration of the voting feature
         # TODO: Tidy up the code and set on timeout to display the results of the vote
         try:
-            async with timeout(15):
+            async with timeout(int(vote_time)):
                 while True:
                     try:
                         reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
@@ -871,12 +875,14 @@ class Music(commands.Cog):
         await ctx.send('Cannot add track spot track')
     '''
 
+    '''
     @commands.command(name='splay_temp')
     async def _splay(self, ctx: commands.Context, search: str):
         track = await SpotifyCog.splay2(ctx, search)
         await ctx.voice_state.songs.put(track)
 
         return await ctx.send(f'Enqueued a spotify track')
+    '''
 
     '''
     embed = (discord.Embed(title='Now playing',
