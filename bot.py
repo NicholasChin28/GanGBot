@@ -717,7 +717,7 @@ class Music(commands.Cog):
         print('Value of options: ', options)
 
         # Finds the voting duration
-        vote_time = re.findall(r'\(.*?\)', arg_string)
+        vote_time = re.findall(r"\(\d*?\)", arg_string)
         print('Value of vote_time: ', vote_time)
 
         
@@ -751,10 +751,10 @@ class Music(commands.Cog):
         # Working iteration of the voting feature
         # TODO: Tidy up the code and set on timeout to display the results of the vote
         try:
-            async with timeout(int(vote_time)):
+            async with timeout(int(vote_time[0][1:-1])):
                 while True:
                     try:
-                        reaction, _ = await bot.wait_for('reaction_add', timeout=15, check=check)
+                        reaction, _ = await bot.wait_for('reaction_add', check=check)
                     except Exception:
                         await ctx.send('Normal exception occurred. Should not happen')
         except asyncio.TimeoutError:
