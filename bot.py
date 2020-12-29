@@ -697,29 +697,21 @@ class Music(commands.Cog):
     @commands.command(name='vote')
     async def _vote(self, ctx: commands.Context, *args):
         arg_string = ' '.join(args)
-        print('Value of arg_string', arg_string)
-
+        
         # Emojis for embed
         option_emoji = [''.join((':regional_indicator_', x, ':')) for x in list(string.ascii_lowercase)]
-        print('Value of option_emoji: ', option_emoji)
-
+        
         # Actual emojis for reaction
         option_emoji2 = [emoji.emojize(x, use_aliases=True) for x in option_emoji]
-        print('Value of option_emoji2: ', option_emoji2)
-
-
+        
         # Finds the title
         title = re.findall("^{.*}", arg_string)
-        print('Value of title: ', title)
-
+        
         # Finds the options
         options = re.findall(r'\[.*?\]', arg_string)
-        print('Value of options: ', options)
-
+        
         # Finds the voting duration
         vote_time = re.findall(r"\(\d*?\)", arg_string)
-        print('Value of vote_time: ', vote_time)
-
         
         formatted_options = []
         for x, option in enumerate(options):
@@ -746,10 +738,6 @@ class Music(commands.Cog):
         def check(reaction, user):
             return not user.bot and reaction.message.id == react_message.id
         
-        # Search in discordpy discord channel
-        # Search for "timeout wait_for". Find comment by "Eviee"
-        # Working iteration of the voting feature
-        # TODO: Tidy up the code and set on timeout to display the results of the vote
         try:
             async with timeout(int(vote_time[0][1:-1])):
                 while True:
@@ -765,7 +753,11 @@ class Music(commands.Cog):
             vote_counts = [x.count - 1 for x in the_list.reactions]
             print('vote_counts: ', vote_counts)
             highest_count = max(vote_counts)    # Highest vote count
-            if vote_counts.count(highest_count) > 1:
+
+            if sum(vote_counts) == 0:
+                pepehands = get(ctx.guild.emojis, name='Pepehands')
+                await ctx.send(f'No votes casted.. {pepehands} no one voted')    
+            elif vote_counts.count(highest_count) > 1:
                 await ctx.send('More than one vote has the highest votes. No winner :(')
             else:
                 await ctx.send(f'Winner found! The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
