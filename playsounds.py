@@ -8,6 +8,9 @@ from pathlib import Path
 import mutagen
 import hashlib
 import asyncio
+import functools
+
+# from bot import Music
 
 load_dotenv()
 
@@ -19,6 +22,96 @@ load_dotenv()
 import discord
 from discord.ext import commands
 from discord.utils import get
+
+
+# Non existent playsound file error
+class SoundError(Exception):
+    pass
+
+class PlaysoundSource(discord.PCMVolumeTransformer):
+    FFMPEG_OPTIONS = {
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options': '-vn',
+    }
+
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+        super().__init__(source, volume)
+
+        self.requester = ctx.author
+        self.channel = ctx.channel
+        self.data = data
+
+        self.duration = self.parse_duration(data.get('duration'))
+        self.title = data.get('title')
+        
+     
+    def __str__(self):
+        return f'PlaysoundSource class __str__ function'
+
+    @classmethod
+    async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+        loop = loop or asyncio.get_event_loop()
+
+        # partial = functools.partial(cls.extract_info, search)
+        partial = functools.partial(PlaysoundSource.extract_info, search)
+        data = await loop.run_in_executor(None, partial)
+
+        if data is None:
+            raise SoundError('Playsound does not exist')
+
+        location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
+        return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
+
+    # TODO: Get metadata of local sound files to display in queue function
+    @staticmethod
+    def extract_info(search: str):
+        location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
+        if location.is_file():
+            details = {}
+            playsound = mutagen.File(location)
+
+            details['duration'] = int(playsound.info.length)
+            details['title'] = search
+            
+            return details
+        else:
+            return details
+
+    @staticmethod
+    def parse_duration(duration: int):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        days, hours = divmod(hours, 24)
+
+        duration = []
+        if days > 0:
+            duration.append('{} days'.format(days))
+        if hours > 0:
+            duration.append('{} hours'.format(hours))
+        if minutes > 0:
+            duration.append('{} minutes'.format(minutes))
+        if seconds > 0:
+            duration.append('{} seconds'.format(seconds))
+
+        return ', '.join(duration)
+
+# Custom added class to play local .mp3 files as a soundboard
+class Sound:
+    __slots__ = ('source', 'requester')
+
+    def __init__(self, source: PlaysoundSource):
+        self.source = source
+        self.requester = source.requester
+
+    def create_embed(self):
+        embed = (discord.Embed(title='Now playing',
+                                description='```css\n{0.source.title}\n```'.format(self),
+                                color=discord.Color.blurple())
+                .add_field(name='Duration', value=self.source.duration)
+                .add_field(name='Requested by', value=self.requester.mention))
+
+        return embed
+
 
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -100,6 +193,37 @@ class Playsound(commands.Cog):
                     elif reaction.emoji == '\u25b6':
                         page += 1
                         await refresh_embed()
+
+    # Additional command to play local .mp3 files for soundboard
+    @commands.command(name='playsound')
+    async def _playsound(self, ctx: commands.Context, *, search: str):
+        parent_cog = ctx.bot.get_cog('Music')
+        cur_voice_state = parent_cog.get_voice_state(ctx)
+        ctx.voice_state = cur_voice_state
+        if not cur_voice_state.voice:
+            await ctx.bot.get_command('join').callback(self, ctx)
+            # await ctx.invoke(parent_cog._join)
+            # await ctx.send('Trying to join')
+            # await ctx.invoke(ctx._join)
+        # if not parent_cog.voice_state.voice:
+            # await ctx.invoke(ctx._join)
+        """ Plays sound. """
+        # if not ctx.voice_state.voice:
+        # if not ctx.prefix.voice_state.voice:
+        # if Music.voice_state.voice:
+            # await ctx.invoke(ctx.._join)
+            
+
+        async with ctx.typing():
+            try:
+                source = await PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
+            except SoundError as e:
+                await ctx.send(e)
+            else:
+                sound = Sound(source)
+
+                await cur_voice_state.songs.put(sound)
+                await ctx.send(f'Enqueued a playsound')
 
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')

@@ -47,6 +47,8 @@ import emoji
 from unicodedata import lookup
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
+# Lookup command grouping in the future: https://stackoverflow.com/questions/62460182/discord-py-how-to-invoke-another-command-inside-another-one
+# Use tasks, etc. @task.loop for automating timed tasks
 
 # Silence useless bug reports messages
 youtube_dlc.utils.bug_reports_message = lambda: ''
@@ -58,10 +60,6 @@ class VoiceError(Exception):
     pass
 
 class YTDLError(Exception):
-    pass
-
-# Non existent playsound file error
-class SoundError(Exception):
     pass
 
 # Youtube-dl class
@@ -174,54 +172,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return ', '.join(duration)
 
-class PlaysoundSource(discord.PCMVolumeTransformer):
-    FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': '-vn',
-    }
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
-        super().__init__(source, volume)
-
-        self.requester = ctx.author
-        self.channel = ctx.channel
-        self.data = data
-
-        self.duration = YTDLSource.parse_duration(data.get('duration'))
-        self.title = data.get('title')
-        
-     
-    def __str__(self):
-        return f'PlaysoundSource class __str__ function'
-
-    @classmethod
-    async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
-        loop = loop or asyncio.get_event_loop()
-
-        # partial = functools.partial(cls.extract_info, search)
-        partial = functools.partial(PlaysoundSource.extract_info, search)
-        data = await loop.run_in_executor(None, partial)
-
-        if data is None:
-            raise SoundError('Playsound does not exist')
-
-        location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
-        return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
-
-    # TODO: Get metadata of local sound files to display in queue function
-    @staticmethod
-    def extract_info(search: str):
-        location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
-        if location.is_file():
-            details = {}
-            playsound = mutagen.File(location)
-
-            details['duration'] = int(playsound.info.length)
-            details['title'] = search
-            
-            return details
-        else:
-            return details
 
 
 
@@ -244,22 +195,6 @@ class Song:
 
         return embed
 
-# Custom added class to play local .mp3 files as a soundboard
-class Sound:
-    __slots__ = ('source', 'requester')
-
-    def __init__(self, source: PlaysoundSource):
-        self.source = source
-        self.requester = source.requester
-
-    def create_embed(self):
-        embed = (discord.Embed(title='Now playing',
-                                description='```css\n{0.source.title}\n```'.format(self),
-                                color=discord.Color.blurple())
-                .add_field(name='Duration', value=self.source.duration)
-                .add_field(name='Requested by', value=self.requester.mention))
-
-        return embed
 
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
@@ -414,6 +349,7 @@ class Music(commands.Cog):
         """Joins a voice channel."""
 
         destination = ctx.author.voice.channel
+        
         if ctx.voice_state.voice:
             await ctx.voice_state.voice.move_to(destination)
             return
@@ -762,23 +698,7 @@ class Music(commands.Cog):
             else:
                 await ctx.send(f'Winner found! The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    # Additional command to play local .mp3 files for soundboard
-    @commands.command(name='playsound')
-    async def _playsound(self, ctx: commands.Context, *, search: str):
-        """ Plays sound. """
-        if not ctx.voice_state.voice:
-            await ctx.invoke(self._join)
-
-        async with ctx.typing():
-            try:
-                source = await PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
-            except SoundError as e:
-                await ctx.send(e)
-            else:
-                sound = Sound(source)
-
-                await ctx.voice_state.songs.put(sound)
-                await ctx.send(f'Enqueued a playsound')
+    
     
     
     # Try creating splay command here
