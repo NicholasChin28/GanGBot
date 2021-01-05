@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import mutagen
 import hashlib
+import asyncio
 
 load_dotenv()
 
@@ -26,7 +27,79 @@ class Playsound(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print('Playsound cog loaded!')
-        await self.download_playsounds()
+        # await self.download_playsounds()
+
+    @commands.command(name='listsounds')
+    async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
+        """ Get list of playsounds """
+        p = Path(f"{os.getenv('APP_PATH')}/playsounds")
+        file_sounds = [os.path.splitext(x.name)[0] for x in p.glob('*.mp3')]
+
+        # If no playsounds
+        if len(file_sounds) == 0:
+            return await ctx.send("No playsounds found")
+        else:
+            limit = 10      # Playsounds per page
+            embeds = []
+            playsounds = ''
+            
+            # Create an embeds from the file_sounds and store in a dictionary.
+            # Each item will contain {limit} playsounds.
+            for i, sounds in enumerate(file_sounds[0:], start=1):
+                
+                if i % limit == 0:
+                    playsounds += '`{0}.` `{1}`\n'.format(i, sounds)
+                    embeds.append(playsounds)
+                    playsounds = ''
+                else:
+                    playsounds += '`{0}.` `{1}`\n'.format(i, sounds)
+                    if i == len(file_sounds):
+                        embeds.append(playsounds)
+                
+            pages = len(embeds) # Total pages
+
+            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+            message = await ctx.send(embed=embed)
+
+            # Create reactions based on the number of pages
+            async def add_page_reactions():
+                if page == pages:
+                    pass    # Only 1 page. No reactions required
+                if page > 1:
+                    await message.add_reaction('\u25c0')
+                if pages > page:
+                    await message.add_reaction('\u25b6')
+            
+            await add_page_reactions()
+
+            # Recreates the embed
+            async def refresh_embed():
+                await message.clear_reactions()
+                embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
+                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+
+                await message.edit(embed = embed)
+                await add_page_reactions()
+
+            # Check for reaction
+            def check(reaction, user):
+                return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
+
+            while True:
+                try:
+                    # reaction, _ = await bot.wait_for('reaction_add', timeout=60, check=check)
+                    reaction, _ = await ctx.bot.wait_for('reaction_add', timeout=60, check=check)
+                except asyncio.TimeoutError:
+                    await message.delete()
+                    break
+                else:
+                    if reaction.emoji == '\u25c0':
+                        page -= 1
+                        await refresh_embed()
+                    elif reaction.emoji == '\u25b6':
+                        page += 1
+                        await refresh_embed()
 
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')
