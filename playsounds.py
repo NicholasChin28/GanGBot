@@ -207,12 +207,6 @@ class Playsound(commands.Cog):
             # await ctx.invoke(ctx._join)
         # if not parent_cog.voice_state.voice:
             # await ctx.invoke(ctx._join)
-        """ Plays sound. """
-        # if not ctx.voice_state.voice:
-        # if not ctx.prefix.voice_state.voice:
-        # if Music.voice_state.voice:
-            # await ctx.invoke(ctx.._join)
-            
 
         async with ctx.typing():
             try:

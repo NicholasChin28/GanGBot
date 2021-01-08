@@ -1,4 +1,6 @@
 # TODO: Pass context between different cogs
+# TODO: Add an emoji to cancel votes
+# https://stackoverflow.com/questions/56796991/discord-py-changing-prefix-with-command
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 from playsounds import Playsound
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
@@ -632,6 +634,18 @@ class Music(commands.Cog):
     # Voting feature using embeds and reactions
     @commands.command(name='vote')
     async def _vote(self, ctx: commands.Context, *args):
+        print('Prefix of command: ', ctx.prefix)
+        print('Starting of args: ')
+        # Help details for vote command
+        # TODO: Refactor help command to be in another location
+        if ctx.prefix == '?':
+            return await ctx.send("""To use the vote command, refer to this example: 
+.vote {title} [option] [option] (duration)\n  
+title: Insert your title here 
+option: List as many options you want. Number of options can be up to 20 
+duration: How long the vote should last. Currently the duration allowed is between 30 seconds - 5 minutes
+The duration must be in seconds (eg. 300 for 5 minutes)""")
+
         arg_string = ' '.join(args)
         
         # Emojis for embed
@@ -648,7 +662,18 @@ class Music(commands.Cog):
         
         # Finds the voting duration
         vote_time = re.findall(r"\(\d*?\)", arg_string)
-        
+
+        # Allow voting duration between 30 seconds - 5 minutes
+        try:
+            vote_time = int(vote_time[0][1:-1])
+        except ValueError as e:
+            await ctx.send('Vote time must be a number')
+            return
+
+        if vote_time < 30 or vote_time > 300:
+            await ctx.send('Vote time must be between 30 seconds - 5 minutes')        
+            return
+
         formatted_options = []
         for x, option in enumerate(options):
             formatted_options += '\n {} {}'.format(option_emoji2[x], option[1:-1])
@@ -675,7 +700,8 @@ class Music(commands.Cog):
             return not user.bot and reaction.message.id == react_message.id
         
         try:
-            async with timeout(int(vote_time[0][1:-1])):
+            # async with timeout(int(vote_time[0][1:-1])):
+            async with timeout(vote_time):
                 while True:
                     try:
                         reaction, _ = await bot.wait_for('reaction_add', check=check)
@@ -696,11 +722,8 @@ class Music(commands.Cog):
             elif vote_counts.count(highest_count) > 1:
                 await ctx.send('More than one vote has the highest votes. No winner :(')
             else:
-                await ctx.send(f'Winner found! The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
+                await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    
-    
-    
     # Try creating splay command here
     '''
     @commands.command(name='splay')
@@ -748,7 +771,7 @@ class Music(commands.Cog):
                 raise commands.CommandError('Bot is already in a voice channel.')
 
     
-bot = commands.Bot('.', description='GanG スター Bot')
+bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
 bot.add_cog(Music(bot))
 bot.add_cog(Playsound(bot))
 
