@@ -4,7 +4,7 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 from playsounds import Playsound
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
-from spotify_player import SpotifyCog
+# from spotify_player import SpotifyCog
 # from custom_poll import MyMenu
 import os
 import random
@@ -776,7 +776,7 @@ bot.add_cog(Music(bot))
 bot.add_cog(Playsound(bot))
 
 # Temporary cog for SpotifyCog
-bot.add_cog(SpotifyCog(bot))
+# bot.add_cog(SpotifyCog(bot))
 
 # bot.add_cog(Greetings(bot))
 
