@@ -615,7 +615,7 @@ class Music(commands.Cog):
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
         """ Chooses a random item """
-        options = [x.strip() for x in choose.split('|') if len(x.strip()) > 0]
+        options = [x.strip() for x in choose.split(',') if len(x.strip()) > 0]
         print('options: ', options)
         if len(options) < 2:
             return await ctx.send('Two or more choices should be given')
