@@ -1,14 +1,9 @@
 # from Models import *
 # from src.Models.* import *
-from src.Models.vote import Vote
-from src.Models.guild import Guild
+from src.models.vote import Vote
+from src.models.guild import Guild
 
-__models__ = [Vote, Guild]
+__models__ = [Vote]
 
-
-'''
-class Models:
-    vote = Vote()
-'''
 
 
