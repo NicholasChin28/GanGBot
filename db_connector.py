@@ -3,14 +3,36 @@
 import psycopg2
 from dotenv import load_dotenv
 import os
+from tortoise import Tortoise, run_async
+# from src.Data.db_context import Models
 
 # Load environment variables
 load_dotenv()
 
+# Initialise models and database
+async def init():
+    await Tortoise.init(
+        db_url=f'postgres://{os.getenv("RDS_USERNAME")}:{os.getenv("RDS_PASSWORD")}@{os.getenv("RDS_HOSTNAME")}:{os.getenv("RDS_PORT")}/{os.getenv("RDS_DB_NAME")}',
+        modules={'models': ['src.Data.db_context']}
+    )
+    # Generate the schema
+    await Tortoise.generate_schemas(safe=True)
+
+run_async(init())
+
+
+
+
+
+
+
+
+"""
 engine = psycopg2.connect(
     database=os.getenv('RDS_DB_NAME'),
     user=os.getenv('RDS_USERNAME'),
-    password='0G4qnNaBMVUQaF7CRnou',
-    host='django-cdn.ciltalo9wqxl.ap-southeast-1.rds.amazonaws.com',
-    port='5432'
+    password=os.getenv('RDS_PASSWORD'),
+    host=os.getenv('RDS_HOSTNAME'),
+    port=os.getenv('RDS_PORT'),
 )
+"""
