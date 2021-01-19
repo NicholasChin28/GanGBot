@@ -62,7 +62,7 @@ dependencies:
   - wincertstore=0.2
   - wrapt=1.11.2
   - yaml=0.2.5
-  - youtube-dl=2020.9.20
+  - youtube-dl=2021.1.16
   - zlib=1.2.11
   - pip:
     - a-pytube-fork-for-spotdl-users==9.6.4
@@ -74,8 +74,7 @@ dependencies:
     - cffi==1.14.0
     - chardet==3.0.4
     - ddlparse==1.9.0
-    - discord-ext-menus==1.0.0a27+g6f2b873
-    - discord-py==1.4.1
+    - discord-py==1.6.0
     - idna==2.9
     - iso8601==0.1.13
     - multidict==4.7.5
@@ -96,6 +95,4 @@ dependencies:
     - urllib3==1.25.8
     - websockets==8.1
     - yarl==1.4.2
-    - youtube-dlc==2020.11.11.post3
-prefix: C:\Users\nicho\miniconda3\envs\GanGBot
 

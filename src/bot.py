@@ -30,8 +30,7 @@ from async_timeout import timeout
 # Logging errors to the console
 import logging
 
-# Added updated fork of youtube_dl
-import youtube_dlc
+import youtube_dl
 
 # Relative path
 from pathlib import Path
@@ -53,7 +52,7 @@ from unicodedata import lookup
 # Use tasks, etc. @task.loop for automating timed tasks
 
 # Silence useless bug reports messages
-youtube_dlc.utils.bug_reports_message = lambda: ''
+youtube_dl.utils.bug_reports_message = lambda: ''
 
 # Set the logging command line messages
 logging.basicConfig(level=logging.INFO)
@@ -87,7 +86,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'options': '-vn',
     }
 
-    ytdl = youtube_dlc.YoutubeDL(YTDL_OPTIONS)
+    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
