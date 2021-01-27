@@ -28,6 +28,7 @@ from discord.utils import get
 class SoundError(Exception):
     pass
 
+
 class PlaysoundSource(discord.PCMVolumeTransformer):
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
@@ -44,9 +45,8 @@ class PlaysoundSource(discord.PCMVolumeTransformer):
         self.duration = self.parse_duration(data.get('duration'))
         self.title = data.get('title')
         
-     
     def __str__(self):
-        return f'PlaysoundSource class __str__ function'
+        return 'PlaysoundSource class __str__ function'
 
     @classmethod
     async def get_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
@@ -149,7 +149,7 @@ class Playsound(commands.Cog):
                     if i == len(file_sounds):
                         embeds.append(playsounds)
                 
-            pages = len(embeds) # Total pages
+            pages = len(embeds)  # Total pages
 
             embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
@@ -172,7 +172,7 @@ class Playsound(commands.Cog):
                 embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(file_sounds), embeds[page - 1]))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
 
-                await message.edit(embed = embed)
+                await message.edit(embed=embed)
                 await add_page_reactions()
 
             # Check for reaction
@@ -202,11 +202,6 @@ class Playsound(commands.Cog):
         ctx.voice_state = cur_voice_state
         if not cur_voice_state.voice:
             await ctx.bot.get_command('join').callback(self, ctx)
-            # await ctx.invoke(parent_cog._join)
-            # await ctx.send('Trying to join')
-            # await ctx.invoke(ctx._join)
-        # if not parent_cog.voice_state.voice:
-            # await ctx.invoke(ctx._join)
 
         async with ctx.typing():
             try:
@@ -217,15 +212,15 @@ class Playsound(commands.Cog):
                 sound = Sound(source)
 
                 await cur_voice_state.songs.put(sound)
-                await ctx.send(f'Enqueued a playsound')
+                await ctx.send('Enqueued a playsound')
 
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')
         s3_resource = boto3.resource(
-            service_name = 's3',
-            region_name = 'ap-southeast-1',
-            aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID'),
-            aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+            service_name='s3',
+            region_name='ap-southeast-1',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
         )
         print('AWS S3 connection established')
         return s3_resource
@@ -253,7 +248,6 @@ class Playsound(commands.Cog):
                 print('S3 file downloaded')
             else:
                 print('File already exists... skipping file')
-
 
     async def get_valid_playsounds(self):
         '''

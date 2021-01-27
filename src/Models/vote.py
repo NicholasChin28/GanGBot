@@ -4,6 +4,7 @@
 from tortoise.models import Model
 from tortoise import fields
 
+
 class Vote(Model):
     message_id = fields.BigIntField(pk=True)
     channel_id = fields.BigIntField()

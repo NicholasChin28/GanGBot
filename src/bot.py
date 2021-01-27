@@ -10,16 +10,10 @@ import os
 import random
 from dotenv import load_dotenv
 
-from os import listdir
-from os.path import isfile, join
-
 import asyncio
 import itertools
 import functools
 import math
-
-import ctypes
-import ctypes.util
 
 import discord
 from discord.ext import commands
@@ -32,20 +26,13 @@ import logging
 
 import youtube_dl
 
-# Relative path
-from pathlib import Path
-
 # Import Spotify source custom class
 # import spotify_source
 
-# For getting mp3 metadata
-import mutagen
-
-# For voting 
+# For voting
 import re
 import string
 import emoji
-from unicodedata import lookup
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 # Lookup command grouping in the future: https://stackoverflow.com/questions/62460182/discord-py-how-to-invoke-another-command-inside-another-one
@@ -57,11 +44,14 @@ youtube_dl.utils.bug_reports_message = lambda: ''
 # Set the logging command line messages
 logging.basicConfig(level=logging.INFO)
 
+
 class VoiceError(Exception):
     pass
 
+
 class YTDLError(Exception):
     pass
+
 
 # Youtube-dl class
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -153,7 +143,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 except IndexError:
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
         
-        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data = info)
+        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
 
     @staticmethod
     def parse_duration(duration: int):
@@ -172,9 +162,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
             duration.append('{} seconds'.format(seconds))
 
         return ', '.join(duration)
-
-
-
 
 
 class Song:
@@ -218,6 +205,7 @@ class SongQueue(asyncio.Queue):
 
     def remove(self, index: int):
         del self._queue[index]
+
 
 class VoiceState:
     def __init__(self, bot: commands.Bot, ctx: commands.Context):
@@ -266,7 +254,7 @@ class VoiceState:
     async def audio_player_task(self):
         while True:
             self.next.clear()
-            print(f'audio_player_task called')
+            print('audio_player_task called')
             print(f'Value of self.loop: {self.loop}')
             if not self.loop:
                 # Try to get the next song within 3 minutes.
@@ -290,7 +278,7 @@ class VoiceState:
             # If loop is true
             # Credit to "guac420": https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
             else:
-                # Works only for yt-dlc 
+                # Works only for yt-dlc
                 self.now = discord.FFmpegPCMAudio(self.current.source.stream_url, **YTDLSource.FFMPEG_OPTIONS)
                 self.voice.play(self.now, after=self.play_next_song)
 
@@ -300,7 +288,6 @@ class VoiceState:
         if error:
             print('play_next_song function')
             raise VoiceError(str(error))
-        
         self.next.set()
 
     def skip(self):
@@ -308,13 +295,13 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        
         self.songs.clear()
         # Manually added
         if self.voice:
             await self.voice.disconnect()
             # self.current = None
             self.voice = None
+
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -336,9 +323,8 @@ class Music(commands.Cog):
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
             raise commands.NoPrivateMessage("This command can't be used in DM channels.")
-
         return True
-    
+
     async def cog_before_invoke(self, ctx: commands.Context):
         ctx.voice_state = self.get_voice_state(ctx)
 
@@ -350,7 +336,6 @@ class Music(commands.Cog):
         """Joins a voice channel."""
 
         destination = ctx.author.voice.channel
-        
         if ctx.voice_state.voice:
             await ctx.voice_state.voice.move_to(destination)
             return
@@ -389,7 +374,7 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
-        if ctx.voice_state.current is None :
+        if ctx.voice_state.current is None:
             await ctx.send('Not playing any song right now.')
         else:
             await ctx.send(embed=ctx.voice_state.current.create_embed())
@@ -400,13 +385,13 @@ class Music(commands.Cog):
         """ Displays items in the queue """
         async def generate_embed_msg():
             queue = ''
-            upper_limit = page * items_per_page 
+            upper_limit = page * items_per_page
             lower_limit = (page - 1) * items_per_page
             for i, _ in enumerate(queue_list[lower_limit:upper_limit], start=lower_limit):
                 queue += queue_list[i]
             return queue
 
-        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None :
+        if len(ctx.voice_state.songs) == 0 and ctx.voice_state.current is None:
             return await ctx.send('Empty queue')
         else:
             items_per_page = 5
@@ -427,12 +412,10 @@ class Music(commands.Cog):
                     queue_list.append(f'`{i + 1}.` {song.source.title} (Playsound)\n')
 
             pages = math.ceil(len(queue_list) / items_per_page)
-            
             embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(queue_list), await generate_embed_msg()))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            
             message = await ctx.send(embed=embed)
-            
+
             # Create reactions based on the number of pages
             async def add_page_reactions():
                 if page == pages:
@@ -441,7 +424,7 @@ class Music(commands.Cog):
                     await message.add_reaction('\u25c0')
                 if pages > page:
                     await message.add_reaction('\u25b6')
-            
+
             await add_page_reactions()
 
             # Recreates the embed
@@ -451,7 +434,7 @@ class Music(commands.Cog):
                 embed = (discord.Embed(description='**{} tracks:**\n\n{}'.format(len(queue_list), await generate_embed_msg()))
                     .set_footer(text='Viewing page {}/{}'.format(page, pages)))
 
-                await message.edit(embed = embed)
+                await message.edit(embed=embed)
                 await add_page_reactions()
 
             # Check for reaction
@@ -488,16 +471,16 @@ class Music(commands.Cog):
 
         if volume not in range(0, 101):
             return await ctx.send('Volume must be between 0 and 100')
-            
+
         ctx.voice_state.current.source.volume = volume / 100
         return await ctx.send('Volume of the player set to {}%'.format(volume))
-        
+
     @_volume.error
     async def volume_error(self, ctx: commands.Context, error):
         # Checks if volume argument is of int data type
         if isinstance(error, commands.BadArgument):
             raise commands.BadArgument(await ctx.send('Volume must be a number'))
-        
+
     @commands.command(name='pause')
     @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
@@ -505,7 +488,7 @@ class Music(commands.Cog):
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             ctx.voice_state.voice.pause()
             await ctx.message.add_reaction('⏯')            
-        
+
     @commands.command(name='resume')
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
@@ -520,9 +503,9 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
-        ctx.voice_state.loop = False    # Unloops the queue 
+        ctx.voice_state.loop = False    # Unloops the queue
         ctx.voice_state.songs.clear()
-        
+
         if ctx.voice_state.is_playing:
             # ctx.voice_state.loop = False
             ctx.voice_state.voice.stop()
@@ -533,8 +516,8 @@ class Music(commands.Cog):
             emoji = get(ctx.guild.emojis, name='Pepehands')
             await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
         else:
-            await ctx.send(f'This message should never happen. Message called from stop.')
-    
+            await ctx.send('This message should never happen. Message called from stop.')
+
     @commands.command(name='skip')
     async def _skip(self, ctx: commands.Context):
         """ Skips current track. """
@@ -562,7 +545,7 @@ class Music(commands.Cog):
         # If index 1, remove / skip current playing song
         if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
-        
+
         if index == 1:
             ctx.voice_state.skip()
             await ctx.message.add_reaction('✅')
@@ -610,7 +593,6 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
-    
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
         """ Chooses a random item """
@@ -620,7 +602,7 @@ class Music(commands.Cog):
             return await ctx.send('Two or more choices should be given')
 
         return await ctx.send('Maldbot chose: ' + random.choice(options))
-    
+
     # TODO: Add multiple choices picker
     '''
     @commands.command(name='choosemany')
@@ -646,26 +628,26 @@ duration: How long the vote should last. Currently the duration allowed is betwe
 The duration must be in seconds (eg. 300 for 5 minutes)""")
 
         arg_string = ' '.join(args)
-        
+
         # Emojis for embed
         option_emoji = [''.join((':regional_indicator_', x, ':')) for x in list(string.ascii_lowercase)]
-        
+
         # Actual emojis for reaction
         option_emoji2 = [emoji.emojize(x, use_aliases=True) for x in option_emoji]
-        
+
         # Finds the title
         title = re.findall("^{.*}", arg_string)
-        
+
         # Finds the options
         options = re.findall(r'\[.*?\]', arg_string)
-        
+
         # Finds the voting duration
         vote_time = re.findall(r"\(\d*?\)", arg_string)
 
         # Allow voting duration between 30 seconds - 5 minutes
         try:
             vote_time = int(vote_time[0][1:-1])
-        except ValueError as e:
+        except ValueError:
             await ctx.send('Vote time must be a number')
             return
 
@@ -676,9 +658,9 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         formatted_options = []
         for x, option in enumerate(options):
             formatted_options += '\n {} {}'.format(option_emoji2[x], option[1:-1])
-        
+
         # Create embed from title and options
-        embed = discord.Embed(title = title[0][1:-1], color = 3553599, description = ''.join(formatted_options))
+        embed = discord.Embed(title=title[0][1:-1], color=3553599, description=''.join(formatted_options))
 
         react_message = await ctx.send(embed=embed)
 
@@ -686,7 +668,6 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         voter = ctx.message.author
         if voter.id not in ctx.voice_state.votes:
             ctx.voice_state.votes.add(voter.id)
-            total_votes = len(ctx.voice_state.votes)
 
         for option in option_emoji2[:len(options)]:
             print('Value of options: ', option)
@@ -697,7 +678,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         # Check for reaction
         def check(reaction, user):
             return not user.bot and reaction.message.id == react_message.id
-        
+
         try:
             # async with timeout(int(vote_time[0][1:-1])):
             async with timeout(vote_time):
@@ -735,7 +716,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             await ctx.voice_state.songs.put(track)
 
             return await ctx.send(f'Enqueued a spotify track')
-        
+
         await ctx.send('Cannot add track spot track')
     '''
 
@@ -758,7 +739,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
                 .add_field(name='URL', value='[Click]({0.source.url})'.format(self))
                 .set_thumbnail(url=self.source.thumbnail))
     '''
-        
+
     @_join.before_invoke
     @_play.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
@@ -769,7 +750,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError('Bot is already in a voice channel.')
 
-    
+
 bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
 bot.add_cog(Music(bot))
 bot.add_cog(Playsound(bot))
@@ -799,9 +780,3 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot.run(TOKEN)
-        
-
-
-
-
-
