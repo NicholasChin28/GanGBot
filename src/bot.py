@@ -727,6 +727,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         current_queue = SongQueue()
         await current_queue.put(temp_song)
 
+        
         ctx.voice_state.songs = current_queue
 
         # new_queue
