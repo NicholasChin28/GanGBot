@@ -108,7 +108,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
-        partial = functools.partial(cls.ytdl.extract_info, search, download = False, process = False)
+        partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
@@ -127,7 +127,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 raise YTDLError("Couldn't find anything that matches `{}`".format(search))
 
         webpage_url = process_info['webpage_url']
-        partial = functools.partial(cls.ytdl.extract_info, webpage_url, download = False)
+        partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
         if processed_info is None:
@@ -163,7 +163,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return ', '.join(duration)
 
-
+# TODO: Populate the data with the details from YTDLSource
 class Song:
     __slots__ = ('source', 'requester')
 
@@ -205,6 +205,8 @@ class SongQueue(asyncio.Queue):
 
     def remove(self, index: int):
         del self._queue[index]
+
+    # Gets a single item / index
 
 
 class VoiceState:
@@ -703,6 +705,44 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
                 await ctx.send('More than one vote has the highest votes. No winner :(')
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
+
+    @commands.command(name='skipto')
+    async def _skipto(self, ctx: commands.Context, index: int):
+        """Skips to song number in queue"""
+        if not ctx.voice_state.is_playing:
+            return await ctx.send('Empty queue.')
+        
+        if index == 1:
+            return await ctx.send("Can't skip to current track in queue.")
+
+        print('Type 1: ', type(ctx.voice_state.songs))
+        print('Get the item: ', ctx.voice_state.songs.__getitem__(index))
+
+        # Duplicate the Song object at some index
+        temp_song = Song(ctx.voice_state.songs.__getitem__(index))
+
+        # Try to create a duplicate queue
+        # Then edit the queue, then set the queue to it
+        # i = itertools.cycle(ctx.voice_state.songs)
+        current_queue = SongQueue()
+        await current_queue.put(temp_song)
+
+        ctx.voice_state.songs = current_queue
+
+        # new_queue
+        """
+        test_event = asyncio.Event()
+        while True:
+            await test_event.wait()
+            song = next(i)
+            current_queue.put(song)
+            test_event.clear()
+
+        print('Length of new queue: ', current_queue.qsize())
+        """
+            
+
+
 
     # Try creating splay command here
     '''

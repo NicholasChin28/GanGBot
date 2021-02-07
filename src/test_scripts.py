@@ -1,6 +1,7 @@
 import psycopg2
 from dotenv import load_dotenv
 import os
+import asyncio
 
 load_dotenv()
 
@@ -24,14 +25,14 @@ cur = engine.cursor()
 # colnames = [desc[0] for desc in cur.description]
 # print('Column names: ', colnames)
 
-
+'''
 cur.execute("""SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public'""")
 rows = cur.fetchall()
 
 for row in rows:
     print("Table name: ", row)
-
+'''
 
 # Select all rows from the 'vote' table
 '''
@@ -41,3 +42,6 @@ rows = cur.fetchall()
 for row in rows:
     print("Row value: ", row)
 '''
+
+some_queue = asyncio.Queue()
+some_queue.insert(0, 'test')
