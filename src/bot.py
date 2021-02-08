@@ -206,6 +206,8 @@ class SongQueue(asyncio.Queue):
     def remove(self, index: int):
         del self._queue[index]
 
+    def addtest(self, index: int, elem):
+        self._queue.insert(index, elem)
     # Gets a single item / index
 
 
@@ -706,9 +708,15 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
+    # TODO: 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
+        FFMPEG_OPTIONS = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn',
+        }
+
         if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
         
@@ -725,10 +733,18 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         # Then edit the queue, then set the queue to it
         # i = itertools.cycle(ctx.voice_state.songs)
         current_queue = SongQueue()
-        await current_queue.put(temp_song)
 
-        
-        ctx.voice_state.songs = current_queue
+        # Removed temp
+
+        # await current_queue.put(temp_song)
+
+        temp_source = await YTDLSource.create_source(ctx, 'baka mitai', loop=self.bot.loop)
+        temp_song = Song(temp_source)
+        print('Value of temp_song source: ', temp_song.source)
+
+        # await ctx.voice_state.songs.put(temp_song)
+        ctx.voice_state.songs.addtest(10, temp_song)
+        # ctx.voice_state.songs = current_queue
 
         # new_queue
         """
@@ -801,14 +817,14 @@ bot.add_cog(Playsound(bot))
 
 # bot.add_cog(Greetings(bot))
 
-'''
+
 @bot.event
 async def on_connect():
     # Set avatar of bot
-    with open('gravel.jpg', 'rb') as f:
+    with open('Maldbot-01.jpg', 'rb') as f:
         image = f.read()
     await bot.user.edit(avatar = image)
-'''
+
 
 
 @bot.event
