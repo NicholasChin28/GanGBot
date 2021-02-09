@@ -727,7 +727,8 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         print('Get the item: ', ctx.voice_state.songs.__getitem__(index))
 
         # Duplicate the Song object at some index
-        temp_song = Song(ctx.voice_state.songs.__getitem__(index))
+        # temp_song = Song(ctx.voice_state.songs.__getitem__(index))
+
 
         # Try to create a duplicate queue
         # Then edit the queue, then set the queue to it
@@ -738,8 +739,10 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
 
         # await current_queue.put(temp_song)
 
-        temp_source = await YTDLSource.create_source(ctx, 'baka mitai', loop=self.bot.loop)
-        temp_song = Song(temp_source)
+        # temp_source = await YTDLSource.create_source(ctx, 'baka mitai', loop=self.bot.loop)
+        # temp_song = Song(temp_source)
+        temp_song = ctx.voice_state.songs.__getitem__(index)
+
         print('Value of temp_song source: ', temp_song.source)
 
         # await ctx.voice_state.songs.put(temp_song)
