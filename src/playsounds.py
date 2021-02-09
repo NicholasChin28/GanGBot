@@ -195,7 +195,7 @@ class Playsound(commands.Cog):
                         await refresh_embed()
 
     # Additional command to play local .mp3 files for soundboard
-    @commands.command(name='playsound')
+    @commands.command(name='ps')
     async def _playsound(self, ctx: commands.Context, *, search: str):
         parent_cog = ctx.bot.get_cog('Music')
         cur_voice_state = parent_cog.get_voice_state(ctx)
