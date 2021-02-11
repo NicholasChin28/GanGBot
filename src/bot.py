@@ -708,62 +708,30 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    # TODO: 
+    # TODO: When skipping to xth song, 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
-        FFMPEG_OPTIONS = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn',
-        }
-
         if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
+
+        ctx.voice_state.loop = False    # Unloops the queue
         
         if index == 1:
-            return await ctx.send("Can't skip to current track in queue.")
+            return await ctx.send("Can't skip to current track")
 
-        print('Type 1: ', type(ctx.voice_state.songs))
-        print('Get the item: ', ctx.voice_state.songs.__getitem__(index))
+        # Get the song to skip to
+        temp_song = ctx.voice_state.songs.__getitem__(index - 2)
 
-        # Duplicate the Song object at some index
-        # temp_song = Song(ctx.voice_state.songs.__getitem__(index))
+        # Remove it from the queue
+        ctx.voice_state.songs.remove(index - 2)
 
+        # Add the song to skip to the first item of the queue
+        ctx.voice_state.songs.addtest(0, temp_song)
 
-        # Try to create a duplicate queue
-        # Then edit the queue, then set the queue to it
-        # i = itertools.cycle(ctx.voice_state.songs)
-        current_queue = SongQueue()
-
-        # Removed temp
-
-        # await current_queue.put(temp_song)
-
-        # temp_source = await YTDLSource.create_source(ctx, 'baka mitai', loop=self.bot.loop)
-        # temp_song = Song(temp_source)
-        temp_song = ctx.voice_state.songs.__getitem__(index)
-
-        print('Value of temp_song source: ', temp_song.source)
-
-        # await ctx.voice_state.songs.put(temp_song)
-        ctx.voice_state.songs.addtest(10, temp_song)
-        # ctx.voice_state.songs = current_queue
-
-        # new_queue
-        """
-        test_event = asyncio.Event()
-        while True:
-            await test_event.wait()
-            song = next(i)
-            current_queue.put(song)
-            test_event.clear()
-
-        print('Length of new queue: ', current_queue.qsize())
-        """
-            
-
-
-
+        # Skip the current playing song, so that it plays the song to be skipped to immediately
+        ctx.voice_state.skip()
+        
     # Try creating splay command here
     '''
     @commands.command(name='splay')
@@ -840,3 +808,5 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot.run(TOKEN)
+
+
