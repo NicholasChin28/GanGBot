@@ -3,6 +3,7 @@
 # https://stackoverflow.com/questions/56796991/discord-py-changing-prefix-with-command
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 from playsounds import Playsound
+from custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
 # from spotify_player import SpotifyCog
 # from custom_poll import MyMenu
@@ -708,7 +709,6 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    # TODO: When skipping to xth song, 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
@@ -731,6 +731,13 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
 
         # Skip the current playing song, so that it plays the song to be skipped to immediately
         ctx.voice_state.skip()
+
+    @commands.command(name='chelp')
+    async def _chelp(self, ctx: commands.Context):
+        """ Custom help command """
+        embed = discord.Embed()
+        embed.description = "[Test]()"
+        await ctx.send(embed=embed)
         
     # Try creating splay command here
     '''
@@ -780,8 +787,12 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
 
 
 bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
+# Custom help embed
+
+
 bot.add_cog(Music(bot))
 bot.add_cog(Playsound(bot))
+bot.add_cog(CustomHelp(bot))
 
 # Temporary cog for SpotifyCog
 # bot.add_cog(SpotifyCog(bot))
