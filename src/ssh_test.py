@@ -53,6 +53,10 @@ def print_path(client):
     stdin, stdout, stderr = client.exec_command('ls')
     print(stdout.readline())
 
+# Function / method to stop running instance / all instances of Maldbot
+def stop_bot(client):
+    kill_process(client)
+
 
 env_vals = dotenv_values('.env')
 
