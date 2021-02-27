@@ -1,7 +1,11 @@
 # TODO: Pass context between different cogs
 # TODO: Add an emoji to cancel votes
+# TODO: Generate a helper decorator function to calculate the execution time of a function
+# Reference link for helper decorator function: https://dev.to/s9k96/calculating-run-time-of-a-function-using-python-decorators-148o
 # https://stackoverflow.com/questions/56796991/discord-py-changing-prefix-with-command
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
+
+# TODO: Generate custom help command for the bot
 from playsounds import Playsound
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
 # from spotify_player import SpotifyCog
@@ -14,6 +18,7 @@ import asyncio
 import itertools
 import functools
 import math
+from datetime import datetime
 
 import discord
 from discord.ext import commands
@@ -708,7 +713,6 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    # TODO: When skipping to xth song, 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
