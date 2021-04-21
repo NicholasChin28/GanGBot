@@ -25,6 +25,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from discord.utils import get
+import typing
 
 from async_timeout import timeout
 
@@ -474,19 +475,19 @@ class Music(commands.Cog):
     '''
 
     @commands.command(name='volume')
-    async def _volume(self, ctx: commands.Context, *, volume: int):
+    async def _volume(self, ctx: commands.Context, *, volume: typing.Optional[int]):
         """ Sets the volume of the player """
-        # if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
-        if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
+        if not volume: 
+            await ctx.send(f'Current volume: {int(ctx.voice_state.volume * 100)}%')
+        else:
+            if volume not in range(0, 101):
+                return await ctx.send('Volume must be between 0 and 100')
 
-        if volume not in range(0, 101):
-            return await ctx.send('Volume must be between 0 and 100')
+            if ctx.voice_state.is_playing:
+                ctx.voice_state.current.source.volume = volume / 100
 
-        # ctx.voice_state.current.source.volume = volume / 100
-        ctx.voice_state.current.source.volume = volume / 100
-        ctx.voice_state.volume = volume / 100
-        return await ctx.send('Volume of the player set to {}%'.format(volume))
+            ctx.voice_state.volume = volume / 100
+            return await ctx.send(f'Volume of the player set to {volume}%')
 
     @_volume.error
     async def volume_error(self, ctx: commands.Context, error):
