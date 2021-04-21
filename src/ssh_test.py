@@ -97,7 +97,7 @@ if args.kill:
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect('34.87.24.87', username='nicho', pkey=key)
+    client.connect(env_vals['MALDBOT_SERVER'], username=env_vals['MALDBOT_USERNAME'], pkey=key)
 
     channel = client.invoke_shell()
 
@@ -110,32 +110,11 @@ elif args.restart:
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect('34.87.24.87', username='nicho', pkey=key)
+    client.connect(env_vals['MALDBOT_SERVER'], username=env_vals['MALDBOT_USERNAME'], pkey=key)
 
     channel = client.invoke_shell()
 
     restart_bot(client)
 else:
     parser.print_help(sys.stderr)
-'''
-else:
-    print("Not supposed to happen")
-'''
 
-'''
-env_vals = dotenv_values('.env')
-
-key_path = Path(f"{env_vals['PEM_FILE']}")
-key = paramiko.RSAKey.from_private_key_file(key_path)
-
-client = paramiko.SSHClient()
-client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client.connect('34.87.24.87', username='nicho', pkey=key)
-
-channel = client.invoke_shell()
-
-
-restart_bot(client)
-'''
-# get_process(client)
-# client.close()

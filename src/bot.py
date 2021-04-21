@@ -6,6 +6,7 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 
 # TODO: Generate custom help command for the bot
+# TODO: Use the current volume settings for future songs and playsounds
 from playsounds import Playsound
 from custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
@@ -84,7 +85,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 1.0):
         super().__init__(source, volume)
 
         self.requester = ctx.author
@@ -232,7 +233,7 @@ class VoiceState:
         self.songs = SongQueue()
 
         self._loop = False
-        self._volume = 0.5
+        self._volume = 1.0
         # self.skip_votes = set()
         self.votes = set()
 
@@ -482,7 +483,9 @@ class Music(commands.Cog):
         if volume not in range(0, 101):
             return await ctx.send('Volume must be between 0 and 100')
 
+        # ctx.voice_state.current.source.volume = volume / 100
         ctx.voice_state.current.source.volume = volume / 100
+        ctx.voice_state.volume = volume / 100
         return await ctx.send('Volume of the player set to {}%'.format(volume))
 
     @_volume.error
