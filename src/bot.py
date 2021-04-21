@@ -6,7 +6,7 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 
 # TODO: Generate custom help command for the bot
-# TODO: Use the current volume settings for future songs and playsounds
+# TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 from playsounds import Playsound
 from custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
