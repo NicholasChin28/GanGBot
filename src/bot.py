@@ -6,6 +6,7 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 
 # TODO: Generate custom help command for the bot
+# TODO: Add additional command to unload cog for bot, so that individual testing can be done
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 from playsounds import Playsound
 from custom_help import CustomHelp
@@ -740,6 +741,11 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
 
         # Skip the current playing song, so that it plays the song to be skipped to immediately
         ctx.voice_state.skip()
+
+    # Test command, to delete shortly
+    @commands.command(name='unload_ps')
+    async def _unload(self, ctx: commands.Context):
+        self.bot.unload_extension()
 
     @commands.command(name='chelp')
     async def _chelp(self, ctx: commands.Context):
