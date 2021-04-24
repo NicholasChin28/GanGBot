@@ -714,9 +714,15 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
+    # TODO: 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
+        FFMPEG_OPTIONS = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn',
+        }
+
         if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
 
@@ -804,14 +810,14 @@ bot.add_cog(CustomHelp(bot))
 
 # bot.add_cog(Greetings(bot))
 
-'''
+
 @bot.event
 async def on_connect():
     # Set avatar of bot
     with open('Maldbot-01.jpg', 'rb') as f:
         image = f.read()
     await bot.user.edit(avatar = image)
-'''
+
 
 
 @bot.event
