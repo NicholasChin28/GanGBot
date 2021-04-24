@@ -284,3 +284,5 @@ class Playsound(commands.Cog):
         playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
         return playsound_bucket
 
+def setup(bot):
+    bot.add_cog(Playsound(bot))

@@ -8,14 +8,14 @@
 # TODO: Generate custom help command for the bot
 # TODO: Add additional command to unload cog for bot, so that individual testing can be done
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
-from playsounds import Playsound
-from custom_help import CustomHelp
+from cogs.playsounds import Playsound
+from cogs.custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
 # from spotify_player import SpotifyCog
 # from custom_poll import MyMenu
 import os
 import random
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 import asyncio
 import itertools
@@ -719,7 +719,6 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-    # TODO: 
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
@@ -748,17 +747,24 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         # Skip the current playing song, so that it plays the song to be skipped to immediately
         ctx.voice_state.skip()
 
-    # Test command, to delete shortly
-    @commands.command(name='unload_ps')
-    async def _unload(self, ctx: commands.Context):
-        self.bot.unload_extension()
-
     @commands.command(name='chelp')
     async def _chelp(self, ctx: commands.Context):
         """ Custom help command """
         embed = discord.Embed()
         embed.description = "[Test]()"
         await ctx.send(embed=embed)
+
+    # Temporarily create loader, unloader here
+    @commands.command(name='load')
+    async def _load(self, ctx: commands.Context, extension):
+        self.bot.load_extension(f'cogs.{extension}')
+        await ctx.send("Loaded cog")
+
+    @commands.command(name='unload')
+    async def _unload(self, ctx: commands.Context, extension):
+        self.bot.unload_extension(f'cogs.{extension}')
+        await ctx.send("Unloaded cog")
+
         
     # Try creating splay command here
     '''
@@ -812,21 +818,22 @@ bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
 
 
 bot.add_cog(Music(bot))
-bot.add_cog(Playsound(bot))
-bot.add_cog(CustomHelp(bot))
+# bot.add_cog(Playsound(bot))
+# bot.add_cog(CustomHelp(bot))
 
 # Temporary cog for SpotifyCog
 # bot.add_cog(SpotifyCog(bot))
 
 # bot.add_cog(Greetings(bot))
 
-
+'''
 @bot.event
 async def on_connect():
     # Set avatar of bot
     with open('Maldbot-01.jpg', 'rb') as f:
         image = f.read()
-    await bot.user.edit(avatar = image)
+    await bot.user.edit(avatar=image)
+'''
 
 
 
@@ -836,9 +843,10 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot.run(TOKEN)
+
 
 
