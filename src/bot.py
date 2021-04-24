@@ -6,6 +6,8 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 
 # TODO: Generate custom help command for the bot
+# TODO: Add additional command to unload cog for bot, so that individual testing can be done
+# TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 from playsounds import Playsound
 from custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
@@ -24,6 +26,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from discord.utils import get
+import typing
 
 from async_timeout import timeout
 
@@ -84,7 +87,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 1.0):
         super().__init__(source, volume)
 
         self.requester = ctx.author
@@ -232,7 +235,7 @@ class VoiceState:
         self.songs = SongQueue()
 
         self._loop = False
-        self._volume = 0.5
+        self._volume = 1.0
         # self.skip_votes = set()
         self.votes = set()
 
@@ -473,17 +476,19 @@ class Music(commands.Cog):
     '''
 
     @commands.command(name='volume')
-    async def _volume(self, ctx: commands.Context, *, volume: int):
+    async def _volume(self, ctx: commands.Context, *, volume: typing.Optional[int]):
         """ Sets the volume of the player """
-        # if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
-        if not ctx.voice_state.is_playing:
-            return await ctx.send('Nothing being played at the moment.')
+        if not volume: 
+            await ctx.send(f'Current volume: {int(ctx.voice_state.volume * 100)}%')
+        else:
+            if volume not in range(0, 101):
+                return await ctx.send('Volume must be between 0 and 100')
 
-        if volume not in range(0, 101):
-            return await ctx.send('Volume must be between 0 and 100')
+            if ctx.voice_state.is_playing:
+                ctx.voice_state.current.source.volume = volume / 100
 
-        ctx.voice_state.current.source.volume = volume / 100
-        return await ctx.send('Volume of the player set to {}%'.format(volume))
+            ctx.voice_state.volume = volume / 100
+            return await ctx.send(f'Volume of the player set to {volume}%')
 
     @_volume.error
     async def volume_error(self, ctx: commands.Context, error):
@@ -742,6 +747,11 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
 
         # Skip the current playing song, so that it plays the song to be skipped to immediately
         ctx.voice_state.skip()
+
+    # Test command, to delete shortly
+    @commands.command(name='unload_ps')
+    async def _unload(self, ctx: commands.Context):
+        self.bot.unload_extension()
 
     @commands.command(name='chelp')
     async def _chelp(self, ctx: commands.Context):

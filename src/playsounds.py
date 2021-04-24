@@ -214,6 +214,12 @@ class Playsound(commands.Cog):
                 await cur_voice_state.songs.put(sound)
                 await ctx.send('Enqueued a playsound')
 
+    # Request playsound to be added 
+    # TODO: Add this feature
+    @commands.command(name='addsound')
+    async def _addsound(self, ctx: commands.Context):
+        pass
+
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')
         s3_resource = boto3.resource(
