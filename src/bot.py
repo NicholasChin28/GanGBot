@@ -6,10 +6,8 @@
 # For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
 
 # TODO: Generate custom help command for the bot
-# TODO: Add additional command to unload cog for bot, so that individual testing can be done
+# TODO: Generate embed for loaded and unloaded cogs: https://stackoverflow.com/questions/63036583/is-there-a-way-to-find-all-the-loaded-and-unloaded-cogs-in-discord-py-rewrite
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
-from cogs.playsounds import Playsound
-from cogs.custom_help import CustomHelp
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
 # from spotify_player import SpotifyCog
 # from custom_poll import MyMenu
@@ -754,16 +752,7 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         embed.description = "[Test]()"
         await ctx.send(embed=embed)
 
-    # Temporarily create loader, unloader here
-    @commands.command(name='load')
-    async def _load(self, ctx: commands.Context, extension):
-        self.bot.load_extension(f'cogs.{extension}')
-        await ctx.send("Loaded cog")
-
-    @commands.command(name='unload')
-    async def _unload(self, ctx: commands.Context, extension):
-        self.bot.unload_extension(f'cogs.{extension}')
-        await ctx.send("Unloaded cog")
+    
 
         
     # Try creating splay command here
@@ -834,6 +823,13 @@ async def on_connect():
         image = f.read()
     await bot.user.edit(avatar=image)
 '''
+
+
+@bot.event
+async def on_connect():
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            bot.load_extension(f'cogs.{filename[0:-3]}')
 
 
 

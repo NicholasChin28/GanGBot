@@ -9,6 +9,8 @@ import mutagen
 import hashlib
 import asyncio
 import functools
+import discord
+from discord.ext import commands
 
 # from bot import Music
 
@@ -19,9 +21,7 @@ load_dotenv()
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
 # Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
 
-import discord
-from discord.ext import commands
-from discord.utils import get
+
 
 
 # Non existent playsound file error
@@ -283,6 +283,7 @@ class Playsound(commands.Cog):
 
         playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
         return playsound_bucket
+
 
 def setup(bot):
     bot.add_cog(Playsound(bot))
