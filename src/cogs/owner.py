@@ -14,24 +14,47 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def _load(self, ctx: commands.Context, extension):
         """Loads cog"""
-        self.bot.load_extension(f'cogs.{extension}')
-        await ctx.send(f"Loaded {extension} cog")
+        try:
+            self.bot.load_extension(f'cogs.{extension}')
+            await ctx.send(f"Loaded {extension} cog")
+        except commands.ExtensionNotFound:
+            await ctx.send("Extension not found")
+        except commands.ExtensionAlreadyLoaded:
+            await ctx.send("Extension already loaded")
 
     @commands.command(name='unload')
     @commands.is_owner()
     async def _unload(self, ctx: commands.Context, extension):
         """Unloads cog"""
-        self.bot.unload_extension(f'cogs.{extension}')
-        await ctx.send(f"Unloaded {extension} cog")
+        try:
+            self.bot.unload_extension(f'cogs.{extension}')
+            await ctx.send(f"Unloaded {extension} cog")
+        except commands.ExtensionNotFound:
+            await ctx.send("Extension not found")
+        except commands.ExtensionNotLoaded:
+            await ctx.send("Extension is not loaded")
+
+    # TODO: Reload extension
+    @commands.command(name='reload')
+    @commands.is_owner()
+    async def _reload(self, ctx: commands.Context, extension):
+        """Reloads cog"""
+        await ctx.invoke(self.bot.get_command('unload'), query=extension)
+        await ctx.invoke(self.bot.get_command('load'), query=extension)
+        return await ctx.send(f"Reload {extension} cog")
+
+    # TODO: Display status and list of cogs
+    @commands.command(name='cogs')
+    @commands.is_owner()
+    async def _cogs(self, ctx: commands.Context):
+        """Display status and list of cogs"""
+        pass
 
     # Error handling
     @_load.error
-    async def load_error(self, ctx: commands.Context, error):
-        if isinstance(error, commands.CheckFailure):
-            await ctx.send("Sorry, only the bot owner can use this command")
-
     @_unload.error
-    async def unload_error(self, ctx, error):
+    @_reload.error
+    async def role_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CheckFailure):
             await ctx.send("Sorry, only the bot owner can use this command")
 

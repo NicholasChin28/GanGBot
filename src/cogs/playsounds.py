@@ -218,7 +218,9 @@ class Playsound(commands.Cog):
     # TODO: Add this feature
     @commands.command(name='addsound')
     async def _addsound(self, ctx: commands.Context):
-        pass
+        if ctx.message.reference is not None and not ctx.message.is_system:
+            return await ctx.send('Called from a message reply')
+        return await ctx.send('Addsound returned false')
 
     async def create_s3_connection(self):
         print('Creating AWS S3 connection...')
