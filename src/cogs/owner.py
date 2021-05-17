@@ -1,5 +1,5 @@
 from discord.ext import commands
-
+from helper import get_cogs
 
 # Cog for owner utilities
 class Owner(commands.Cog):
@@ -48,6 +48,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def _cogs(self, ctx: commands.Context):
         """Display status and list of cogs"""
+        cogs = get_cogs()
+        await ctx.send(f'Value of all cogs:\n {cogs}')
         pass
 
     # Error handling

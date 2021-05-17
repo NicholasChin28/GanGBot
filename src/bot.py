@@ -41,6 +41,8 @@ import re
 import string
 import emoji
 
+from helper import helper
+
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 # Lookup command grouping in the future: https://stackoverflow.com/questions/62460182/discord-py-how-to-invoke-another-command-inside-another-one
 # Use tasks, etc. @task.loop for automating timed tasks
@@ -80,7 +82,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': '-vn',
+        'options': f'-vn',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
@@ -112,7 +114,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+    async def create_source(cls, ctx: commands.Context, search: str, timestamp=0, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
@@ -150,6 +152,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 except IndexError:
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
         
+        # Prints value of the FFMPEG_OPTIONS variable
+        print(f'Value of FFMPEG_OPTIONS: {cls.FFMPEG_OPTIONS.items()}')
+        # TODO: Edit the FFMPEG_OPTIONS with timestamp
+        # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
 
     @staticmethod
@@ -585,7 +591,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='play')
-    async def _play(self, ctx: commands.Context, *, search: str):
+    async def _play(self, ctx: commands.Context, *, search: str, timestamp: typing.Optional[int]=0):
         """Plays a song.
 
         This command automatically searches from various sites if no URL is provided.
@@ -597,7 +603,7 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                source = await YTDLSource.create_source(ctx, search, timestamp, loop=self.bot.loop)
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
             else:
@@ -824,12 +830,16 @@ async def on_connect():
     await bot.user.edit(avatar=image)
 '''
 
-
+# Loads all cogs 
 @bot.event
 async def on_connect():
+    """
     for filename in os.listdir('./cogs'):
-        if filename.endswith('.py'):
+        if filename.endswith('.py') and not filename.startswith('custom_help'):
             bot.load_extension(f'cogs.{filename[0:-3]}')
+    """
+    cogs = helper.get_cogs()
+    print(f'Value of cogs: {cogs}')
 
 
 
