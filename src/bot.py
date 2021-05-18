@@ -152,6 +152,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 except IndexError:
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
         
+        # Set the value of FFMPEG_OPTIONS options
+        cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp}'
+
+        # Prints the value of timestamp
+        print(f'Value of timestamp: {timestamp}')
+
         # Prints value of the FFMPEG_OPTIONS variable
         print(f'Value of FFMPEG_OPTIONS: {cls.FFMPEG_OPTIONS.items()}')
         # TODO: Edit the FFMPEG_OPTIONS with timestamp
@@ -591,7 +597,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='play')
-    async def _play(self, ctx: commands.Context, *, search: str, timestamp: typing.Optional[int]=0):
+    async def _play(self, ctx: commands.Context, *, search: str):
         """Plays a song.
 
         This command automatically searches from various sites if no URL is provided.
@@ -603,7 +609,10 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await YTDLSource.create_source(ctx, search, timestamp, loop=self.bot.loop)
+                print(f'Value of search argument sent: {search}')
+                print(f'Last argument of search parameter: {search[-1]}')
+                # print(f'Value of timestamp from play function: {timestamp}')
+                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
             else:
