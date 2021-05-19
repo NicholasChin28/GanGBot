@@ -14,6 +14,7 @@
 import os
 import random
 from dotenv import load_dotenv, find_dotenv
+import time
 
 import asyncio
 import itertools
@@ -114,7 +115,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, timestamp=0, *, loop: asyncio.BaseEventLoop = None):
+    async def create_source(cls, ctx: commands.Context, search: str, timestamp: int = 0, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
@@ -153,13 +154,14 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
         
         # Set the value of FFMPEG_OPTIONS options
-        cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp}'
+        if not isinstance(timestamp, int):
+            cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp.tm_sec}'
 
         # Prints the value of timestamp
-        print(f'Value of timestamp: {timestamp}')
+        # print(f'Value of timestamp: {timestamp}')
 
         # Prints value of the FFMPEG_OPTIONS variable
-        print(f'Value of FFMPEG_OPTIONS: {cls.FFMPEG_OPTIONS.items()}')
+        # print(f'Value of FFMPEG_OPTIONS: {cls.FFMPEG_OPTIONS.items()}')
         # TODO: Edit the FFMPEG_OPTIONS with timestamp
         # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
@@ -597,7 +599,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='play')
-    async def _play(self, ctx: commands.Context, *, search: str):
+    async def _play(self, ctx: commands.Context, *search):
         """Plays a song.
 
         This command automatically searches from various sites if no URL is provided.
@@ -609,10 +611,17 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                print(f'Value of search argument sent: {search}')
-                print(f'Last argument of search parameter: {search[-1]}')
-                # print(f'Value of timestamp from play function: {timestamp}')
-                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                # Check if the last argument is a timestamp / timestamp range
+                timestamp = helper.parse_time(search[-1])
+                
+                # If timestamp is None, means that the last argument is not a timestamp / timestamp range
+                if timestamp is not None:
+                    print(f'Search query with timestamp: {" ".join(search[0:-1])}')
+                    source = await YTDLSource.create_source(ctx, ' '.join(search[0:-1]), timestamp=timestamp, loop=self.bot.loop)
+                else:
+                    print(f'Search query without timestamp: {" ".join(search)}')
+                    source = await YTDLSource.create_source(ctx, ' '.join(search), loop=self.bot.loop)
+
             except YTDLError as e:
                 await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
             else:
