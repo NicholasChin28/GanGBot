@@ -197,6 +197,7 @@ class Playsound(commands.Cog):
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='ps')
     async def _playsound(self, ctx: commands.Context, *, search: str):
+        """Plays a custom playsound"""
         parent_cog = ctx.bot.get_cog('Music')
         cur_voice_state = parent_cog.get_voice_state(ctx)
         ctx.voice_state = cur_voice_state
@@ -216,6 +217,7 @@ class Playsound(commands.Cog):
 
     # Request playsound to be added 
     # TODO: Add this feature
+    """
     @commands.command(name='addsound')
     async def _addsound(self, ctx: commands.Context):
         if ctx.message.reference is not None and not ctx.message.is_system:
@@ -232,6 +234,7 @@ class Playsound(commands.Cog):
         )
         print('AWS S3 connection established')
         return s3_resource
+    """
 
     # Downloads playsounds from AWS S3 bucket
     async def download_playsounds(self):

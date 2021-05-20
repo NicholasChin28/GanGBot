@@ -653,6 +653,7 @@ class Music(commands.Cog):
     # Voting feature using embeds and reactions
     @commands.command(name='vote')
     async def _vote(self, ctx: commands.Context, *args):
+        """Vote for options. Use ?vote for more information"""
         print('Prefix of command: ', ctx.prefix)
         print('Starting of args: ')
         # Help details for vote command
@@ -770,16 +771,16 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
         # Skip the current playing song, so that it plays the song to be skipped to immediately
         ctx.voice_state.skip()
 
+    """
     @commands.command(name='chelp')
     async def _chelp(self, ctx: commands.Context):
-        """ Custom help command """
+        ''' Custom help command '''
         embed = discord.Embed()
         embed.description = "[Test]()"
         await ctx.send(embed=embed)
+    """
 
     
-
-        
     # Try creating splay command here
     '''
     @commands.command(name='splay')
@@ -852,11 +853,10 @@ async def on_connect():
 # Loads all cogs 
 @bot.event
 async def on_connect():
-    """
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py') and not filename.startswith('custom_help'):
             bot.load_extension(f'cogs.{filename[0:-3]}')
-    """
+    
     cogs = helper.get_cogs()
     print(f'Value of cogs: {cogs}')
 

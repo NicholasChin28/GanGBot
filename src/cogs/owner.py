@@ -1,5 +1,5 @@
 from discord.ext import commands
-from helper import get_cogs
+# from helper import get_cogs
 
 # Cog for owner utilities
 class Owner(commands.Cog):
@@ -35,27 +35,31 @@ class Owner(commands.Cog):
             await ctx.send("Extension is not loaded")
 
     # TODO: Reload extension
+    """
     @commands.command(name='reload')
     @commands.is_owner()
     async def _reload(self, ctx: commands.Context, extension):
-        """Reloads cog"""
+        '''Reloads cog'''
         await ctx.invoke(self.bot.get_command('unload'), query=extension)
         await ctx.invoke(self.bot.get_command('load'), query=extension)
         return await ctx.send(f"Reload {extension} cog")
+    """
 
     # TODO: Display status and list of cogs
+    """
     @commands.command(name='cogs')
     @commands.is_owner()
     async def _cogs(self, ctx: commands.Context):
-        """Display status and list of cogs"""
+        '''Display status and list of cogs'''
         cogs = get_cogs()
         await ctx.send(f'Value of all cogs:\n {cogs}')
         pass
+    """
 
     # Error handling
     @_load.error
     @_unload.error
-    @_reload.error
+    # @_reload.error
     async def role_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.CheckFailure):
             await ctx.send("Sorry, only the bot owner can use this command")
