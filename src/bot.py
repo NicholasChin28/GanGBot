@@ -83,7 +83,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': f'-vn -ss 100',
+        'options': f'-vn',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
@@ -154,12 +154,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     info = processed_info['entries'].pop(0)
                 except IndexError:
                     raise YTDLError("Couldn't retrieve any matches for `{}`".format(webpage_url))
+
+        # Duration of the video
+        # print(f'Total duration of the video: {info.get("duration")}')
         
         # Set the value of FFMPEG_OPTIONS options
         if not isinstance(timestamp, int):
-            if timestamp.end_time is None:
-                cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
-            else:
+            if timestamp.end_time is not None:
                 cls.FFMPEG_OPTIONS['options'] = (f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
                                                 f' -to {timestamp.end_time.tm_hour}:{timestamp.end_time.tm_min}:{timestamp.end_time.tm_sec}')
 
