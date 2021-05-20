@@ -83,7 +83,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': f'-vn',
+        'options': f'-vn -ss 100',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
@@ -116,6 +116,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def create_source(cls, ctx: commands.Context, search: str, timestamp: int = 0, *, loop: asyncio.BaseEventLoop = None):
+        print('create_source function called')
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
@@ -137,6 +138,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 raise YTDLError("Couldn't find anything that matches `{}`".format(search))
 
         webpage_url = process_info['webpage_url']
+
         partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
@@ -155,14 +157,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         
         # Set the value of FFMPEG_OPTIONS options
         if not isinstance(timestamp, int):
-            cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp.tm_sec}'
+            if timestamp.end_time is None:
+                cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
+            else:
+                cls.FFMPEG_OPTIONS['options'] = (f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
+                                                f' -to {timestamp.end_time.tm_hour}:{timestamp.end_time.tm_min}:{timestamp.end_time.tm_sec}')
 
-        # Prints the value of timestamp
-        # print(f'Value of timestamp: {timestamp}')
-
-        # Prints value of the FFMPEG_OPTIONS variable
-        # print(f'Value of FFMPEG_OPTIONS: {cls.FFMPEG_OPTIONS.items()}')
-        # TODO: Edit the FFMPEG_OPTIONS with timestamp
         # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
 
@@ -256,7 +256,7 @@ class VoiceState:
     def __del__(self):
         self.audio_player.cancel()
 
-    @property       # What is the @property decorator for?
+    @property       
     def loop(self):
         return self._loop
 
