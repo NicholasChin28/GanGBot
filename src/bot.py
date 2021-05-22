@@ -163,6 +163,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
             if timestamp.end_time is not None:
                 cls.FFMPEG_OPTIONS['options'] = (f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
                                                 f' -to {timestamp.end_time.tm_hour}:{timestamp.end_time.tm_min}:{timestamp.end_time.tm_sec}')
+            else:
+                cls.FFMPEG_OPTIONS['options'] = f'-vn'
+        else:
+            cls.FFMPEG_OPTIONS['options'] = f'-vn'
 
         # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
