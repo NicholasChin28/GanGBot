@@ -1,14 +1,9 @@
 # Cogs to store music commands for bot
-import os
 import random
-from dotenv import load_dotenv, find_dotenv
-import time
-
 import asyncio
 import itertools
 import functools
 import math
-from datetime import datetime
 
 import discord
 from discord.ext import commands
@@ -22,15 +17,9 @@ import logging
 
 import youtube_dl
 
-# Import Spotify source custom class
-# import spotify_source
-
-# For voting
-import re
-import string
-import emoji
-
 from helper import helper
+
+# Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ''
@@ -237,8 +226,6 @@ class VoiceState:
 
         self._loop = False
         self._volume = 1.0
-        # self.skip_votes = set()
-        self.votes = set()
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -371,15 +358,31 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
 
-    @commands.command(name='now', aliases=['current', 'playing'])
-    async def _now(self, ctx: commands.Context):
+    # TODO: Add more error checking for invalid track number
+    @commands.command(name='track')
+    async def _now(self, ctx: commands.Context, track: typing.Optional[int] = 1):
         """Gets the track info"""
         if ctx.voice_state.current is None:
-            await ctx.send('Not playing any song right now.')
+            return await ctx.send('Not playing any song right now.')
+
+        print(f'Length of songs: {len(ctx.voice_state.songs)}')
+        print(f'Variable type of ctx.voice_state.songs: {type(ctx.voice_state.songs)}')
+
+        if track < 1:
+            return await ctx.send('Invalid track number')
+        elif track == 1:
+            return await ctx.send(embed=ctx.voice_state.current.create_embed())
         else:
-            print(f'Length of songs: {len(ctx.voice_state.songs)}')
-            print(f'Variable type of ctx.voice_state.songs: {type(ctx.voice_state.songs)}')
-            await ctx.send(embed=ctx.voice_state.current.create_embed())
+            try:
+                print(f'Type of current source: {type(ctx.voice_state.current)}')
+                print(f'Type of songs voice state: {type(ctx.voice_state.songs[0])}')
+                print(f'Value of track - 2: {track - 2}')
+                await ctx.send(embed=ctx.voice_state.songs[track - 2].create_embed())
+            except IndexError:
+                await ctx.send("Uh-oh, that track number is not valid")
+                await ctx.send("Try checking the queue again.")
+                queue_cmd = self.bot.get_command("queue")
+                await queue_cmd(ctx)
 
     @commands.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -612,11 +615,6 @@ class Music(commands.Cog):
     @commands.command(name='skipto')
     async def _skipto(self, ctx: commands.Context, index: int):
         """Skips to song number in queue"""
-        FFMPEG_OPTIONS = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn',
-        }
-
         if not ctx.voice_state.is_playing:
             return await ctx.send('Empty queue.')
 
