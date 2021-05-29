@@ -1,4 +1,5 @@
 # Cogs to store music commands for bot
+from os import pipe
 import random
 import asyncio
 import itertools
@@ -56,7 +57,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': f'-vn',
+        'options': f'-vn -re',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
@@ -149,7 +150,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
         
 
         # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
-        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+        # return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+
+        # TODO: Try saving the ffmpeg seeked source to local file, then play from it, instead of 
+        # TODO: Search in discord.py Discord group, "audio seek"
+        return cls(ctx, discord.FFmpegPCMAudio("./testing.mp3"), data=info)
 
     @staticmethod
     def parse_duration(duration: int):
