@@ -132,14 +132,21 @@ class YTDLSource(discord.PCMVolumeTransformer):
         # print(f'Total duration of the video: {info.get("duration")}')
         
         # Set the value of FFMPEG_OPTIONS options
-        if not isinstance(timestamp, int):
+        if not isinstance(timestamp, int):  # Means that timestamp is a VideoRange class
             if timestamp.end_time is not None:
                 cls.FFMPEG_OPTIONS['options'] = (f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
                                                 f' -to {timestamp.end_time.tm_hour}:{timestamp.end_time.tm_min}:{timestamp.end_time.tm_sec}')
             else:
-                cls.FFMPEG_OPTIONS['options'] = f'-vn'
+                # Debug here
+                print(f'Value of start hour: {timestamp.start_time.tm_hour}')
+                print(f'Value of start minute: {timestamp.start_time.tm_min}')
+                print(f'Value of start second: {timestamp.start_time.tm_sec}')
+                cls.FFMPEG_OPTIONS['options'] = f'-vn -ss {timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}'
         else:
             cls.FFMPEG_OPTIONS['options'] = f'-vn'
+
+        print('Finish setting up options attribute for FFMPEG_OPTIONS')
+        
 
         # Refer to: https://stackoverflow.com/questions/62354887/is-it-possible-to-seek-through-streamed-youtube-audio-with-discord-py-play-from
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
@@ -279,6 +286,8 @@ class VoiceState:
             # If loop is true
             # Credit to "guac420": https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
             else:
+                print('Else block in audio_player_task method')
+                print(f'Value of YTDLSource ffmpeg options: {YTDLSource.FFMPEG_OPTIONS}')
                 # Works only for yt-dlc
                 self.now = discord.FFmpegPCMAudio(self.current.source.stream_url, **YTDLSource.FFMPEG_OPTIONS)
                 self.voice.play(self.now, after=self.play_next_song)

@@ -23,6 +23,7 @@ from helper import helper
 
 bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
 
+
 '''
 @bot.event
 async def on_connect():
@@ -47,6 +48,7 @@ async def on_connect():
 async def on_ready():
     print('Logged in as \n{0.user.name}\n{0.user.id}'.format(bot))
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
+    # await bot.change_presence(activity=discord.CustomActivity(name='Custom status'))
 
 # Load environment variables
 load_dotenv(find_dotenv())
