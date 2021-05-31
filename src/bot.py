@@ -16,6 +16,7 @@
 # from custom_poll import MyMenu
 import os
 from dotenv import load_dotenv, find_dotenv
+import pathlib
 
 import discord
 from discord.ext import commands
@@ -36,14 +37,9 @@ async def on_connect():
 # Loads all cogs 
 @bot.event
 async def on_connect():
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and not filename.startswith('custom_help'):
-            bot.load_extension(f'cogs.{filename[0:-3]}')
+    for filename in helper.get_cogs():
+        bot.load_extension(f'cogs.{filename}')
     
-    cogs = helper.get_cogs()
-    print(f'Value of cogs: {cogs}')
-
-
 @bot.event
 async def on_ready():
     print('Logged in as \n{0.user.name}\n{0.user.id}'.format(bot))

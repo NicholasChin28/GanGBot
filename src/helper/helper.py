@@ -1,5 +1,6 @@
 import os
 import time
+import pathlib
 
 class VideoRange:
     _start_time = None
@@ -18,10 +19,8 @@ class VideoRange:
         self._end_time = end_time
 
 def get_cogs():
-    cogs = []
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and not filename.startswith('custom_help'):
-            cogs.append(filename[0:-3])
+    cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
+    cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py' and x.stem != 'custom_help']
     return cogs
 
 # Checks if string is a valid time format
