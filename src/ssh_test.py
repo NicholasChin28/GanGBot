@@ -21,7 +21,6 @@ def kill_process(client):
     print('Error kill: ', stderr.readline())
     
 def get_process(client):
-    # stdin, stdout, stderr = client.exec_command('pidof python bot2.py')
     stdin, stdout, stderr = client.exec_command(f'pidof {env_vals["PYTHON_PATH"]} {env_vals["PYTHON_FILE"]} ')
     print('Output: ', stdout.readline())
     print('Error: ', stderr.readline())
@@ -32,7 +31,9 @@ def start_process(client):
     print('Error activate: ', stderr.readline())
 
     # Uses screen instead of nohup to restore control to terminal after finishing commands
-    stdin, stdout, stderr = client.exec_command(f'screen -dm {env_vals["PYTHON_PATH"]} {env_vals["PYTHON_FILE"]}')
+    # Refer to https://stackoverflow.com/questions/8932862/how-do-i-change-directories-using-paramiko
+    # For method to change directory while executing script in SSHClient
+    stdin, stdout, stderr = client.exec_command(f'cd {env_vals["BOT_DIRECTORY"]}; screen -dm {env_vals["PYTHON_PATH"]} {env_vals["PYTHON_FILE"]}')
     print('Output nohup: ', stdout.readline())
     print('Error nohup: ', stderr.readline())
 
@@ -72,18 +73,7 @@ def init_argparse() -> argparse.ArgumentParser:
     group.add_argument("--restart", help="Restarts the current instance of MaldBot", action="store_true")
 
     return parser
-    '''
-    required = parser.add_argument_group("Required argument")
-
-    group = parser.add_mutually_exclusive_group()
-
-    group.add_argument("--kill", help="Stops the current instance of MaldBot", action="store_true")
-    group.add_argument("--restart", help="Restarts the current instance of MaldBot", action="store_true")
-
-    return parser
-    '''
-
-
+    
 # Initialise argparse
 parser = init_argparse()
 args = parser.parse_args()
