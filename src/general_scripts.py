@@ -9,144 +9,6 @@ import boto3
 import botocore
 
 load_dotenv()
-
-'''
-engine = psycopg2.connect(
-    database=os.getenv('RDS_DB'),
-    user=os.getenv('RDS_USER'),
-    password=os.getenv('RDS_PASSWORD'),
-    host=os.getenv('RDS_HOST'),
-    port=os.getenv('RDS_PORT'),
-)
-
-cur = engine.cursor()
-'''
-# List all the tables in the database
-
-
-# List the fields of a table (vote table)
-# cur.execute("drop table vote, guild")
-# engine.commit()
-# result = cur.fetchone()
-# print('Result of drop query: ', result)
-# colnames = [desc[0] for desc in cur.description]
-# print('Column names: ', colnames)
-
-'''
-cur.execute("""SELECT table_name FROM information_schema.tables
-       WHERE table_schema = 'public'""")
-rows = cur.fetchall()
-
-for row in rows:
-    print("Table name: ", row)
-'''
-
-# Select all rows from the 'vote' table
-'''
-cur.execute(""" SELECT * FROM vote""")
-rows = cur.fetchall()
-
-for row in rows:
-    print("Row value: ", row)
-'''
-class VideoRange:
-    _start_time = None
-    _end_time = None
-
-    @property
-    def start_time(self):
-        return self._start_time
-
-    @property
-    def end_time(self):
-        return self._end_time
-
-    def __init__(self, start_time=0, end_time=None) -> None:
-        self._start_time = start_time
-        self._end_time = end_time
-
-# Checks if string is a valid time format
-# Returns None if timestamp is not a valid time format
-def validate_time(timestamp):
-    time_formats = ['%M:%S', '%H:%M:%S']
-    for format in time_formats:
-        try:
-            print('validate_time called')
-            valid_timestamp = time.strptime(timestamp, format)
-            return valid_timestamp
-        except ValueError:
-            pass
-
-def test_parse_time(timestamp):
-    # Check if the timestamp is a timestamp range or a single starting timestamp
-    time_ranges = None
-    if '-' in timestamp:
-        time_ranges = timestamp.split('-')
-
-    """
-    if len(time_ranges) != 2:
-        pass
-    """
-
-    time_formats = ['%M:%S', '%H:%M:%S']
-    time_range = None
-    for format in time_formats:
-        try:
-            print('parse_time called')
-            time_range = time.strptime(timestamp, format)
-            break
-        except ValueError:
-            pass
-
-    return time_range
-
-def parse_time(timestamp):
-    time_ranges = timestamp.split('-')  # Split time range
-    struct_time_range = []
-
-    if len(time_ranges) == 1:   # Invalid time range length sent
-        for i in time_ranges:
-            if validate_time(i) is not None:
-                struct_time_range.append(validate_time(i))
-        
-        return VideoRange(start_time=struct_time_range[0])
-    elif len(time_ranges) == 2:
-        for i in time_ranges:
-            if validate_time(i) is not None:
-                struct_time_range.append(validate_time(i))
-
-        if len(struct_time_range) != 2: # One of the range format is invalid
-            return VideoRange()
-
-        # Compare the first and second time ranges
-        # The second range which is the end time must be greater than the first range
-        if not struct_time_range[-1] > struct_time_range[0]:    # End time is before the start time
-            return VideoRange() 
-
-        return VideoRange(start_time=struct_time_range[0], end_time=struct_time_range[-1])
-    else:
-        return VideoRange()
-    
-    
-    
-    """
-    time_formats = ['%M:%S', '%H:%M:%S']
-    struct_time_range = []
-    # Check if each time ranges are valid time formats
-    for format in time_formats:
-        for range in time_ranges:
-            try:
-                print('parse_time called')
-                struct_time_range = time.strptime(range, format)
-                break
-            except ValueError:
-                pass
-    """
-    
-    # return VideoRange()
-
-
-            
     
 # Test S3 connection
 def create_s3_connection():
@@ -228,11 +90,15 @@ def create_bucket():
     if s3 is not None:
         return 
 
+# Class that is in use
 class S3Connection:
-    def __init__(self):
-        s3 = self.create_s3_connection2()
 
-    def create_s3_connection2(self):
+    def __init__(self):
+        self.s3 = self.create_s3_connection2()
+        self.playsounds_bucket = os.getenv('AWS_BUCKET')
+        self.s3_bucket = self.get_bucket()
+
+    async def create_s3_connection2(self):
         print('Creating AWS S3 connection...')
         s3 = boto3.resource(
             service_name='s3',
@@ -253,15 +119,14 @@ class S3Connection:
 
         return s3
 
-    # Check if bucket exists
-    def check_bucket(self):
-        bucket_name = os.getenv('AWS_BUCKET')
-        playsound_bucket = self.s3.Bucket(bucket_name)
+    # Get playsounds bucket
+    async def get_bucket(self):
         exists = True
 
         # Check if bucket exist. V2
         try:
-            self.s3.meta.client.head_bucket(Bucket=bucket_name)
+            self.s3.meta.client.head_bucket(Bucket=self.playsounds_bucket)
+            return self.s3.Bucket(self.playsounds_bucket)
         except ClientError as e:
             # If a client error is thrown, then check that it was a 404 error.
             # If it was a 404 error, then the bucket does not exist.
@@ -271,6 +136,58 @@ class S3Connection:
             elif error_code == '404':
                 exists = False
                 print('Bucket does not exist')
+                print('Creating bucket...')
+                await create_bucket()
+                return self.s3.Bucket(self.playsounds_bucket)
+
+        return None
+
+    # Check if file exists in bucket
+    async def check_file(self, filename):
+        try:
+            self.s3.Object(self.playsounds_bucket, filename).load()
+        except ClientError as e:
+            return int(e.response['Error']['Code']) != 404
+        return True
+
+    # Downloads file from bucket
+    async def download_file(self, filename, exists):
+        try:
+            self.s3_bucket.download_file(filename, filename)
+        except ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                print("The object does not exist")
+
+    # Uploads file to bucket
+    async def upload_file(self, filename):
+        try:
+            self.s3_bucket.upload_file(filename, filename)
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                print("Bucket does not exist. Called from upload_file")
+            elif e.response['Error']['Code'] == '403':
+                print("Insufficient permissions to upload file")
+            return e.response['Code']
+        return '200'    # To indicate success
+        
+    # Create bucket
+    async def create_bucket(self):
+        await self.s3.create_bucket(Bucket=self.playsounds_bucket, CreateBucketConfiguration={
+            'LocationConstraint': 'ap-southeast-1'
+        })
+        print('Bucket created...')
+        """
+        if playsound_bucket.creation_date:
+            print("The bucket exists")
+        else:
+            print('Bucket does not exist. Creating bucket...')
+            # Create the bucket
+            s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
+                'LocationConstraint': 'ap-southeast-1'
+            })
+            print('Bucket created...')
+        """
 
 
-create_s3_connection()
+
+# create_s3_connection()
