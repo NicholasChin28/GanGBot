@@ -1,5 +1,6 @@
 # Cog to store commands for bot owner
 from discord.ext import commands
+from discord.ext.commands.core import command
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -34,6 +35,23 @@ class Owner(commands.Cog):
             await ctx.send("Extension is not loaded")
 
     # TODO: Reload extension
+    @commands.command(name='reload')
+    @commands.is_owner()
+    async def _reload(self, ctx: commands.Context, extension):
+        '''Reloads cog'''
+        try:
+            self.bot.reload_extension(f'cogs.{extension}')
+            await ctx.send(f'Reloaded {extension} cog')
+        except commands.ExtensionNotFound:
+            await ctx.send(f'Failed to reload {extension} cog')
+        except commands.NoEntryPointError:
+            await ctx.send(f'{extension} cog does not have a setup function')
+
+    @commands.command(name='cogs')
+    @commands.is_owner()
+    async def _cogs(self, ctx: commands.Context):
+        '''Display status and list of cogs'''
+        cogs = self.bot
     """
     @commands.command(name='reload')
     @commands.is_owner()
