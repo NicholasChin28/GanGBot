@@ -17,9 +17,19 @@ class VideoRange:
         self._start_time = start_time
         self._end_time = end_time
 
+
+# Gets all initial cogs to be loaded
+# Excludes custom_help cog
 def get_cogs():
     cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
     cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py' and x.stem != 'custom_help']
+    return cogs
+
+
+# Gets a list of all cogs. Including custom_help cog
+def get_all_cogs():
+    cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
+    cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py']
     return cogs
 
 # Checks if string is a valid time format
