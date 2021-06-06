@@ -1,4 +1,6 @@
 # Cog to store commands for bot owner
+import os
+from os import name
 import discord
 from discord.ext import commands
 from discord.utils import get
@@ -53,37 +55,26 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def _cogs(self, ctx: commands.Context):
         '''Display status and list of cogs'''
-        # cogs = self.bot
         x_emoji = '❌'
         tick_emoji = '✅'
+
         all_cogs = helper.get_all_cogs()
-        # print(f'\nValue of all loaded bot extensions: {self.bot.extensions}')
-
-        # Print the list of all available cogs
-        # print(f"All cogs: {helper.get_all_cogs()}")
-
-        # Gets the list of all loaded bot extensions
-        # print(f'\n Value of all keys in self.bot.extensions variable: {self.bot.extensions.keys()}\n')
-
-        # Print bot extensions without the leading text "cogs."
+        # Remove leading text "cogs." from bot extensions
         loaded_cogs = [i.replace("cogs.", "") for i in self.bot.extensions.keys()]
-        # print(f'\n Value of loaded_cogs variable: {loaded_cogs}')
-
+        
         # Prepare discord embed
-        embed = discord.Embed(title='Cog status', description='List of all cogs and their status')
-        embed.add_field(name='Cog', value='Loaded')
+        embed = discord.Embed(title='__**Cog status**__', description='List of cogs and their status', color=discord.Color.blurple())
 
-        embed_value_list = []
-        embed_value_field = ''
+        cogs_status = []
 
         for x in all_cogs:
             if x in loaded_cogs:
-                embed_value_list.append(f'\n{x}\t{tick_emoji}\n')
+                cogs_status.append(f'{tick_emoji}')
             else:
-                embed_value_list.append(f'\n{x}\t{x_emoji}\n')
+                cogs_status.append(f'{x_emoji}')
 
-        embed_value_field = ''.join(embed_value_list)
-        embed.add_field(name='Cogs', value=embed_value_field, inline=False)
+        embed.add_field(name='__Cogs__', value=f'{os.linesep.join(all_cogs)}', inline=True)
+        embed.add_field(name='__Loaded__', value=f'{os.linesep.join(cogs_status)}', inline=True)
 
         await ctx.send(embed=embed)
 
