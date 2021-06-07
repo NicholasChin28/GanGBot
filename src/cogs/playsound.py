@@ -11,8 +11,7 @@ import asyncio
 import functools
 import discord
 from discord.ext import commands
-
-# from bot import Music
+from botocore.exceptions import ClientError
 
 load_dotenv()
 
@@ -20,9 +19,6 @@ load_dotenv()
 # Find a way of possibly getting MD5 checksum regardless of multipart uploaded or individually uploaded
 # Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
 # Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
-
-
-
 
 # Non existent playsound file error
 class SoundError(Exception):
@@ -112,15 +108,77 @@ class Sound:
 
         return embed
 
+# Represents a file from AWS S3 bucket
+class S3File:
+    def __init__(self, name, status) -> None:
+        self._name = name
+        self._status = status
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, status):
+        self._status = status
 
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        """
+        self.s3 = self.create_s3_connection()
+        self.playsound_bucket = os.getenv('AWS_BUCKET')
+        self.s3_bucket = self.get_bucket()
+        self.bucket_objects = self.get_bucket_objects()
+        """
+        self.s3 = None
+        self.playsound_bucket = None
+        self.s3_bucket = None
+        self.bucket_objects = None
 
     @commands.Cog.listener()
     async def on_ready(self):
         print('Playsound cog loaded!')
+        self.s3 = await self.create_s3_connection()
+        self.playsound_bucket = os.getenv('AWS_BUCKET')
+        self.s3_bucket = await self.get_bucket()
+        self.bucket_objects = await self.get_bucket_objects()
+        print('Initialized variables')
+
+        print(f'Val of: {self.s3}')
+        print(f'Val of: {self.playsound_bucket}')
+        print(f'Val of: {self.s3_bucket}')
+        print(f'Val of: {self.bucket_objects}')
         # await self.download_playsounds()
+
+    async def create_s3_connection(self):
+        print('Creating AWS S3 connection...')
+        s3 = boto3.resource(
+            service_name='s3',
+            region_name='ap-southeast-1',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+
+        # Check if credentials and permissions are correct
+        try:
+            for _ in s3.buckets.all():
+                pass
+        except ClientError as e:
+            print(f'Client error: {e}')
+            return None
+
+        print('AWS S3 connection established')
+
+        return s3
 
     @commands.command(name='listsounds')
     async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
@@ -248,9 +306,9 @@ class Playsound(commands.Cog):
             print('local_file_checksum: ', local_file_checksum)
 
         s3_bucket = await self.get_bucket()
-        s3_objects = s3_bucket.objects.all()
+        # s3_objects = s3_bucket.objects.all()
         
-        for obj in s3_objects:
+        for obj in self.bucket_objects:
             print('Getting S3 file...')
             # print('Filename of file', obj.key)
             # print(f'MD5 checksum of file: {obj.e_tag}, type: {type(obj.e_tag)}, char at index 0: {obj.e_tag[0]}')
@@ -259,6 +317,35 @@ class Playsound(commands.Cog):
                 print('S3 file downloaded')
             else:
                 print('File already exists... skipping file')
+
+    # Gets playsound bucket
+    async def get_bucket(self):
+        exists = True
+
+        # Check if bucket exist. V2
+        try:
+            self.s3.meta.client.head_bucket(Bucket=self.playsound_bucket)
+            return self.s3.Bucket(self.playsound_bucket)
+        except ClientError as e:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '403':
+                print('Private bucket. Forbidden Access!')
+            elif error_code == '404':
+                exists = False
+                print('Bucket does not exist')
+                print('Creating bucket...')
+                await self.create_bucket()
+                return self.s3.Bucket(self.playsound_bucket)
+
+        return None
+
+    # Gets all objects in playsound bucket
+    # This is more of a helper method to reduce queries sent to AWS S3 endpoint
+    async def get_bucket_objects(self):
+        s3_objects = self.s3_bucket.objects.all()
+        return s3_objects
 
     async def get_valid_playsounds(self):
         '''
@@ -281,13 +368,61 @@ class Playsound(commands.Cog):
         return hashes
         # print(hashes)
 
-    # Get all objects in a bucket
+    # Get playsound bucket
     async def get_bucket(self):
-        print('Creating AWS S3 connection')
-        s3 = await self.create_s3_connection()
+        exists = True
 
-        playsound_bucket = s3.Bucket(os.getenv('AWS_BUCKET'))
-        return playsound_bucket
+        # Check if bucket exist. V2
+        try:
+            self.s3.meta.client.head_bucket(Bucket=self.playsound_bucket)
+            return self.s3.Bucket(self.playsound_bucket)
+        except ClientError as e:
+            # If a client error is thrown, then check that it was a 404 error.
+            # If it was a 404 error, then the bucket does not exist.
+            error_code = e.response['Error']['Code']
+            if error_code == '403':
+                print('Private bucket. Forbidden Access!')
+            elif error_code == '404':
+                exists = False
+                print('Bucket does not exist')
+                print('Creating bucket...')
+                await self.create_bucket()
+                return self.s3.Bucket(self.playsound_bucket)
+
+        return None
+
+    # Create bucket
+    async def create_bucket(self):
+        self.s3.create_bucket(Bucket=self.playsound_bucket, CreateBucketConfiguration={
+            'LocationConstraint': 'ap-southeast-1'
+        })
+        print('Bucket created...')
+        
+    # Upload command test
+    @commands.command(name='upload')
+    async def _upload(self, ctx: commands.Context):
+        file_to_upload = Path('')   # Insert hardcoded path of .mp3 file to test
+        to_send = []
+        to_send.append(file_to_upload)
+        temp_val = await self.upload_files(to_send)
+        print(f'Value of file_uploads: {temp_val}')
+
+    # Uploads file to bucket
+    async def upload_files(self, files):
+        file_uploads = []
+        for file in files:
+            try:
+                self.s3_bucket.upload_file(file.__str__(), 'sample15s.mp3')
+                file_uploads.append(S3File(file.__str__(), '200'))
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    print("Bucket does not exist. Called from upload_file")
+                elif e.response['Error']['Code'] == '403':
+                    print("Insufficient permissions to upload file")
+                file_uploads.append(S3File(file.__str__(), e.response['Code']))
+            
+        return file_uploads # Returns status of each file upload
+
 
 
 def setup(bot):

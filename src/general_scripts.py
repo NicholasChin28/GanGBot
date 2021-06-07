@@ -119,7 +119,7 @@ class S3Connection:
 
         return s3
 
-    # Get playsounds bucket
+    # Get playsound bucket
     async def get_bucket(self):
         exists = True
 
@@ -159,16 +159,22 @@ class S3Connection:
                 print("The object does not exist")
 
     # Uploads file to bucket
-    async def upload_file(self, filename):
-        try:
-            self.s3_bucket.upload_file(filename, filename)
-        except ClientError as e:
-            if e.response['Error']['Code'] == '404':
-                print("Bucket does not exist. Called from upload_file")
-            elif e.response['Error']['Code'] == '403':
-                print("Insufficient permissions to upload file")
-            return e.response['Code']
-        return '200'    # To indicate success
+    async def upload_files(self, files):
+        file_uploads = []
+        for file in files:
+            try:
+                self.s3_bucket.upload_file(file, file)
+                file_uploads.add(S3File(file, '200'))
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    print("Bucket does not exist. Called from upload_file")
+                elif e.response['Error']['Code'] == '403':
+                    print("Insufficient permissions to upload file")
+                file_uploads.add(S3File(file, e.response['Code']))
+            
+        return file_uploads # Returns status of each file upload
+
+    
         
     # Create bucket
     async def create_bucket(self):
@@ -187,7 +193,27 @@ class S3Connection:
             })
             print('Bucket created...')
         """
+# Represents a file from AWS S3 bucket
+class S3File:
+    def __init__(self, name, status) -> None:
+        self._name = name
+        self._status = status
 
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, status):
+        self._status = status
 
 
 # create_s3_connection()

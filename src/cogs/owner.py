@@ -1,10 +1,7 @@
 # Cog to store commands for bot owner
 import os
-from os import name
 import discord
 from discord.ext import commands
-from discord.utils import get
-from discord.ext.commands.core import command
 from helper import helper
 
 class Owner(commands.Cog):
