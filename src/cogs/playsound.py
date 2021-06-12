@@ -1,6 +1,7 @@
 # Storing and retrieving playsounds from AWS S3 bucket
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
+import typing
 import boto3
 from discord.ext.commands.context import Context
 from discord.ext.commands.core import command
@@ -147,6 +148,9 @@ class Playsound(commands.Cog):
         self.playsound_bucket = None
         self.s3_bucket = None
         self.bucket_objects = None
+
+        # self.playsound_folder = Path(__file__).parent.absolute() / 'random2.mp3'
+        self.playsound_folder = Path(__file__).parents[1].absolute() / 'playsounds'
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -414,38 +418,74 @@ class Playsound(commands.Cog):
         temp_val = await self.upload_files(to_send)
         print(f'Value of file_uploads: {temp_val}')
 
-    # Upload command test 2. To check if message has attachments
+    # Upload command test 2
     @commands.command(name='upload2')
-    async def _upload2(self, ctx: commands.Context):
+    async def _upload2(self, ctx: commands.Context, name: typing.Optional[str]):
+        '''
+        TODO: Things to do for upload
+        1. Upload audio file
+            - Check when command is called, does it have an attachment.
+                If not, check if the second argument is a Youtube link
+        '''
         message_attachments = ctx.message.attachments
-        # Only need to check first item as Discord only allows one file per message
-        filename = message_attachments[0].filename
-        file_url = message_attachments[0].url
+        if len(message_attachments) == 0:
+            # TODO: Handle if user gives Youtube link
+            return await ctx.send("No attachment provided")
+        else:
+            # Handling for user file attachment
+            filename = message_attachments[0].filename
+            file_url = message_attachments[0].url
+            print(f'Value of message_attachments: {message_attachments}')
+            # Only need to check first item as Discord only allows one file per message
+            
+            async with ClientSession() as session:
+                async with session.get(file_url) as response:
+                    if not response.status == 200:
+                        return await ctx.send("Invalid attachment URL")
 
-        # Before downloading file, check if it is a valid audio file
-        if not filename.lower().endswith(('.mp3', '.mp4', 'm4a', 'wav')):
-            return await ctx.send('Unsupported file type')
+                    content_type = response.headers['content-type']
+                    if not content_type.starts_with('audio/'):
+                        return await ctx.send("Invalid file type")
 
-        # Check if filename is a valid audio source
-        # uploaded_file = mutagen.File(has_attachments[0].url)
-        # print(f'Value of uploaded_file: {uploaded_file}')
+                    # TODO: Check content length less than 10MB
+                    content_length = response.headers['content-length']
 
-        # TODO: Implement loop below 
-        """
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete('function name for getting url and downloading file')
-        """
-        # Download file to local temp storage
-        # TODO: Use aiofiles TempStorage to store downloaded files
-        async with ClientSession() as session:
-            async with session.get(file_url) as response:
-                print(f"Status: {response.status}")
-                print(f"Content-type: {response.headers['content-type']}")
+            # Before downloading file, check if it is a valid audio file
+            """
+            if not filename.lower().endswith(('.mp3', '.mp4', 'm4a', 'wav')):
+                return await ctx.send('Unsupported file type')
+            """
 
-                if response.status == 200:
-                    f = await aiofiles.open(Path(__file__).parent.absolute() / 'random2.mp3', mode='wb')
-                    await f.write(await response.read())
-                    await f.close()
+            # Check if file fits playsounds criteria
+            
+            print(f'Value of name: {name}')
+
+            # TODO: Implement loop below 
+            """
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete('function name for getting url and downloading file')
+            """
+            # Download file to local temp storage
+            # TODO: Use aiofiles TempStorage to store downloaded files
+            # TODO: Check if content length is less than 10MB. For storage purposes
+            async with ClientSession() as session:
+                async with session.get(file_url) as response:
+                    print(f"Status: {response.status}")
+                    print(f"Content-type: {response.headers['content-type']}")
+                    # Check if valid audio file type
+                    if response.headers['content-type'].startswith('audio/'):
+                        print(f'Valid audio file from content-type')
+                    else:
+                        return await ctx.send('Unsupported file type from response')
+                    print(f"Content-length: {response.headers['content-length']}")
+                    print("Test")
+
+                    if response.status == 200:
+                        """
+                        f = await aiofiles.open(self.playsound_folder / {name} if name is not None else {filename}, mode='wb')
+                        await f.write(await response.read())
+                        await f.close()
+                        """
 
     # Uploads file to bucket
     async def upload_files(self, files):
@@ -461,7 +501,16 @@ class Playsound(commands.Cog):
                     print("Insufficient permissions to upload file")
                 file_uploads.append(S3File(file.__str__(), e.response['Code']))
             
-        return file_uploads # Returns status of each file upload
+        return file_uploads     # Returns status of each file upload
+
+    # Define playsound criteria
+    async def check_audiofile(self, file):
+        '''
+        1. Is a mutagen file
+        2. File is less than 30 seconds
+        '''
+        valid_file = mutagen.File(file) is not None and mutagen.File(file).info.length <= 30
+        return valid_file
 
 def setup(bot):
     bot.add_cog(Playsound(bot))
