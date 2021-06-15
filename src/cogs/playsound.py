@@ -17,6 +17,7 @@ from discord.ext import commands
 from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 import aiofiles
+import humanfriendly
 
 load_dotenv()
 
@@ -421,6 +422,7 @@ class Playsound(commands.Cog):
     # Upload command test 2
     @commands.command(name='upload2')
     async def _upload2(self, ctx: commands.Context, name: typing.Optional[str]):
+        max_size = '10MB'   # Max size allowed for playsound
         '''
         TODO: Things to do for upload
         1. Upload audio file
@@ -444,11 +446,25 @@ class Playsound(commands.Cog):
                         return await ctx.send("Invalid attachment URL")
 
                     content_type = response.headers['content-type']
-                    if not content_type.starts_with('audio/'):
+                    if not content_type.startswith('audio/'):
                         return await ctx.send("Invalid file type")
 
-                    # TODO: Check content length less than 10MB
+                    max_length = humanfriendly.parse_size(max_size, binary=True)
                     content_length = response.headers['content-length']
+                    
+                    if int(content_length) > max_length:
+                        return await ctx.send('File size is too large. Send a file 10MB or less')
+
+                    # All criteria passed. Download file to temporary file
+                    async with aiofiles.tempfile.NamedTemporaryFile('wb+') as f:
+                        await f.write(await response.read()) 
+                        await f.seek(0)
+                        # TODO: Read the temporary audio file and trim the audio
+                        """
+                        async for data in f:
+                            print(f'Data: {data}')
+                        """
+
 
             # Before downloading file, check if it is a valid audio file
             """

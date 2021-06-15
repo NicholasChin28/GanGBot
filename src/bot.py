@@ -9,7 +9,6 @@
 # Use tasks, etc. @task.loop for automating timed tasks
 
 # TODO: Generate custom help command for the bot
-# TODO: Generate embed for loaded and unloaded cogs: https://stackoverflow.com/questions/63036583/is-there-a-way-to-find-all-the-loaded-and-unloaded-cogs-in-discord-py-rewrite
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 # from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
 # from spotify_player import SpotifyCog
