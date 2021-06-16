@@ -28,6 +28,7 @@ dependencies:
   - gitpython=3.1.12
   - humanfriendly=9.2
   - humanize=3.7.1
+  - imageio-ffmpeg=0.4.4
   - importlib-metadata=3.4.0
   - iniconfig=1.1.1
   - isort=5.5.3
@@ -51,6 +52,7 @@ dependencies:
   - pyaudio=0.2.11
   - pycodestyle=2.6.0
   - pycparser=2.20
+  - pydub=0.25.1
   - pyflakes=2.2.0
   - pylint=2.6.0
   - pymysql=0.9.2
@@ -91,10 +93,10 @@ dependencies:
     - aiosqlite==0.16.0
     - async-timeout==3.0.1
     - attrs==19.3.0
-    - cffi==1.14.0
+    - cffi==1.14.3
     - chardet==3.0.4
     - ddlparse==1.9.0
-    - discord-py==1.7.2
+    - discord-py==1.5.1
     - idna==2.9
     - iso8601==0.1.13
     - multidict==4.7.5

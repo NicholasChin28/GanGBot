@@ -18,6 +18,7 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 import aiofiles
 import humanfriendly
+from mutagen.apev2 import delete
 
 load_dotenv()
 
@@ -456,9 +457,23 @@ class Playsound(commands.Cog):
                         return await ctx.send('File size is too large. Send a file 10MB or less')
 
                     # All criteria passed. Download file to temporary file
-                    async with aiofiles.tempfile.NamedTemporaryFile('wb+') as f:
+                    async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix='.mp3') as f:
                         await f.write(await response.read()) 
                         await f.seek(0)
+                        await f.close()
+
+
+                        # TODO: Save temp file with suffix based on uploaded file.
+                        # TODO: Temp file successfully create. Re-open it and crop audio
+                        async with aiofiles.open(f.name, mode='r+b') as the_tempfile:
+                            content = await the_tempfile.read()
+                            print(f'content: {content}')
+                        """
+                        type_file = await aiofiles.open(f.name, mode='rb+')
+                        print(f'type_file: {mutagen.File(type_file)}')
+                        os.unlink(f.name)
+                        print(f"exists: {os.path.exists(f.name)}")
+                        """
                         # TODO: Read the temporary audio file and trim the audio
                         """
                         async for data in f:
