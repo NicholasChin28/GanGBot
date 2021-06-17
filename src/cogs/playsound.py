@@ -3,8 +3,6 @@
 # TODO: Add file watcher
 import typing
 import boto3
-from discord.ext.commands.context import Context
-from discord.ext.commands.core import command
 from dotenv import load_dotenv
 import os
 from pathlib import Path
@@ -19,6 +17,7 @@ from aiohttp import ClientSession
 import aiofiles
 import humanfriendly
 from mutagen.apev2 import delete
+from pydub import AudioSegment
 
 load_dotenv()
 
@@ -460,14 +459,40 @@ class Playsound(commands.Cog):
                     async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix='.mp3') as f:
                         await f.write(await response.read()) 
                         await f.seek(0)
-                        await f.close()
+                        
+                        type_file_f2 = mutagen.File(f.name)
+                        print(f"type_file_f2: {type_file_f2}, {type_file_f2.info.length}")
+
+                        # Working code segment to crop audio
+                        """ 
+                        song = AudioSegment.from_mp3(f.name)    # Accessing file from temp folder
+
+                        ten_seconds = 10 * 1000
+                        first_10_seconds = song[:ten_seconds]
+
+                        first_10_seconds.export("edited_mashup2.mp3", format="mp3") # This saves the exported file to src/
+
+                        print("File slicing completed!")
+                        """
+
+                        
+                        f2 = await aiofiles.open(f.name)
+                        print(f"f2: {f2}")
+                        
+                        # await f.close()
 
 
                         # TODO: Save temp file with suffix based on uploaded file.
                         # TODO: Temp file successfully create. Re-open it and crop audio
+                        """
                         async with aiofiles.open(f.name, mode='r+b') as the_tempfile:
                             content = await the_tempfile.read()
                             print(f'content: {content}')
+                            type_file = mutagen.File(the_tempfile)
+                            print(F"type_file: {type_file}")
+                        """
+
+                        
                         """
                         type_file = await aiofiles.open(f.name, mode='rb+')
                         print(f'type_file: {mutagen.File(type_file)}')
@@ -480,43 +505,13 @@ class Playsound(commands.Cog):
                             print(f'Data: {data}')
                         """
 
-
-            # Before downloading file, check if it is a valid audio file
-            """
-            if not filename.lower().endswith(('.mp3', '.mp4', 'm4a', 'wav')):
-                return await ctx.send('Unsupported file type')
-            """
-
-            # Check if file fits playsounds criteria
-            
-            print(f'Value of name: {name}')
-
             # TODO: Implement loop below 
             """
             loop = asyncio.get_event_loop()
             loop.run_until_complete('function name for getting url and downloading file')
             """
-            # Download file to local temp storage
-            # TODO: Use aiofiles TempStorage to store downloaded files
-            # TODO: Check if content length is less than 10MB. For storage purposes
-            async with ClientSession() as session:
-                async with session.get(file_url) as response:
-                    print(f"Status: {response.status}")
-                    print(f"Content-type: {response.headers['content-type']}")
-                    # Check if valid audio file type
-                    if response.headers['content-type'].startswith('audio/'):
-                        print(f'Valid audio file from content-type')
-                    else:
-                        return await ctx.send('Unsupported file type from response')
-                    print(f"Content-length: {response.headers['content-length']}")
-                    print("Test")
-
-                    if response.status == 200:
-                        """
-                        f = await aiofiles.open(self.playsound_folder / {name} if name is not None else {filename}, mode='wb')
-                        await f.write(await response.read())
-                        await f.close()
-                        """
+            
+            
 
     # Uploads file to bucket
     async def upload_files(self, files):

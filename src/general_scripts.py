@@ -7,6 +7,9 @@ import time
 import pathlib
 import boto3
 import botocore
+import re
+import json
+from pydub import AudioSegment
 
 load_dotenv()
     
@@ -217,3 +220,21 @@ class S3File:
 
 
 # create_s3_connection()
+
+# Test re.search()
+"""
+to_search = ["<Attachment id=852447641166020618 filename='sample-15s.mp3' url='https://cdn.discordapp.com/attachments/694753759091359825/852447641166020618/sample-15s.mp3'>"]
+temp_val = json.dumps(to_search)
+print(f'temp_val: {temp_val}')
+"""
+
+
+
+# Test slicing audio file with pydub
+song = AudioSegment.from_mp3("random.mp3")
+
+ten_seconds = 10 * 1000
+first_10_seconds = song[:ten_seconds]
+
+# song.export("edited_mashup.mp3", format="mp3")
+first_10_seconds.export("edited_mashup.mp3", format="mp3")
