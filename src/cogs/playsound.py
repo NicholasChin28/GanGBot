@@ -151,7 +151,8 @@ class Playsound(commands.Cog):
         self.bucket_objects = None
 
         # self.playsound_folder = Path(__file__).parent.absolute() / 'random2.mp3'
-        self.playsound_folder = Path(__file__).parents[1].absolute() / 'playsounds'
+        self.playsound_folder = Path(__file__).parents[1].absolute() / 'playsounds' # Playsounds
+        self.preview_playsounds_folder = Path(__file__).parents[1].absolute()   / 'preview_playsounds'  # Cropped playsounds to be previewed
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -464,21 +465,28 @@ class Playsound(commands.Cog):
                         print(f"type_file_f2: {type_file_f2}, {type_file_f2.info.length}")
 
                         # Working code segment to crop audio
-                        """ 
                         song = AudioSegment.from_mp3(f.name)    # Accessing file from temp folder
 
                         ten_seconds = 10 * 1000
                         first_10_seconds = song[:ten_seconds]
 
-                        first_10_seconds.export("edited_mashup2.mp3", format="mp3") # This saves the exported file to src/
+                        # first_10_seconds.export("edited_mashup2.mp3", format="mp3") # This saves the exported file to src/
+                        first_10_seconds.export(self.preview_playsounds_folder / "edited_mashup2.mp3", format="mp3")
 
                         print("File slicing completed!")
-                        """
-
                         
+                        # Upload the file back to the chat group
+                        # Working
+                        preview_playsound = discord.File(self.preview_playsounds_folder / "edited_mashup2.mp3")
+
+                        await ctx.send(file=preview_playsound)
+
+
+                        """
                         f2 = await aiofiles.open(f.name)
                         print(f"f2: {f2}")
-                        
+                        """
+
                         # await f.close()
 
 
