@@ -1,6 +1,7 @@
 # Storing and retrieving playsounds from AWS S3 bucket
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
+import pathlib
 import typing
 import boto3
 from dotenv import load_dotenv
@@ -16,8 +17,9 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 import aiofiles
 import humanfriendly
-from mutagen.apev2 import delete
+import shutil
 from pydub import AudioSegment
+from Models.s3file import S3File
 
 load_dotenv()
 
@@ -113,28 +115,6 @@ class Sound:
                 .add_field(name='Requested by', value=self.requester.mention))
 
         return embed
-
-# Represents a file from AWS S3 bucket
-class S3File:
-    def __init__(self, name, status) -> None:
-        self._name = name
-        self._status = status
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name
-
-    @property
-    def status(self):
-        return self._status
-
-    @status.setter
-    def status(self, status):
-        self._status = status
 
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -414,11 +394,20 @@ class Playsound(commands.Cog):
     # Upload command test
     @commands.command(name='upload')
     async def _upload(self, ctx: commands.Context):
-        file_to_upload = Path('')   # Insert hardcoded path of .mp3 file to test
+        file_to_upload = Path('')   
         to_send = []
         to_send.append(file_to_upload)
         temp_val = await self.upload_files(to_send)
         print(f'Value of file_uploads: {temp_val}')
+
+    # Add reactions for upload playsounds
+    async def add_playsound_reactions(self, message):
+        x_emoji = '❌'
+        tick_emoji = '✅'
+
+        await message.add_reaction(tick_emoji)
+        await message.add_reaction(x_emoji)
+        
 
     # Upload command test 2
     @commands.command(name='upload2')
@@ -437,8 +426,16 @@ class Playsound(commands.Cog):
         else:
             # Handling for user file attachment
             filename = message_attachments[0].filename
+            file_ext = pathlib.Path(filename).suffix
             file_url = message_attachments[0].url
+
+            # temp_filename = pathlib.Path(filename).rename(filename + "_cropped").with_suffix(file_ext)
+            # temp_filename = f'{pathlib.Path(filename).parents[0]}{pathlib.Path(filename).stem}_playsound{file_ext}'
+
+            # print(f'Value of temp_filename: {temp_filename}')
+
             print(f'Value of message_attachments: {message_attachments}')
+            print(f'Value of extension: {file_ext}')
             # Only need to check first item as Discord only allows one file per message
             
             async with ClientSession() as session:
@@ -457,7 +454,7 @@ class Playsound(commands.Cog):
                         return await ctx.send('File size is too large. Send a file 10MB or less')
 
                     # All criteria passed. Download file to temporary file
-                    async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix='.mp3') as f:
+                    async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix=file_ext) as f:
                         await f.write(await response.read()) 
                         await f.seek(0)
                         
@@ -470,48 +467,55 @@ class Playsound(commands.Cog):
                         ten_seconds = 10 * 1000
                         first_10_seconds = song[:ten_seconds]
 
-                        # first_10_seconds.export("edited_mashup2.mp3", format="mp3") # This saves the exported file to src/
-                        first_10_seconds.export(self.preview_playsounds_folder / "edited_mashup2.mp3", format="mp3")
+                        
+                        # Save the cropped file to a temporary file name
+                        
+                        print(f'The parent folder: {pathlib.Path(f.name).parent}')
+
+                        # temp_filename = f'{pathlib.Path(f.name).parent}/({pathlib.Path(filename).stem}_playsound{file_ext})'
+                        temp_filename = pathlib.Path(f.name).parent / f'{pathlib.Path(filename).stem}_playsound{file_ext}' 
+                        print(f'Value of temp_filename: {temp_filename}')
+
+                        # Save the cropped file to a temporary file name
+                        first_10_seconds.export(temp_filename, format=file_ext[1:])
 
                         print("File slicing completed!")
-                        
-                        # Upload the file back to the chat group
-                        # Working
-                        preview_playsound = discord.File(self.preview_playsounds_folder / "edited_mashup2.mp3")
 
-                        await ctx.send(file=preview_playsound)
+                        preview_playsound = discord.File(temp_filename)
+                        message = await ctx.send(file=preview_playsound)
 
+                        # Add reactions to confirm if the cropped playsound is as wanted
+                        await self.add_playsound_reactions(message)
 
-                        """
-                        f2 = await aiofiles.open(f.name)
-                        print(f"f2: {f2}")
-                        """
+                        # Check for reaction
+                        def check(reaction, user):
+                            return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['✅', '❌'])
 
-                        # await f.close()
+                        while True:
+                            try:
+                                reaction, _ = await self.bot.wait_for('reaction_add', timeout=120, check=check)
+                            except asyncio.TimeoutError:
+                                await message.delete()
+                                break
+                            else:
+                                if reaction.emoji == '✅':
+                                    # TODO: Approved playsound
+                                    # TODO: Check if a similar named playsound already exists
+                                    # Place the playsound into the '~/playsounds' folder
+                                    # TODO: self.playsound_folder variable is not correct value. Creating file instead of saving into directory
+                                    shutil.move(temp_filename, self.playsound_folder.__str__())
 
-
-                        # TODO: Save temp file with suffix based on uploaded file.
-                        # TODO: Temp file successfully create. Re-open it and crop audio
-                        """
-                        async with aiofiles.open(f.name, mode='r+b') as the_tempfile:
-                            content = await the_tempfile.read()
-                            print(f'content: {content}')
-                            type_file = mutagen.File(the_tempfile)
-                            print(F"type_file: {type_file}")
-                        """
-
-                        
-                        """
-                        type_file = await aiofiles.open(f.name, mode='rb+')
-                        print(f'type_file: {mutagen.File(type_file)}')
-                        os.unlink(f.name)
-                        print(f"exists: {os.path.exists(f.name)}")
-                        """
-                        # TODO: Read the temporary audio file and trim the audio
-                        """
-                        async for data in f:
-                            print(f'Data: {data}')
-                        """
+                                    print(f'Cur value of temp_filename: {temp_filename}')
+                                    print(f'Cur value of self.playsound_folder: {self.playsound_folder}')
+                                    print('File moved successfully')
+                                elif reaction.emoji == '❌':
+                                    # TODO: Rejected playsound
+                                    # Delete the playsound from the preview_playsounds_folder
+                                    try:
+                                        os.unlink(temp_filename)
+                                        print(f'File deleted at {temp_filename} successful')
+                                    except Exception :
+                                        print(f'File deletion at temp_filename: {temp_filename} failed')
 
             # TODO: Implement loop below 
             """
@@ -519,8 +523,6 @@ class Playsound(commands.Cog):
             loop.run_until_complete('function name for getting url and downloading file')
             """
             
-            
-
     # Uploads file to bucket
     async def upload_files(self, files):
         file_uploads = []
