@@ -10,6 +10,7 @@ import botocore
 import re
 import json
 from pydub import AudioSegment
+from Models.aws_s3 import AwsS3
 
 load_dotenv()
     
@@ -231,6 +232,7 @@ print(f'temp_val: {temp_val}')
 
 
 # Test slicing audio file with pydub
+"""
 song = AudioSegment.from_mp3("random.mp3")
 
 ten_seconds = 10 * 1000
@@ -238,3 +240,24 @@ first_10_seconds = song[:ten_seconds]
 
 # song.export("edited_mashup.mp3", format="mp3")
 first_10_seconds.export("edited_mashup.mp3", format="mp3")
+"""
+
+# Create bad s3 connection
+"""
+print('Creating AWS S3 connection...')
+
+s3 = boto3.resource(
+    service_name='s3',
+    region_name='bad',
+    aws_access_key_id='test',
+    aws_secret_access_key='test2'
+)
+
+
+
+print(f'AWS S3 connection successful: {s3.get_caller_identity()}')
+"""
+# test = AwsS3()
+# print(f'Value of test: {test}')
+
+test = pathlib.Path()

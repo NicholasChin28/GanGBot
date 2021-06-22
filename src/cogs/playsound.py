@@ -156,7 +156,7 @@ class Playsound(commands.Cog):
         print('Creating AWS S3 connection...')
         s3 = boto3.resource(
             service_name='s3',
-            region_name='ap-southeast-1',
+            region_name=os.getenv('AWS_REGION'),
             aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
             aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
         )
@@ -503,7 +503,7 @@ class Playsound(commands.Cog):
                                     # TODO: Check if a similar named playsound already exists
                                     # Place the playsound into the '~/playsounds' folder
                                     # TODO: self.playsound_folder variable is not correct value. Creating file instead of saving into directory
-                                    shutil.move(temp_filename, self.playsound_folder.__str__())
+                                    shutil.move(temp_filename, self.playsound_folder)
 
                                     print(f'Cur value of temp_filename: {temp_filename}')
                                     print(f'Cur value of self.playsound_folder: {self.playsound_folder}')
