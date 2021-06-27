@@ -1,5 +1,18 @@
+# TODO: Use optional arguments for @property decorators: https://stackoverflow.com/questions/58433807/property-decorator-with-optional-argument
 import time
 import pathlib
+import validators
+import youtube_dl
+
+class MyLogger(object):
+    def debug(self, msg):
+        pass
+    
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
 
 class VideoRange:
     _start_time = None
@@ -76,4 +89,36 @@ def parse_time(timestamp):
 
         return VideoRange(start_time=struct_time_range[0], end_time=struct_time_range[-1])
      
-    # return VideoRange()
+# Validates upload arguments from playsound cog upload command
+def validate_upload_arguments(args):
+    for i in args:
+        if validators.url(i):
+            pass
+
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
+
+# Extracts info from given youtube url
+def extract_youtube_info(url):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        # 'outtmpl': 'C:/Users/{username}/anaconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
+        # 'outtmp1': Path('/themes/%(title)s.%(ext)s').mkdir(parents=True, exist_ok=True),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+        video_duration = info["duration"]
+        # best_audio_format = max
+
+# Calculate file size of Youtube playsound URL 
+# TODO: Extract the filesize of bestaudio from -F argument of youtube-dl

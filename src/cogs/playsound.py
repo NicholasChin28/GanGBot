@@ -1,6 +1,7 @@
 # Storing and retrieving playsounds from AWS S3 bucket
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
+from helper.helper import validate_upload_arguments
 import pathlib
 import typing
 import boto3
@@ -19,7 +20,10 @@ import aiofiles
 import humanfriendly
 import shutil
 from pydub import AudioSegment
-from Models.s3file import S3File
+from models.s3file import S3File
+import validators
+from urllib.parse import urlparse
+from helper import helper
 
 load_dotenv()
 
@@ -411,7 +415,13 @@ class Playsound(commands.Cog):
 
     # Upload command test 2
     @commands.command(name='upload2')
-    async def _upload2(self, ctx: commands.Context, name: typing.Optional[str]):
+    async def _upload2(self, ctx: commands.Context, url: str, timestamp: typing.Optional[str]):
+        # Prevent user from uploading attachment together with url argument
+        message_attachments = ctx.message.attachments
+        if url and len(message_attachments) != 0:
+            return await ctx.send("Try uploading a file OR sending a Youtube link")
+        # print(f'value of args: {args}')
+
         max_size = '10MB'   # Max size allowed for playsound
         '''
         TODO: Things to do for upload
@@ -419,10 +429,19 @@ class Playsound(commands.Cog):
             - Check when command is called, does it have an attachment.
                 If not, check if the second argument is a Youtube link
         '''
-        message_attachments = ctx.message.attachments
-        if len(message_attachments) == 0:
-            # TODO: Handle if user gives Youtube link
-            return await ctx.send("No attachment provided")
+        # validate_upload_arguments(args)
+
+        if len(message_attachments) == 0 and url:
+            # Check if url is a valid Youtube URL
+            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
+                return await ctx.send("Invalid Youtube link")
+            # TODO: Check if user put timestamp arguments as well
+            if timestamp is not None:
+                # Validate timestamp
+                # TODO: Now accepting time_range as seconds. Refactor it to use similar style as .play command
+                # Extract info from youtube url
+                pass
+
         else:
             # Handling for user file attachment
             filename = message_attachments[0].filename
@@ -514,7 +533,7 @@ class Playsound(commands.Cog):
                                     try:
                                         os.unlink(temp_filename)
                                         print(f'File deleted at {temp_filename} successful')
-                                    except Exception :
+                                    except Exception:
                                         print(f'File deletion at temp_filename: {temp_filename} failed')
 
             # TODO: Implement loop below 

@@ -10,7 +10,10 @@ import botocore
 import re
 import json
 from pydub import AudioSegment
-from Models.aws_s3 import AwsS3
+from models.aws_s3 import AwsS3
+import aiohttp
+import asyncio
+from youtube_dl import YoutubeDL
 
 load_dotenv()
     
@@ -260,4 +263,22 @@ print(f'AWS S3 connection successful: {s3.get_caller_identity()}')
 # test = AwsS3()
 # print(f'Value of test: {test}')
 
-test = pathlib.Path()
+# test = pathlib.Path()
+"""
+async def main():
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://www.youtube.com/watch?v=n8X9_MgEdCg") as response:
+            print("Status: ", response.status)
+            print("Content-type: ", response.headers['content-type'])
+
+            print("Content-length: ", response.headers)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+"""
+
+url = "https://www.youtube.com/watch?v=n8X9_MgEdCg"
+ytdl = YoutubeDL()
+info = ytdl.extract_info(url, download=False)
+
+print(info.get('filesize_approx'))
