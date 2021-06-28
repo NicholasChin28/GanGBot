@@ -20,7 +20,7 @@ import aiofiles
 import humanfriendly
 import shutil
 from pydub import AudioSegment
-from models.s3file import S3File
+from Models.s3file import S3File
 import validators
 from urllib.parse import urlparse
 from helper import helper
@@ -440,7 +440,7 @@ class Playsound(commands.Cog):
                 # Validate timestamp
                 # TODO: Now accepting time_range as seconds. Refactor it to use similar style as .play command
                 # Extract info from youtube url
-                pass
+                timerange = helper.parse_time(timestamp)
 
         else:
             # Handling for user file attachment

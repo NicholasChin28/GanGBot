@@ -117,8 +117,17 @@ def extract_youtube_info(url):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-        video_duration = info["duration"]
+        # video_duration = info["duration"]
+
+        return info
         # best_audio_format = max
+
+# Validate commands using time range (eg. play and upload)
+def validate_time_range(url, timerange):
+    info = extract_youtube_info(url)
+    video_duration = info["duration"]
+
+    
 
 # Calculate file size of Youtube playsound URL 
 # TODO: Extract the filesize of bestaudio from -F argument of youtube-dl

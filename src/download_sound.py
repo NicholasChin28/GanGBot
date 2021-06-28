@@ -17,12 +17,16 @@ def my_hook(d):
 
 ydl_opts = {
     'format': 'bestaudio/best',
-    # 'outtmpl': 'C:/Users/{username}/anaconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
+    # 'outtmpl': 'C:/Users/nicho/miniconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
     # 'outtmp1': Path('/themes/%(title)s.%(ext)s').mkdir(parents=True, exist_ok=True),
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
         'preferredquality': '192',
+    }],
+    'postprocessor_args': [{
+        'ss': '00:30',
+        
     }],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
