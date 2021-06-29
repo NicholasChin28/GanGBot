@@ -1,8 +1,10 @@
 # TODO: Use optional arguments for @property decorators: https://stackoverflow.com/questions/58433807/property-decorator-with-optional-argument
 import time
 import pathlib
+from aiohttp.client import request
 import validators
 import youtube_dl
+from datetime import timedelta
 
 class MyLogger(object):
     def debug(self, msg):
@@ -26,9 +28,25 @@ class VideoRange:
     def end_time(self):
         return self._end_time
 
+    # Temp functions to return the timedelta of start_time and end_time
+    def start_time_seconds(self):
+        if self._start_time is not None:
+            return timedelta(hours=self._start_time.tm_hour, minutes=self._start_time._tm_min, seconds=self._start_time.tm_sec)
+        return None
+
+    def end_time_seconds(self):
+        if self._end_time is not None:
+            return timedelta(hours=self._end_time.tm_hour, minutes=self._end_time.tm_min, seconds=self._end_time.tm_sec)
+        return None
+
     def __init__(self, start_time=0, end_time=None) -> None:
         self._start_time = start_time
         self._end_time = end_time
+
+    # Converts VideoRange start_time / end_time to seconds
+    @classmethod
+    async def parse_in_seconds(self, time_obj):
+        return (time_obj)
 
 
 # Gets all initial cogs to be loaded
@@ -103,13 +121,16 @@ def my_hook(d):
 def extract_youtube_info(url):
     ydl_opts = {
         'format': 'bestaudio/best',
-        # 'outtmpl': 'C:/Users/{username}/anaconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
-        # 'outtmp1': Path('/themes/%(title)s.%(ext)s').mkdir(parents=True, exist_ok=True),
+        # 'outtmp1': '%(title)s.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [
+            '-ss', '00:01:00.00', '-to', '00:01:50.00'
+        ],
         'logger': MyLogger(),
         'progress_hooks': [my_hook],
     }
@@ -122,12 +143,25 @@ def extract_youtube_info(url):
         return info
         # best_audio_format = max
 
-# Validate commands using time range (eg. play and upload)
-def validate_time_range(url, timerange):
-    info = extract_youtube_info(url)
-    video_duration = info["duration"]
+# Check if timestamp is within url duration
+def validate_time_range(url, time_range):
+    info = youtube_dl.YoutubeDL().extract_info(url, download=False)
+    request_time = parse_time(time_range)
 
-    
+    if request_time is not None:
+        start_duration_seconds = request_time.start_time_seconds()
+        end_duration_seconds = request_time.end_time_seconds()
 
-# Calculate file size of Youtube playsound URL 
-# TODO: Extract the filesize of bestaudio from -F argument of youtube-dl
+    video_duration = info["duration"]   # Duration in seconds
+
+# Calculate estimated size of cropped playsound source
+def calc_filesize(duration: int) -> int:
+    bitrate = 192       # 192 kilobit per second
+    bit_to_byte = 8     # Number of bits in a byte
+    """
+    Calculation formula:
+    bitrate * duration in seconds / 8 
+    8 refers to number of bits in a bit
+    Return value is in kilobyte
+    """
+    return bitrate * duration / bit_to_byte

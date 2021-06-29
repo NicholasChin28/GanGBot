@@ -1,6 +1,9 @@
 import youtube_dl
 from pathlib import Path
 
+# How to use postprocessor_args / external_downloader_args
+# https://stackoverflow.com/questions/27473526/download-only-audio-from-youtube-video-using-youtube-dl-in-python-script
+
 class MyLogger(object):
     def debug(self, msg):
         pass
@@ -24,10 +27,9 @@ ydl_opts = {
         'preferredcodec': 'mp3',
         'preferredquality': '192',
     }],
-    'postprocessor_args': [{
-        'ss': '00:30',
-        
-    }],
+    'postprocessor_args': [
+        '-ss', '00:01:30'
+    ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
