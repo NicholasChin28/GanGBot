@@ -24,6 +24,7 @@ from Models.s3file import S3File
 import validators
 from urllib.parse import urlparse
 from helper import helper
+from Models.ytdl_source import YTDLSource
 
 load_dotenv()
 
@@ -415,12 +416,50 @@ class Playsound(commands.Cog):
 
     # Upload command test 2
     @commands.command(name='upload2')
-    async def _upload2(self, ctx: commands.Context, url: str, timestamp: typing.Optional[str]):
-        # Prevent user from uploading attachment together with url argument
+    async def _upload2(self, ctx: commands.Context, *args):
+        # Prevent user from uploading attachment together and url argument
+        # Use *args method instead so that user can do with file attachment, etc:
+        # .upload2 00:30-1:00
+        # print(type(args))
+        if len(args) == 0:
+            return await ctx.send("Invalid use of upload command")
+
         message_attachments = ctx.message.attachments
-        if url and len(message_attachments) != 0:
+        url = args[0]
+        if len(message_attachments) > 0:
+            if len(args) != 1:
+                return await ctx.send("Please specify the timestamp")
+
+            timestamp = helper.parse_time(args[0])
+            if timestamp is None:
+                return await ctx.send("Invalid timestamp provided")
+            # Only allow one argument. Which is timestamp
+            
+        # Handle Youtube
+        else:
+            # Temporarily make it a must to provide start time and end time
+            # TODO: Calculate end time as the end duration of Youtube video
+            if len(args) != 2:
+                return await ctx.send("Please provide Youtube link together with start time and end time")
+            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
+                return await ctx.send("Invalid Youtube link")
+            timestamp = helper.parse_time(args[1])
+            if timestamp is None:
+                return await ctx.send("Invalid timestamp")
+            
+            youtube_source = await YTDLSource.create_source(url)
+            print(f'Value of youtube_source: {youtube_source.duration}')
+
+
+        # Not in use below
+        if len(args) > 0:
+            return await ctx.send("Not using the function the correct way")
+
+        
+
+        if (not url and len(message_attachments) == 0) or (url and len(message_attachments) != 0):
             return await ctx.send("Try uploading a file OR sending a Youtube link")
-        # print(f'value of args: {args}')
+        
 
         max_size = '10MB'   # Max size allowed for playsound
         '''
@@ -429,8 +468,8 @@ class Playsound(commands.Cog):
             - Check when command is called, does it have an attachment.
                 If not, check if the second argument is a Youtube link
         '''
-        # validate_upload_arguments(args)
-
+        
+        # Handle Youtube links
         if len(message_attachments) == 0 and url:
             # Check if url is a valid Youtube URL
             if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
@@ -440,8 +479,9 @@ class Playsound(commands.Cog):
                 # Validate timestamp
                 # TODO: Now accepting time_range as seconds. Refactor it to use similar style as .play command
                 # Extract info from youtube url
+                await ctx.send(f"Value of timestamp: {timestamp}")
                 timerange = helper.parse_time(timestamp)
-
+        # Handle file attachments
         else:
             # Handling for user file attachment
             filename = message_attachments[0].filename
