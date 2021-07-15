@@ -448,27 +448,39 @@ class Playsound(commands.Cog):
                 return await ctx.send("Invalid timestamp")
             
             youtube_source = await YTDLSource.create_source(url)
-            print(f'Value of youtube_source: {youtube_source.duration}')
+            print(f'Value of youtube_source: {youtube_source.duration}')    # Returns seconds
+
+            try:
+                helper.validate_range(timestamp, youtube_source)
+            except Exception as e:
+                return await ctx.send(e)
+
+            '''
+            TODO: Continue from here <<
+            Before creating the playsound,
+            calculate the estimated size of the file
+            '''
 
 
-        # Not in use below
-        if len(args) > 0:
-            return await ctx.send("Not using the function the correct way")
+            # Process playsound from Youtube url
+            loop = asyncio.get_event_loop()
+            partial = functools.partial(helper.create_playsound, url, "most random name", timestamp)
 
-        
+            async_result = await loop.run_in_executor(None, partial)
 
+            if async_result is None:
+                return await ctx.send("Should not happen from async_result")
+
+            return await ctx.send(f"Processing complete. Check local file: {async_result}")
+
+
+        # CODE BELOW IS NOT IN USE. 15 JULY 2021
         if (not url and len(message_attachments) == 0) or (url and len(message_attachments) != 0):
             return await ctx.send("Try uploading a file OR sending a Youtube link")
         
 
         max_size = '10MB'   # Max size allowed for playsound
-        '''
-        TODO: Things to do for upload
-        1. Upload audio file
-            - Check when command is called, does it have an attachment.
-                If not, check if the second argument is a Youtube link
-        '''
-        
+
         # Handle Youtube links
         if len(message_attachments) == 0 and url:
             # Check if url is a valid Youtube URL
@@ -487,11 +499,6 @@ class Playsound(commands.Cog):
             filename = message_attachments[0].filename
             file_ext = pathlib.Path(filename).suffix
             file_url = message_attachments[0].url
-
-            # temp_filename = pathlib.Path(filename).rename(filename + "_cropped").with_suffix(file_ext)
-            # temp_filename = f'{pathlib.Path(filename).parents[0]}{pathlib.Path(filename).stem}_playsound{file_ext}'
-
-            # print(f'Value of temp_filename: {temp_filename}')
 
             print(f'Value of message_attachments: {message_attachments}')
             print(f'Value of extension: {file_ext}')

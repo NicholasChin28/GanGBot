@@ -5,6 +5,7 @@ from aiohttp.client import request
 import validators
 import youtube_dl
 from datetime import timedelta
+from Models import ytdl_source
 
 class MyLogger(object):
     def debug(self, msg):
@@ -19,6 +20,7 @@ class MyLogger(object):
 class VideoRange:
     _start_time = None
     _end_time = None
+    _supported_formats = ['%M:%S', '%H:%M:%S']
 
     @property
     def start_time(self):
@@ -28,15 +30,21 @@ class VideoRange:
     def end_time(self):
         return self._end_time
 
+    @end_time.setter
+    def end_time(self, time: str):
+        self._end_time = validate_time(time)
+
     # Temp functions to return the timedelta of start_time and end_time
     def start_time_seconds(self):
         if self._start_time is not None:
-            return timedelta(hours=self._start_time.tm_hour, minutes=self._start_time._tm_min, seconds=self._start_time.tm_sec)
+            # return timedelta(hours=self._start_time.tm_hour, minutes=self._start_time.tm_min, seconds=self._start_time.tm_sec)
+            return custom_convert_to_seconds(self._start_time)
         return None
 
     def end_time_seconds(self):
         if self._end_time is not None:
-            return timedelta(hours=self._end_time.tm_hour, minutes=self._end_time.tm_min, seconds=self._end_time.tm_sec)
+            # return timedelta(hours=self._end_time.tm_hour, minutes=self._end_time.tm_min, seconds=self._end_time.tm_sec)
+            return custom_convert_to_seconds(self._end_time)
         return None
 
     def __init__(self, start_time=0, end_time=None) -> None:
@@ -48,6 +56,67 @@ class VideoRange:
     async def parse_in_seconds(self, time_obj):
         return (time_obj)
 
+# Converts VideoRange structtime to seconds
+def custom_convert_to_seconds(time: time.struct_time):
+    to_return = (time.tm_hour * 3600) + (time.tm_min * 60) + time.tm_sec
+    return to_return
+
+# Creates playsound in current folder
+def create_playsound(url, name, timestamp):
+    print(f'Values to receive: {url}\n{name}\n{timestamp}')
+
+    ydl_opts = create_ytdl_options(name, timestamp)
+
+    print(f'Value of ydl_opts: {ydl_opts}')
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+        ydl.download([url])
+
+    return True
+
+# Constructs the youtube_dl options
+def create_ytdl_options(filename: str, timestamp: VideoRange):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [],
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
+    
+    if timestamp.end_time == None:
+        ydl_opts['external_downloader_args'].extend(['-ss', f"{timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}"])
+    else:
+        ydl_opts['external_downloader_args'].extend(
+            ['-ss', f"{timestamp.start_time.tm_hour}:{timestamp.start_time.tm_min}:{timestamp.start_time.tm_sec}",
+             '-to', f"{timestamp.end_time.tm_hour}:{timestamp.end_time.tm_min}:{timestamp.end_time.tm_sec}"]
+        )
+
+    """
+    if len(timestamp) == 1:
+        ydl_opts['external_downloader_args'].extend(["-ss", f"{timestamp[0]}"])
+    else:
+        ydl_opts['external_downloader_args'].extend(["-ss", f"{timestamp[0]}", "-to", f"{timestamp[1]}"])
+    """
+
+    return ydl_opts
+
+
+# Validates start time and end time is within Youtube source duration
+def validate_range(video_range: VideoRange, ytdl_source: ytdl_source.YTDLSource):
+    if video_range.start_time_seconds() > ytdl_source.duration:
+        raise Exception("Starting time is greater than video duration")
+    
+    if video_range.end_time is not None:
+        if video_range.end_time_seconds() > ytdl_source.duration:
+            raise Exception("End time is greater than video duration")
 
 # Gets all initial cogs to be loaded
 # Excludes custom_help cog
