@@ -8,7 +8,7 @@ dependencies:
   - aiomysql=0.0.21
   - argh=0.26.2
   - astroid=2.4.2
-  - asyncpg=0.21.0
+  - asyncpg=0.23.0
   - atomicwrites=1.4.0
   - autopep8=1.5.4
   - bcrypt=3.2.0
@@ -20,6 +20,7 @@ dependencies:
   - click=7.1.2
   - colorama=0.4.3
   - cryptography=3.1.1
+  - decorator=5.0.9
   - docutils=0.15.2
   - emoji=0.6.0
   - ffmpeg=4.3.1
@@ -75,6 +76,7 @@ dependencies:
   - sqlite=3.31.1
   - tk=8.6.10
   - toml=0.10.1
+  - validators=0.18.2
   - vc=14.1
   - vs2015_runtime=14.16.27012
   - watchdog=0.10.4
@@ -93,7 +95,7 @@ dependencies:
     - aiosqlite==0.16.0
     - async-timeout==3.0.1
     - attrs==19.3.0
-    - cffi==1.14.3
+    - cffi==1.14.4
     - chardet==3.0.4
     - ddlparse==1.9.0
     - discord-py==1.5.1
