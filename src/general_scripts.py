@@ -3,6 +3,7 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 import asyncio
+import asyncpg
 import time
 import pathlib
 import boto3
@@ -326,4 +327,19 @@ async def main():
         print('custom process pool', result)
     """
 
-asyncio.run(main())
+# asyncio.run(main())
+
+async def run():
+    conn = await asyncpg.connect(
+        user=os.getenv('RDS_USER'), password=os.getenv('RDS_PASSWORD'),
+        database=os.getenv('RDS_DB'), host=os.getenv('RDS_HOST')
+    )
+
+    values = await conn.fetch(
+        'SELECT * from information_schema.tables'
+    )
+    print(f'values: {values}')
+    await conn.close()
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(run())
