@@ -2,7 +2,9 @@
 import os
 import discord
 from discord.ext import commands
+import typing
 from helper import helper
+from src.Models.role import Role
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -74,6 +76,51 @@ class Owner(commands.Cog):
         embed.add_field(name='__Loaded__', value=f'{os.linesep.join(cogs_status)}', inline=True)
 
         await ctx.send(embed=embed)
+
+    @commands.command(name='permission')
+    @commands.is_owner()
+    async def _permission(self, ctx: commands.Context, action: str, command: str, guild: typing.Optional[int] = None, *role_name: str):
+        '''Add playsound permission to role'''
+        allowed_actions = {
+            'add': True,
+            'delete': False
+        }
+        allowed_commands = ['upload']
+
+        if action not in allowed_actions.keys():
+            return await ctx.send('Supported actions are only add or delete')
+
+        if command not in allowed_commands:
+            return await ctx.send('Supported command is only upload')
+
+        if guild:
+            # command_role = discord.utils.get(ctx.guild.roles, name=role_name)
+            # TODO: Call get_guild to get the guild from the provided ID
+            command_role = discord.utils.get(guild.roles)
+        else:
+            command_role = discord.utils.get(ctx.guild.roles, name=role_name)
+
+        # Check if current role exists in database
+        db_role = await Role.filter(role_id=command_role.id).first()
+
+        if db_role:
+            await Role.filter(role_id=command_role.id).update(upload_playsound=allowed_actions.get(action))
+            await ctx.send(f'{command_role.name} role updated. \nPermission set to {action}')
+        else:
+            await Role.create(
+                role_id=command_role.id,
+                guild=ctx.message.guild.id,
+                upload_playsound=allowed_actions.get(action)
+            )
+            await ctx.send('New role created!')
+
+        """
+        print(", ".join([str(r.name) for r in ctx.guild.roles]))
+        role_names = [str(r.name) for r in ctx.guild.roles]
+        exists = discord.utils.get(ctx.guild.roles, name='Sausage 🌭')
+        print(f'exists: {exists}')
+        """
+    
 
     # Error handling
     @_load.error

@@ -5,7 +5,7 @@ class Role(Model):
     id = fields.IntField(pk=True)
     role_id = fields.BigIntField()
     guild = fields.BigIntField()
-    playsound_permission = fields.BooleanField(default=True)
+    upload_playsound = fields.BooleanField(default=True)
 
     class Meta:
         table = 'role'

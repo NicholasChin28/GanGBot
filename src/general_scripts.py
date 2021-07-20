@@ -2,8 +2,8 @@ from botocore.exceptions import ClientError
 import psycopg2
 from dotenv import load_dotenv
 import os
-import asyncio
 import asyncpg
+import concurrent.futures
 import time
 import pathlib
 import boto3
@@ -286,8 +286,6 @@ info = ytdl.extract_info(url, download=False)
 print(info.get('filesize_approx'))
 """
 
-import asyncio
-import concurrent.futures
 
 def blocking_io():
     # File operations (such as logging) can block the
