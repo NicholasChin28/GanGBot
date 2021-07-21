@@ -5,6 +5,8 @@ from discord.ext import commands
 import typing
 from helper import helper
 from src.Models.role import Role
+from tortoise import Tortoise, run_async
+from pyaml_env import parse_config
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -79,8 +81,17 @@ class Owner(commands.Cog):
 
     @commands.command(name='permission')
     @commands.is_owner()
-    async def _permission(self, ctx: commands.Context, action: str, command: str, guild: typing.Optional[int] = None, *role_name: str):
+    async def _permission(self, ctx: commands.Context, action: str, command: str, guild_id: typing.Optional[int] = None, *, role_name: str = None):
         '''Add playsound permission to role'''
+
+        """
+        Print argument values for debugging:
+        """
+        print(f'action: {action}')
+        print(f'command: {command}')
+        print(f'guild_id: {guild_id}')
+        print(f'role_name: {role_name}')
+
         allowed_actions = {
             'add': True,
             'delete': False
@@ -93,26 +104,39 @@ class Owner(commands.Cog):
         if command not in allowed_commands:
             return await ctx.send('Supported command is only upload')
 
-        if guild:
+        if guild_id:
             # command_role = discord.utils.get(ctx.guild.roles, name=role_name)
             # TODO: Call get_guild to get the guild from the provided ID
-            command_role = discord.utils.get(guild.roles)
+            guild = self.bot.get_guild(id=guild_id)
+            command_role = discord.utils.get(guild.roles, name=role_name)
         else:
+            guild_id = ctx.message.guild.id
             command_role = discord.utils.get(ctx.guild.roles, name=role_name)
 
-        # Check if current role exists in database
-        db_role = await Role.filter(role_id=command_role.id).first()
+        if command_role is None:
+            return await ctx.send("Role not found in guild")
 
+        # Check if current role exists in database
+        tortoise_config = parse_config('./tortoise-config.yaml')
+        print(f'tortoise_Config: {tortoise_config}')
+        await Tortoise.init(config=tortoise_config)
+        await Tortoise.generate_schemas()
+
+        db_role = await Role.filter(role_id=command_role.id).first()
+        print('Value of db_role: {db_role}')
+        
         if db_role:
             await Role.filter(role_id=command_role.id).update(upload_playsound=allowed_actions.get(action))
             await ctx.send(f'{command_role.name} role updated. \nPermission set to {action}')
         else:
             await Role.create(
                 role_id=command_role.id,
-                guild=ctx.message.guild.id,
+                guild=guild_id,
                 upload_playsound=allowed_actions.get(action)
             )
             await ctx.send('New role created!')
+
+        await Tortoise.close_connections()
 
         """
         print(", ".join([str(r.name) for r in ctx.guild.roles]))

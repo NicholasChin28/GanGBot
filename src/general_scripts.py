@@ -334,7 +334,7 @@ async def run():
     )
 
     values = await conn.fetch(
-        'SELECT * from information_schema.tables'
+        'select * from role'
     )
     print(f'values: {values}')
     await conn.close()
