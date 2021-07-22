@@ -588,6 +588,9 @@ class Playsound(commands.Cog):
             loop = asyncio.get_event_loop()
             loop.run_until_complete('function name for getting url and downloading file')
             """
+
+    # Handle upload commmand with file attachment
+    # async def handle_file_upload()
             
     # Uploads file to bucket
     async def upload_files(self, files):
