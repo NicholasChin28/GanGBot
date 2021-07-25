@@ -2,6 +2,7 @@ from botocore.exceptions import ClientError
 import psycopg2
 from dotenv import load_dotenv
 import os
+import io
 import asyncpg
 import concurrent.futures
 import time
@@ -13,8 +14,13 @@ import json
 from pydub import AudioSegment
 from Models.aws_s3 import AwsS3
 import aiohttp
+import aiofiles
 import asyncio
 from youtube_dl import YoutubeDL
+from aiohttp import ClientSession
+import pydub
+from mutagen.mp3 import MP3
+import mutagen
 
 load_dotenv()
     
@@ -327,7 +333,8 @@ async def main():
 
 # asyncio.run(main())
 
-async def run():
+# Test DB connection
+async def run_db_test():
     conn = await asyncpg.connect(
         user=os.getenv('RDS_USER'), password=os.getenv('RDS_PASSWORD'),
         database=os.getenv('RDS_DB'), host=os.getenv('RDS_HOST')
@@ -339,5 +346,21 @@ async def run():
     print(f'values: {values}')
     await conn.close()
 
+
+# Get content-length with aiohttp
+async def run_length_test(url: str):
+    temp_filename = None
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False) as f:
+                await f.write(await response.read())
+                temp_filename = f.name
+                print(f'response headers: {response.headers}')
+
+    audio_file = mutagen.File(temp_filename)
+    print(f'audio_file: {audio_file}')
+    print(f'duration: {audio_file.info.length}')
+    os.unlink(f.name)
+                
 loop = asyncio.get_event_loop()
-loop.run_until_complete(run())
+loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))

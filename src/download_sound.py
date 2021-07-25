@@ -27,9 +27,6 @@ ydl_opts = {
         'preferredcodec': 'mp3',
         'preferredquality': '192',
     }],
-    'postprocessor_args': [
-        '-ss', '00:01:30'
-    ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
@@ -71,7 +68,10 @@ with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 
 
 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    ydl.download(['https://www.youtube.com/watch?v=n8X9_MgEdCg'])
+    info = ydl.extract_info("https://9gag.com/gag/aB2jMBO", download=False)
+    print(info)
+
+    # ydl.download(['https://9gag.com/gag/aB2jMBO'])
 
 
 

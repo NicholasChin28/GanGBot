@@ -25,6 +25,7 @@ import validators
 from urllib.parse import urlparse
 from helper import helper
 from Models.ytdl_source import YTDLSource
+from Models.playsound_source import PlaysoundSource
 
 load_dotenv()
 
@@ -38,7 +39,7 @@ class SoundError(Exception):
     pass
 
 
-class PlaysoundSource(discord.PCMVolumeTransformer):
+class PlaysoundSource_old(discord.PCMVolumeTransformer):
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
@@ -262,7 +263,7 @@ class Playsound(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
+                source = await PlaysoundSource_old.get_source(ctx, search, loop=self.bot.loop)
             except SoundError as e:
                 await ctx.send(e)
             else:
@@ -588,9 +589,61 @@ class Playsound(commands.Cog):
             loop = asyncio.get_event_loop()
             loop.run_until_complete('function name for getting url and downloading file')
             """
+    
+    # Upload command test 3
+    @commands.command(name='upload3')
+    async def _upload3(self, ctx: commands.Context, *, args):
+        message_attachments = ctx.message.attachments
 
+        use_help = discord.Embed(
+                title="How to use:",
+                description=f"{ctx.command.name}")
+        use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
+        use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
+
+        if len(message_attachments) > 1:
+            return await ctx.send('File upload only supports one file attachment')
+        
+        # File upload
+        if len(message_attachments) == 1:
+            if len(args) > 1:
+                return await ctx.send(use_help)
+
+            try:
+                # Handling for user file attachment
+                filename = message_attachments[0].filename
+                file_ext = pathlib.Path(filename).suffix
+                file_url = message_attachments[0].url
+
+                # self.handle_playsound_upload(url=file_url, timestamp=args[0])
+                playsound_source = await PlaysoundSource.create_source(file_url, args[0], ctx.message.author, ctx.message.guild)
+            except Exception as e:
+                return await ctx.send(e)
+        
+    @_upload3.error
+    async def upload3_error(self, ctx: commands.Context, error):
+        # Check if arguments passed
+        if isinstance(error, commands.MissingRequiredArgument):
+            use_help = discord.Embed(
+                title="How to use:",
+                description=f"{ctx.command.name}")
+            use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
+            use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
+
+            await ctx.send(embed=use_help)
+
+    async def handle_playsound_upload(self, url: str, timestamp: str):
+        # Validate url
+        if not validators.url(url):
+            raise Exception("Not a valid url")
+
+        # Validate timestamp
+        # playsound_source = 
     # Handle upload commmand with file attachment
     # async def handle_file_upload()
+    # async def handle_file_upload(self, url, timestamp)
+    # async def handle_url_upload(self, url, timestamp)
+    # TODO: Calculate the file size from the timestamp
             
     # Uploads file to bucket
     async def upload_files(self, files):
