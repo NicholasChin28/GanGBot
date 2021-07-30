@@ -318,18 +318,19 @@ async def main():
     """
 
     # 2. Run in a custom thread pool:
+    """
     with concurrent.futures.ThreadPoolExecutor() as pool:
         result = await loop.run_in_executor(
             pool, blocking_io)
         print('custom thread pool', result)
+    """
 
     # 3. Run in a custom process pool:
-    """
     with concurrent.futures.ProcessPoolExecutor() as pool:
         result = await loop.run_in_executor(
             pool, cpu_bound)
         print('custom process pool', result)
-    """
+    
 
 # asyncio.run(main())
 
@@ -363,4 +364,5 @@ async def run_length_test(url: str):
     os.unlink(f.name)
                 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+# loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+loop.run_until_complete(main())

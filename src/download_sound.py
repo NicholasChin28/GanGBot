@@ -1,5 +1,7 @@
+import asyncio
 import youtube_dl
 from pathlib import Path
+import concurrent.futures
 
 # How to use postprocessor_args / external_downloader_args
 # https://stackoverflow.com/questions/27473526/download-only-audio-from-youtube-video-using-youtube-dl-in-python-script
@@ -27,6 +29,10 @@ ydl_opts = {
         'preferredcodec': 'mp3',
         'preferredquality': '192',
     }],
+    'external_downloader': 'ffmpeg',
+    'external_downloader_args': [
+        '-ss', '01:00:00.00', '-to', '01:10:00.00'
+    ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
@@ -65,14 +71,56 @@ with youtube_dl.YoutubeDL(ydl_opts) as ydl:
     print('Filesize: ', format['filesize'])
     print('Bitrate: ', format["format"])
 """
+def cpu_bound2():
+    ydl_opts2 = {
+        'format': 'bestaudio/best',
+        # 'outtmpl': 'C:/Users/nicho/miniconda3/envs/GanGBot/themes/%(title)s.%(ext)s',
+        # 'outtmp1': Path('/themes/%(title)s.%(ext)s').mkdir(parents=True, exist_ok=True),
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [
+            '-ss', '01:00:00.00', '-to', '01:10:00.00'
+        ],
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
 
+    with youtube_dl.YoutubeDL(ydl_opts2) as ydl:
+        info = ydl.extract_info("https://www.youtube.com/watch?v=LXvO_lQ_6KA", download=False)
+        print(info)
+        ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
+    
+    return True
+        
+    
 
+async def main():
+    loop = asyncio.get_running_loop()
+
+    # result = await loop.run_in_executor(None, cpu_bound2)
+    
+    with concurrent.futures.ProcessPoolExecutor() as pool:
+        result = await loop.run_in_executor(pool, cpu_bound2)
+        # await loop.run_in_executor(pool, cpu_bound2)
+        # print(result)
+    
+
+"""
 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    info = ydl.extract_info("https://9gag.com/gag/aB2jMBO", download=False)
+    info = ydl.extract_info("https://www.youtube.com/watch?v=c3L0fbtftRY", download=False)
     print(info)
 
-    # ydl.download(['https://9gag.com/gag/aB2jMBO'])
-
+    ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
+"""
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    # loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+    loop.run_until_complete(main())
+    loop.close()
 
 
 # ffmpeg -i performance.mp3 -ss 00:00:08 -to 00:00:19 -c copy performance_new.mp3
