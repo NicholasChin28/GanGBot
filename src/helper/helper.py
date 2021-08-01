@@ -17,6 +17,65 @@ class MyLogger(object):
     def error(self, msg):
         print(msg)
 
+class VideoTime:
+    _time_formats = ['%M:%S', '%H:%M:%S']
+    
+    def parse_time(time: str):
+        for format in self._time_formats:
+            try:
+                valid_timestamp = time.strptime(time, format)
+                return valid_timestamp
+            except ValueError:
+                pass
+        raise Exception("No valid time formats found")
+
+    def __init__(self, time: str):
+        parsed_time = self.parse_time(time)
+        self.seconds = parsed_time.second
+        self.minutes = parsed_time.minute
+        self.hour = parsed_time.hour
+        self.datetime = parsed_time
+        self.datetime_str = time
+
+    def __str__(self):
+        return self.datetime_str
+        
+class FileRange:
+    def __init__(self, data: dict):
+        pass
+
+    @classmethod
+    def parse_time(cls, timestamp: str, url_duration: str):
+        print('FileRange.parse_time called')
+        time_ranges = timestamp.split('-')
+        struct_time_range = []
+
+        if len(time_ranges) > 2:
+            raise Exception("Invalid timestamp format")
+
+        try:
+            for i in time_ranges:
+                struct_time_range.append(VideoTime(i))
+            if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
+                struct_time_range.append(VideoTime(url_duration))
+                if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
+                    raise Exception("Starting time greater than video length!")
+            else:
+                # User provided start and end time.  Make sure they are valid 
+                user_video = VideoTime(url_duration)
+                if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
+                    raise Exception("Invalid timestamp")
+
+            # Dictionary to return
+            data = {
+                "start_time": struct_time_range[0],
+                "end_time": struct_time_range[1]
+            }
+
+            return struct_time_range
+        except ValueError:
+            raise Exception("Error ValueError from validate_time")
+
 class VideoRange:
     _start_time = None
     _end_time = None
@@ -141,7 +200,7 @@ def validate_time(timestamp):
             valid_timestamp = time.strptime(timestamp, format)
             return valid_timestamp
         except ValueError:
-            pass
+            raise Exception('Invalid time format')
 
 # Parses timestamp input by user from music play command
 # TODO: Throw error messages so that bot can display to user the error
@@ -175,6 +234,31 @@ def parse_time(timestamp):
             return None
 
         return VideoRange(start_time=struct_time_range[0], end_time=struct_time_range[-1])
+
+def parse_time2(timestamp: str, url_duration: str):
+    print('parse_time2 function called')
+    time_ranges = timestamp.split('-')
+    struct_time_range = []
+
+    if len(time_ranges) > 2:
+        raise Exception("Invalid timestamp format")
+
+    try:
+        for i in time_ranges:
+            struct_time_range.append(VideoTime(i))
+        if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
+            struct_time_range.append(VideoTime(url_duration))
+            if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
+                raise Exception("Starting time greater than video length!")
+        else:
+            # User provided start and end time.  Make sure they are valid 
+            user_video = VideoTime(url_duration)
+            if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
+                raise Exception("Invalid timestamp")
+
+        return struct_time_range
+    except ValueError:
+        raise Exception("Error ValueError from validate_time")
      
 # Validates upload arguments from playsound cog upload command
 def validate_upload_arguments(args):

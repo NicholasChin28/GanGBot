@@ -31,7 +31,7 @@ ydl_opts = {
     }],
     'external_downloader': 'ffmpeg',
     'external_downloader_args': [
-        '-ss', '01:00:00.00', '-to', '01:10:00.00'
+        '-ss', '00:00:10.00', '-to', '00:00:16.00'
     ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
@@ -81,18 +81,14 @@ def cpu_bound2():
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'external_downloader': 'ffmpeg',
-        'external_downloader_args': [
-            '-ss', '01:00:00.00', '-to', '01:10:00.00'
-        ],
         'logger': MyLogger(),
         'progress_hooks': [my_hook],
     }
 
     with youtube_dl.YoutubeDL(ydl_opts2) as ydl:
-        info = ydl.extract_info("https://www.youtube.com/watch?v=LXvO_lQ_6KA", download=False)
+        info = ydl.extract_info("https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4", download=False)
         print(info)
-        ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
+        ydl.download(['https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4'])
     
     return True
         
@@ -109,18 +105,24 @@ async def main():
         # print(result)
     
 
-"""
-with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    info = ydl.extract_info("https://www.youtube.com/watch?v=c3L0fbtftRY", download=False)
-    print(info)
 
-    ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
+with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    # info = ydl.extract_info("https://www.youtube.com/watch?v=c3L0fbtftRY", download=False)
+    
+
+    # ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
+    # info = ydl.extract_info("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3", download=False)
+    ydl.download(['https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3'])
+    # print(info)
+
+
 """
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     # loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
     loop.run_until_complete(main())
     loop.close()
+"""
 
 
 # ffmpeg -i performance.mp3 -ss 00:00:08 -to 00:00:19 -c copy performance_new.mp3

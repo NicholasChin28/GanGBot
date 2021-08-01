@@ -592,7 +592,7 @@ class Playsound(commands.Cog):
     
     # Upload command test 3
     @commands.command(name='upload3')
-    async def _upload3(self, ctx: commands.Context, *, args):
+    async def _upload3(self, ctx: commands.Context, *args):
         message_attachments = ctx.message.attachments
 
         use_help = discord.Embed(
@@ -608,17 +608,28 @@ class Playsound(commands.Cog):
         if len(message_attachments) == 1:
             if len(args) > 1:
                 return await ctx.send(use_help)
+                    
+            filename = first_attachment.filename
+            file_ext = pathlib.Path(filename).suffix
+            file_url = first_attachment.url
+
+            first_attachment = message_attachments[0]
+
+            if not first_attachment.content_type.startswith('audio/'):
+                return await ctx.send('Only audio files supported')
+
+            if file_ext != ".mp3":
+                return await ctx.send('Only mp3 uploads supported')
 
             try:
                 # Handling for user file attachment
-                filename = message_attachments[0].filename
-                file_ext = pathlib.Path(filename).suffix
-                file_url = message_attachments[0].url
-
                 # self.handle_playsound_upload(url=file_url, timestamp=args[0])
-                playsound_source = await PlaysoundSource.create_source(file_url, args[0], ctx.message.author, ctx.message.guild)
+                # playsound_source = await PlaysoundSource.create_source(file_url, args[0], ctx.message.author, ctx.message.guild, file_ext, file_upload=True)
             except Exception as e:
                 return await ctx.send(e)
+        # From Url
+        else:
+            pass
         
     @_upload3.error
     async def upload3_error(self, ctx: commands.Context, error):

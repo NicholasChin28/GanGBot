@@ -350,19 +350,30 @@ async def run_db_test():
 
 # Get content-length with aiohttp
 async def run_length_test(url: str):
-    temp_filename = None
+    # temp_filename = None
     async with ClientSession() as session:
         async with session.get(url) as response:
-            async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False) as f:
+            print(f'response status: {response.status}')
+            async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix='.mp3') as f:
                 await f.write(await response.read())
+                await f.seek(0)
                 temp_filename = f.name
+                print(f'filename: {temp_filename}')
                 print(f'response headers: {response.headers}')
 
-    audio_file = mutagen.File(temp_filename)
-    print(f'audio_file: {audio_file}')
-    print(f'duration: {audio_file.info.length}')
-    os.unlink(f.name)
+                audio_file = mutagen.File(temp_filename)
+                print(f'audio_file: {audio_file}')
+                print(f'duration: {audio_file.info.length}')
+                # os.unlink(temp_filename)
+
+# Get webpage and check content-header
+async def check_webpage(url: str):
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            content_type = response.headers['content-type']
+            print(f'content-type: {content_type.startswith("audio/")}')
                 
 loop = asyncio.get_event_loop()
-# loop.run_until_complete(run_length_test("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
-loop.run_until_complete(main())
+# loop.run_until_complete(run_length_test("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3"))
+loop.run_until_complete(check_webpage("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3"))
+# loop.run_until_complete(main())
