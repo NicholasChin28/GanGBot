@@ -272,27 +272,6 @@ class Playsound(commands.Cog):
                 await cur_voice_state.songs.put(sound)
                 await ctx.send('Enqueued a playsound')
 
-    # Request playsound to be added 
-    # TODO: Add this feature
-    """
-    @commands.command(name='addsound')
-    async def _addsound(self, ctx: commands.Context):
-        if ctx.message.reference is not None and not ctx.message.is_system:
-            return await ctx.send('Called from a message reply')
-        return await ctx.send('Addsound returned false')
-
-    async def create_s3_connection(self):
-        print('Creating AWS S3 connection...')
-        s3_resource = boto3.resource(
-            service_name='s3',
-            region_name='ap-southeast-1',
-            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-        )
-        print('AWS S3 connection established')
-        return s3_resource
-    """
-
     # Downloads playsounds from AWS S3 bucket
     async def download_playsounds(self):
         # Creating download folder
@@ -608,12 +587,12 @@ class Playsound(commands.Cog):
         if len(message_attachments) == 1:
             if len(args) > 1:
                 return await ctx.send(use_help)
+
+            first_attachment = message_attachments[0]
                     
             filename = first_attachment.filename
             file_ext = pathlib.Path(filename).suffix
             file_url = first_attachment.url
-
-            first_attachment = message_attachments[0]
 
             if not first_attachment.content_type.startswith('audio/'):
                 return await ctx.send('Only audio files supported')
@@ -622,9 +601,12 @@ class Playsound(commands.Cog):
                 return await ctx.send('Only mp3 uploads supported')
 
             try:
+                pass
                 # Handling for user file attachment
                 # self.handle_playsound_upload(url=file_url, timestamp=args[0])
-                # playsound_source = await PlaysoundSource.create_source(file_url, args[0], ctx.message.author, ctx.message.guild, file_ext, file_upload=True)
+                playsound_source = await PlaysoundSource.create_source(ctx, file_url, args[0], ctx.message.author, ctx.message.guild, file_ext, file_upload=True)
+
+                print(f'Value of playsound_source: {playsound_source.start_time.datetime}')
             except Exception as e:
                 return await ctx.send(e)
         # From Url

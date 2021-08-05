@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
+from pydub import AudioSegment
 import validators
 from aiohttp import ClientSession
 import aiofiles
@@ -8,12 +9,19 @@ import mutagen
 from helper import helper
 
 
-class PlaysoundSource(discord.PCMVolumeTransformer):
+class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
-        pass
+        self.requester = ctx.author
+        self.guild = ctx.guild
+        self.data = data
 
+        self.type = data.get('type')
+        self.url = data.get('url')
+        self.start_time = data.get('start_time')
+        self.end_time = data.get('end_time')
+        
     @classmethod
-    async def create_source(cls, url: str, timestamp: str, requester: discord.Member, guild: discord.Guild, suffix: str, file_upload=False):
+    async def create_source(cls, ctx: commands.Context, url: str, timestamp: str, requester: discord.Member, guild: discord.Guild, suffix: str, file_upload=False):
         loop = asyncio.get_event_loop()
 
         if not validators.url(url):
@@ -28,12 +36,31 @@ class PlaysoundSource(discord.PCMVolumeTransformer):
                     async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix=suffix) as f:
                         await f.write(await response.read())
                         audio_file = mutagen.File(f.name)
-                        duration = audio_file.info.length
+                        duration = audio_file.info.length       # Problem is here. Duration is in seconds, eg. 19.238
 
+                        type = "File"
                         start_time, end_time = helper.parse_time2(timestamp, duration)
-                        # TODO: Continue here
+                        
+                        data = {
+                            "type": type,
+                            "url": url,
+                            "start_time": start_time,
+                            "end_time": end_time,
+                        }
+
+                        segment = AudioSegment.from_mp3(f.name)
+                        cropped_segment = segment[start_time.to_ms():end_time.to_ms()]
+
+                        cropped_segment.export("Superrandomname", format=".mp3")
+                        cropped_playsound = discord.File(cropped_segment)
+                        print(f'Finished cropping file')
+                        message = await ctx.send(file=cropped_playsound)
+
+                        return cls(ctx, data=data)
         else:
             pass
+    
+    # TODO: Extract from the actual downloaded file
 
     # Validates and parses timestamp
     def parse_timestamp(self, timestamp: str, video_duration: int):
