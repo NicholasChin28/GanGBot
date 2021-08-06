@@ -50,9 +50,12 @@ class PlaysoundSource():
 
                         segment = AudioSegment.from_mp3(f.name)
                         cropped_segment = segment[start_time.to_ms():end_time.to_ms()]
+                        print(f'start_time: {start_time.to_ms()}')
+                        print(f'end_time: {end_time.to_ms()}')
+                        # cropped_segment = segment[:7000]
 
-                        cropped_segment.export("Superrandomname", format=".mp3")
-                        cropped_playsound = discord.File(cropped_segment)
+                        cropped_segment.export("Superrandomname_7_direct.mp3", format="mp3")
+                        cropped_playsound = discord.File("C:/Users/nicho/miniconda3/envs/GanGBot/src/Superrandomname_7_direct.mp3")
                         print(f'Finished cropping file')
                         message = await ctx.send(file=cropped_playsound)
 

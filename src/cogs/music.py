@@ -19,6 +19,7 @@ import logging
 import youtube_dl
 
 from helper import helper
+import validators
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
@@ -598,7 +599,10 @@ class Music(commands.Cog):
         async with ctx.typing():
             try:
                 # Check if the last argument is a timestamp / timestamp range
-                timestamp = helper.parse_time(search[-1])
+                # TODO: Check if it is not a URL
+                timestamp = None
+                if not validators.url(search[-1]):
+                    timestamp = helper.parse_time(search[-1])
                 
                 # If timestamp is None, means that the last argument is not a timestamp / timestamp range
                 if timestamp is not None:

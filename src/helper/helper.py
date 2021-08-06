@@ -19,7 +19,7 @@ class MyLogger(object):
         print(msg)
 
 class VideoTime:
-    _time_formats = ['%S.%f', '%S', '%M:%S', '%H:%M:%S']
+    _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
 
     def parse_time(self, time_str: str):
         for format in self._time_formats:
@@ -41,7 +41,7 @@ class VideoTime:
 
     # Convert datetime to microsecond 
     def to_ms(self):
-        return (self.hour * 3600 + self.minute * 60 + self.second) * 1000    
+        return (self.hour * 3600 + self.minute * 60 + self.second) * 1000 + (self.microsecond / 1000)
 
     def __str__(self):
         return self.datetime_str
@@ -219,6 +219,7 @@ def parse_time(timestamp):
 
     if len(time_ranges) == 1:   # Starting time range only
         print('condition 1')
+        print(f'Value of time_ranges: {time_ranges}')
         for i in time_ranges:
             if validate_time(i) is not None:
                 # struct_time_range.append(validate_time(i))
