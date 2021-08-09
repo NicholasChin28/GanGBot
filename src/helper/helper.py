@@ -1,11 +1,10 @@
 # TODO: Use optional arguments for @property decorators: https://stackoverflow.com/questions/58433807/property-decorator-with-optional-argument
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import pathlib
 from aiohttp.client import request
 import validators
 import youtube_dl
-from datetime import timedelta
 from Models import ytdl_source
 
 class MyLogger(object):
@@ -22,8 +21,10 @@ class VideoTime:
     _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
 
     def parse_time(self, time_str: str):
+        print(f'Value of time_str: {time_str}')
         for format in self._time_formats:
             try:
+                print(f'Value of format: {format}')
                 valid_timestamp = datetime.strptime(time_str, format)
                 return valid_timestamp
             except ValueError:
@@ -262,8 +263,9 @@ def parse_time2(timestamp: str, url_duration: float):
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
                 raise Exception("Starting time greater than video length!")
         else:
-            # User provided start and end time.  Make sure they are valid 
-            user_video = VideoTime(str(round(url_duration, 1)))
+            conv_duration = str(timedelta(seconds=round(url_duration, 1)))  
+            user_video = VideoTime(conv_duration)
+
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
                 raise Exception("Invalid timestamp")
 

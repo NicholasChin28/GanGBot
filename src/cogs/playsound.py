@@ -604,14 +604,15 @@ class Playsound(commands.Cog):
                 pass
                 # Handling for user file attachment
                 # self.handle_playsound_upload(url=file_url, timestamp=args[0])
-                playsound_source = await PlaysoundSource.create_source(ctx, file_url, args[0], ctx.message.author, ctx.message.guild, file_ext, file_upload=True)
+                playsound_source = await PlaysoundSource.create_source(ctx, args[0], file_upload=True)
 
                 print(f'Value of playsound_source: {playsound_source.start_time.datetime}')
             except Exception as e:
                 return await ctx.send(e)
         # From Url
         else:
-            pass
+            print('test here')
+            playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=args[0])
         
     @_upload3.error
     async def upload3_error(self, ctx: commands.Context, error):

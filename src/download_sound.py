@@ -30,9 +30,9 @@ ydl_opts = {
         'preferredquality': '192',
     }],
     'external_downloader': 'ffmpeg',
-    'external_downloader_args': [
-        '-ss', '00:00:10.00', '-to', '00:00:16.00'
-    ],
+        'external_downloader_args': [
+            '-ss', '01:00:10.00', '-to', '01:00:16.00'
+        ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
 }
@@ -81,6 +81,10 @@ def cpu_bound2():
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [
+            '-ss', '00:00:10.00', '-to', '00:00:16.00'
+        ],
         'logger': MyLogger(),
         'progress_hooks': [my_hook],
     }
@@ -112,7 +116,9 @@ with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 
     # ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
     # info = ydl.extract_info("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3", download=False)
-    ydl.download(['https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3'])
+    info = ydl.extract_info("https://www.youtube.com/watch?v=LXvO_lQ_6KA")
+    print(info)
+    ydl.download(['https://www.youtube.com/watch?v=LXvO_lQ_6KA'])
     # print(info)
 
 
