@@ -209,7 +209,7 @@ def validate_time(timestamp):
             valid_timestamp = time.strptime(timestamp, format)
             return valid_timestamp
         except ValueError:
-            raise Exception('Invalid time format')
+            return None
 
 # Parses timestamp input by user from music play command
 # TODO: Throw error messages so that bot can display to user the error
@@ -244,6 +244,8 @@ def parse_time(timestamp):
             return None
 
         return VideoRange(start_time=struct_time_range[0], end_time=struct_time_range[-1])
+
+    return None
 
 def parse_time2(timestamp: str, url_duration: float):
     print('parse_time2 function called')
@@ -293,10 +295,6 @@ def extract_youtube_info(url):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
-        'external_downloader': 'ffmpeg',
-        'external_downloader_args': [
-            '-ss', '00:01:00.00', '-to', '00:01:50.00'
-        ],
         'logger': MyLogger(),
         'progress_hooks': [my_hook],
     }
@@ -304,10 +302,30 @@ def extract_youtube_info(url):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
-        # video_duration = info["duration"]
-
         return info
-        # best_audio_format = max
+
+# Downloads playsound
+def download_playsound(url, start_time, end_time):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [
+            '-ss', start_time.datetime_str, '-to', end_time.datetime_str
+        ],
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
+
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    except Exception:
+        raise Exception('Playsound download failed')
 
 # Check if timestamp is within url duration
 def validate_time_range(url, time_range):

@@ -74,7 +74,7 @@ class PlaysoundSource():
         else:
             duration = None
             async with ClientSession() as session:
-                async with session.get("https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3") as response:
+                async with session.get(url) as response:
                     if not response.status == 200:
                         raise Exception("Url not found")
                     print(f'headers: {response.headers}')
@@ -84,17 +84,28 @@ class PlaysoundSource():
                         'format': 'bestaudio/best',
                     }
 
+                    # For now assume, that user will give a valid url
                     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(url)
+                        info = ydl.extract_info(url, download=False)
                         duration = info['duration']
+                        print(f'info: {info}')
 
                     # YoutubeDL could not extract url duration
                     if duration is None:
-                        pass
+                        return await ctx.send("Youtube link did not have duration.")
 
-            
-            # Use YTDL to extract info from link
-            
+                    type = "Youtube"
+                    start_time, end_time = helper.parse_time2(timestamp, duration)
+
+                    data = {
+                            "type": type,
+                            "url": url,
+                            "start_time": start_time,
+                            "end_time": end_time,
+                        }
+                    
+                    segment = helper.download_playsound()
+            return  
     
     # TODO: Extract from the actual downloaded file
 

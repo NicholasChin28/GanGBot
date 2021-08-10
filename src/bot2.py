@@ -1,5 +1,6 @@
 # Rewriting MaldBot using Wavelink
 # Following documentation from Wavelink Github page
+import asyncio
 import os
 from dotenv import load_dotenv
 import discord
@@ -10,12 +11,45 @@ load_dotenv()
 
 class Bot(commands.Bot):
     def __init__(self):
-        super(Bot, self).__init__(command_prefix=['audio'])
+        super(Bot, self).__init__(command_prefix=['audio'], description='GanG スター Bot')
 
         self.add_cog(Music(self))
 
     async def on_ready(self):
-        print(f'Logged in as {self.user_name} | {self.user_id}')
+        print(f'Logged in as {self.user.name}\n{self.user.id}')
+
+class MusicController:
+
+    def __init__(self, bot, guild_id):
+        self.bot = bot
+        self.guild_id = guild_id
+        self.channel = None
+
+        self.next = asyncio.Event()
+        self.queue = asyncio.Queue()
+
+        self.volume = 40
+        self.now_playing = None
+
+        self.bot.loop.create_task(self.controller_loop())
+
+    async def controller_loop(self):
+        await self.bot.wait_until_ready()
+
+        player = self.bot.wavelink.get_player(self.guild_id)
+        await player.set_volume(self.volume)
+
+        while True:
+            if self.now_playing:
+                await self.now_playing.delete()
+
+            self.next.clear()
+
+            song = await self.queue.get()
+            await player.play(song)
+            self.now_playing = await self.channel.send(f'Now playing : {song}')
+
+            await self.next.wait()
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -34,8 +68,8 @@ class Music(commands.Cog):
             port=2333,
             rest_uri='http://127.0.0.1:2333',
             password='youshallnotpass',
-            identifier='TEST',
-            region='us_central'
+            identifier='maldbot',
+            region='singapore'
         )
 
     @commands.command(name='connect')
@@ -63,6 +97,37 @@ class Music(commands.Cog):
 
         await ctx.send(f'Added {str(tracks[0])} to the queue.')
         await player.play(tracks[0])
+
+    @commands.command(name='pause')
+    async def pause_(self, ctx):
+        """Pause the player."""
+        player = self.bot.wavelink.get_player(ctx.guild.id)
+        if not player.is_playing:
+            return await ctx.send('I am not currently playing anything!', delete_after=15)
+
+        await ctx.send('Pausing the song!', delete_after=15)
+        await player.set_pause(True)
+
+    @commands.command(name='resume')
+    async def resume_(self, ctx):
+        """Resume the player from a paused state."""
+        player = self.bot.wavelink.get_player(ctx.guild.id)
+        if not player.is_paused:
+            return await ctx.send('I am not currently paused!', delete_after=15)
+
+        await ctx.send('Resuming the player!', delete_after=15)
+        await player.set_pause(False)
+
+    @commands.command(name='skip')
+    async def skip_(self, ctx):
+        """Skip the currently playing song."""
+        player = self.bot.wavelink.get_player(ctx.guild.id)
+
+        if not player.is_playing:
+            return await ctx.send('I am not currently playing anything!', delete_after=15)
+
+        await ctx.send('Skipping the song!', delete_after=15)
+        await player.stop()
 
 bot = Bot()
 TOKEN = os.getenv('DISCORD_TOKEN2')
