@@ -1,3 +1,4 @@
+import functools
 import youtube_dl
 import asyncio
 import discord
@@ -104,7 +105,12 @@ class PlaysoundSource():
                             "end_time": end_time,
                         }
                     
-                    segment = helper.download_playsound()
+                    await ctx.send('Magically creating the playsound...')
+                    partial = functools.partial(helper.download_playsound, url, start_time, end_time)
+                    download_result = await loop.run_in_executor(None, partial)
+                    # await ctx.send(f"Download result: {download_result}")
+                    print(f'download_result: {download_result}')
+
             return  
     
     # TODO: Extract from the actual downloaded file

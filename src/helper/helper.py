@@ -308,6 +308,7 @@ def extract_youtube_info(url):
 def download_playsound(url, start_time, end_time):
     ydl_opts = {
         'format': 'bestaudio/best',
+        'outtmpl': './%(title)s.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -324,9 +325,11 @@ def download_playsound(url, start_time, end_time):
     try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+            return True
     except Exception:
-        raise Exception('Playsound download failed')
-
+        # raise Exception('Playsound download failed')
+        return False
+        
 # Check if timestamp is within url duration
 def validate_time_range(url, time_range):
     info = youtube_dl.YoutubeDL().extract_info(url, download=False)

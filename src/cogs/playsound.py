@@ -580,13 +580,16 @@ class Playsound(commands.Cog):
         use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
         use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
 
+        if len(args) == 0:
+            return await ctx.send(embed=use_help, delete_after=20)
+
         if len(message_attachments) > 1:
-            return await ctx.send('File upload only supports one file attachment')
+            return await ctx.send('File upload only supports one file attachment', delete_after=20)
         
         # File upload
         if len(message_attachments) == 1:
             if len(args) > 1:
-                return await ctx.send(use_help)
+                return await ctx.send(use_help, delete_after=20)
 
             first_attachment = message_attachments[0]
                     
