@@ -11,6 +11,7 @@ import mutagen
 import pathlib
 from helper import helper
 from pathlib import Path
+import concurrent.futures
 
 
 class PlaysoundSource():
@@ -34,7 +35,7 @@ class PlaysoundSource():
         else:
             url = url
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         if not validators.url(url):
             raise Exception("Invalid url")
@@ -107,11 +108,26 @@ class PlaysoundSource():
                     
                     await ctx.send('Magically creating the playsound...')
                     partial = functools.partial(helper.download_playsound, url, start_time, end_time)
+                    
                     download_result = await loop.run_in_executor(None, partial)
-                    # await ctx.send(f"Download result: {download_result}")
-                    print(f'download_result: {download_result}')
+                    
+                    if download_result:
+                        # Verify playsound duration
+                        playsound = Path('test')
 
-            return  
+                    return download_result
+                    # download_result = await asyncio.run(partial)
+                    # TODO: Find a way to create and close event loop. Current method causes multiple event loops to be open and not closed
+
+                    
+                    # await ctx.send(f"Download result: {download_result}")
+                    
+                    # If download result is true, use mutagen to verify that duration is correct
+                    # file_duration = mutagen.File("C:/Users/nicho/miniconda3/envs/GanGBot/src/2 Hour Beautiful Piano Music - Romantic Love Song 【BGM】.mp3")
+                    # print(f'Downloaded playsound duration: {file_duration.info.length}')
+                    # loop.close()
+
+            # return  
     
     # TODO: Extract from the actual downloaded file
 

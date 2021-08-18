@@ -306,9 +306,13 @@ def extract_youtube_info(url):
 
 # Downloads playsound
 def download_playsound(url, start_time, end_time):
+    print('From download_playsound')
+    print(f'start_time datetime_str: {start_time.datetime_str}')
+    print(f'end_time datetime_str: {end_time.datetime_str}')
+
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': './%(title)s.%(ext)s',
+        'outtmpl': './%(title)s_playsound.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',

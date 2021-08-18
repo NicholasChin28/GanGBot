@@ -616,6 +616,8 @@ class Playsound(commands.Cog):
         else:
             print('test here')
             playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=args[0])
+            print(f'Playsound source created: {playsound_source}')
+            return
         
     @_upload3.error
     async def upload3_error(self, ctx: commands.Context, error):
