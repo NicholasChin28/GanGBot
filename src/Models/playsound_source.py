@@ -11,8 +11,6 @@ import mutagen
 import pathlib
 from helper import helper
 from pathlib import Path
-import concurrent.futures
-
 
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
@@ -24,6 +22,8 @@ class PlaysoundSource():
         self.url = data.get('url')
         self.start_time = data.get('start_time')
         self.end_time = data.get('end_time')
+        self.duration = data.get('duration')
+        self.filename = data.get('filename')
         
     @classmethod
     async def create_source(cls, ctx: commands.Context, timestamp: str, file_upload=False, url=None):
@@ -53,81 +53,116 @@ class PlaysoundSource():
                         duration = audio_file.info.length
 
                         type = "File"
-                        start_time, end_time = helper.parse_time2(timestamp, duration)
-                        
-                        data = {
-                            "type": type,
-                            "url": url,
-                            "start_time": start_time,
-                            "end_time": end_time,
-                        }
+                        try:
+                            start_time, end_time = helper.parse_time2(timestamp, duration)
+                            playsound_duration = (end_time.datetime - start_time.datetime).total_seconds()
 
-                        segment = AudioSegment.from_mp3(f.name)
-                        cropped_segment = segment[start_time.to_ms():end_time.to_ms()]
-                        print(f'start_time: {start_time.to_ms()}')
-                        print(f'end_time: {end_time.to_ms()}')
-                        
-                        cropped_segment.export(filename, format=file_ext[1:])
-                        cropped_playsound = discord.File(filename)  # Continue here
-                        print(f'Finished cropping file')
-                        message = await ctx.send(file=cropped_playsound)
+                            if not helper.valid_filesize(playsound_duration):
+                                return None
 
-                        return cls(ctx, data=data)
+                            data = {
+                                "type": type,
+                                "url": url,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                                "duration": playsound_duration,
+                            }
+
+                            segment = AudioSegment.from_mp3(f.name)
+                            cropped_segment = segment[start_time.to_ms():end_time.to_ms()]
+                            print(f'start_time: {start_time.to_ms()}')
+                            print(f'end_time: {end_time.to_ms()}')
+                            
+                            cropped_segment.export(filename, format=file_ext[1:])
+                            cropped_playsound = discord.File(filename)
+                            print(f'Finished cropping file')
+                            message = await ctx.send(file=cropped_playsound)
+
+                            return cls(ctx, data=data)
+                        except Exception as e:
+                            return await ctx.send(e)
+                        
+                        
         else:
-            duration = None
+            info = None
+
             async with ClientSession() as session:
                 async with session.get(url) as response:
                     if not response.status == 200:
                         raise Exception("Url not found")
                     print(f'headers: {response.headers}')
 
-                    # Try to get the duration with YoutubeDL
-                    ydl_opts = {
-                        'format': 'bestaudio/best',
-                    }
-
                     # For now assume, that user will give a valid url
-                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    with youtube_dl.YoutubeDL() as ydl:
                         info = ydl.extract_info(url, download=False)
                         duration = info['duration']
                         print(f'info: {info}')
 
                     # YoutubeDL could not extract url duration
-                    if duration is None:
-                        return await ctx.send("Youtube link did not have duration.")
+                        if duration is None:
+                            return await ctx.send("Youtube link does not have a duration.")
 
-                    type = "Youtube"
-                    start_time, end_time = helper.parse_time2(timestamp, duration)
+                        type = "Youtube"
+                        try:
+                            start_time, end_time = helper.parse_time2(timestamp, duration)
+                            playsound_duration = (end_time.datetime - start_time.datetime).total_seconds()
+                            
+                            if not helper.valid_filesize(playsound_duration):
+                                return None
 
-                    data = {
-                            "type": type,
-                            "url": url,
-                            "start_time": start_time,
-                            "end_time": end_time,
-                        }
-                    
-                    await ctx.send('Magically creating the playsound...')
-                    partial = functools.partial(helper.download_playsound, url, start_time, end_time)
-                    
-                    download_result = await loop.run_in_executor(None, partial)
-                    
-                    if download_result:
-                        # Verify playsound duration
-                        playsound = Path('test')
+                            # TODO: Add 'filename' to dictionary
+                            data = {
+                                    "type": type,
+                                    "url": url,
+                                    "start_time": start_time,
+                                    "end_time": end_time,
+                                    "duration": playsound_duration,
+                            }
 
-                    return download_result
-                    # download_result = await asyncio.run(partial)
+                            diff = end_time.datetime - start_time.datetime
+                            print(f'total_seconds: {diff.total_seconds()}')
+                            
+                            await ctx.send('Magically creating the playsound...')
+                            partial = functools.partial(helper.download_playsound, url, start_time, end_time)
+                            
+                            download_result = await loop.run_in_executor(None, partial)
+                            
+                            if download_result.get('download_result'):
+                                filename = download_result.get("filename")
+                                # Verify playsound duration
+                                # playsound = mutagen.File(Path(f'{info["title"]}_playsound.mp3'))
+                                playsound = mutagen.File(Path(filename))
+                                playsound_duration = playsound.info.length
+                                print(f'Duration of cropped playsound: {playsound_duration}')
+
+                                # If playsound duration is longer than requested length, crop the playsound duration to match requested length
+                                if playsound_duration > diff.total_seconds():
+                                    print('Double cropping beginning')
+                                    # segment = AudioSegment.from_mp3(Path(f'{info["title"]}_playsound.mp3'))
+                                    segment = AudioSegment.from_mp3(Path(filename))
+
+                                    # Conversion logic here
+                                    start_crop = (playsound_duration - diff.total_seconds()) * 1000
+                                    end_crop = playsound_duration * 1000
+
+                                    print(f'value of start_crop: {start_crop}')
+                                    print(f'value of end_crop: {end_crop}')
+
+                                    cropped_segment = segment[start_crop:end_crop]
+
+                                    # cropped_segment.export(Path(f'{info["title"]}_playsound.mp3'), format="mp3")
+                                    cropped_segment.export(Path(filename), format="mp3")
+
+                                    # cropped_playsound = discord.File(Path(f'{info["title"]}_playsound.mp3'))
+                                    cropped_playsound = discord.File(Path(filename))
+                                    message = await ctx.send(file=cropped_playsound)
+
+                                
+                            return download_result
+                        except Exception as e:
+                            return await ctx.send(e)
+
                     # TODO: Find a way to create and close event loop. Current method causes multiple event loops to be open and not closed
-
-                    
-                    # await ctx.send(f"Download result: {download_result}")
-                    
-                    # If download result is true, use mutagen to verify that duration is correct
-                    # file_duration = mutagen.File("C:/Users/nicho/miniconda3/envs/GanGBot/src/2 Hour Beautiful Piano Music - Romantic Love Song 【BGM】.mp3")
-                    # print(f'Downloaded playsound duration: {file_duration.info.length}')
-                    # loop.close()
-
-            # return  
     
     # TODO: Extract from the actual downloaded file
 

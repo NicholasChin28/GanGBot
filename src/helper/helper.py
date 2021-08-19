@@ -2,10 +2,13 @@
 import time
 from datetime import datetime, timedelta
 import pathlib
+from typing import Dict, List
 from aiohttp.client import request
 import validators
 import youtube_dl
 from Models import ytdl_source
+from humanfriendly import parse_size
+from youtube_dl.postprocessor.common import PostProcessor
 
 class MyLogger(object):
     def debug(self, msg):
@@ -16,6 +19,18 @@ class MyLogger(object):
 
     def error(self, msg):
         print(msg)
+
+# Gets the filename of downloaded youtube_dl file
+# Inspiration code: https://stackoverflow.com/questions/64759263/how-to-get-filename-of-file-downloaded-with-youtube-dl
+class FilenameCollectorPP(PostProcessor):
+    def __init__(self, downloader):
+        super(FilenameCollectorPP, self).__init__(None)
+        self.filenames = []
+
+    def run(self, information):
+        self.filenames.append(information['filepath'])
+        return [], information
+
 
 class VideoTime:
     _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
@@ -29,6 +44,8 @@ class VideoTime:
                 return valid_timestamp
             except ValueError:
                 pass
+        
+        print('No valid time formats found, should raise Exception next')
         raise Exception("No valid time formats found")
 
     def __init__(self, time: str):
@@ -247,7 +264,7 @@ def parse_time(timestamp):
 
     return None
 
-def parse_time2(timestamp: str, url_duration: float):
+def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
     print('parse_time2 function called')
     time_ranges = timestamp.split('-')
     struct_time_range = []
@@ -274,38 +291,17 @@ def parse_time2(timestamp: str, url_duration: float):
         return struct_time_range
     except ValueError:
         raise Exception("Error ValueError from validate_time")
+    except Exception as e:
+        print('re-raising exception from VideoTime.parse_time')
+        raise e
      
-# Validates upload arguments from playsound cog upload command
-def validate_upload_arguments(args):
-    for i in args:
-        if validators.url(i):
-            pass
 
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now converting ...')
 
-# Extracts info from given youtube url
-def extract_youtube_info(url):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        # 'outtmp1': '%(title)s.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'logger': MyLogger(),
-        'progress_hooks': [my_hook],
-    }
-
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-
-        return info
-
 # Downloads playsound
-def download_playsound(url, start_time, end_time):
+def download_playsound(url, start_time, end_time) -> Dict:
     print('From download_playsound')
     print(f'start_time datetime_str: {start_time.datetime_str}')
     print(f'end_time datetime_str: {end_time.datetime_str}')
@@ -328,25 +324,28 @@ def download_playsound(url, start_time, end_time):
 
     try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            filename_collector = FilenameCollectorPP()
+            ydl.add_post_processor(filename_collector)
+
             ydl.download([url])
-            return True
+            
+            data = {
+                "download_result": True,
+                "filename": filename_collector.filenames,
+            }
+
+            return data
     except Exception:
-        # raise Exception('Playsound download failed')
-        return False
+        data = {
+            "download_result": False,
+            "filename": None,
+        }
+
+        return data
         
-# Check if timestamp is within url duration
-def validate_time_range(url, time_range):
-    info = youtube_dl.YoutubeDL().extract_info(url, download=False)
-    request_time = parse_time(time_range)
-
-    if request_time is not None:
-        start_duration_seconds = request_time.start_time_seconds()
-        end_duration_seconds = request_time.end_time_seconds()
-
-    video_duration = info["duration"]   # Duration in seconds
-
-# Calculate estimated size of cropped playsound source
-def calc_filesize(duration: int) -> int:
+# Check if created playsound size is valid
+def valid_filesize(duration: int) -> bool:
+    max_size = '500KB'
     bitrate = 192       # 192 kilobit per second
     bit_to_byte = 8     # Number of bits in a byte
     """
@@ -355,4 +354,8 @@ def calc_filesize(duration: int) -> int:
     8 refers to number of bits in a bit
     Return value is in kilobyte
     """
-    return bitrate * duration / bit_to_byte
+    playsound_size = bitrate * duration / bit_to_byte
+    if parse_size(f'{playsound_size}KB') > parse_size(max_size):
+        return False
+    
+    return True

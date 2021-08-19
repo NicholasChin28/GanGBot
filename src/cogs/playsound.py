@@ -1,7 +1,6 @@
 # Storing and retrieving playsounds from AWS S3 bucket
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
-from helper.helper import validate_upload_arguments
 import pathlib
 import typing
 import boto3
@@ -604,9 +603,7 @@ class Playsound(commands.Cog):
                 return await ctx.send('Only mp3 uploads supported')
 
             try:
-                pass
                 # Handling for user file attachment
-                # self.handle_playsound_upload(url=file_url, timestamp=args[0])
                 playsound_source = await PlaysoundSource.create_source(ctx, args[0], file_upload=True)
 
                 print(f'Value of playsound_source: {playsound_source.start_time.datetime}')
@@ -630,19 +627,6 @@ class Playsound(commands.Cog):
             use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
 
             await ctx.send(embed=use_help)
-
-    async def handle_playsound_upload(self, url: str, timestamp: str):
-        # Validate url
-        if not validators.url(url):
-            raise Exception("Not a valid url")
-
-        # Validate timestamp
-        # playsound_source = 
-    # Handle upload commmand with file attachment
-    # async def handle_file_upload()
-    # async def handle_file_upload(self, url, timestamp)
-    # async def handle_url_upload(self, url, timestamp)
-    # TODO: Calculate the file size from the timestamp
             
     # Uploads file to bucket
     async def upload_files(self, files):
