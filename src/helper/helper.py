@@ -23,7 +23,7 @@ class MyLogger(object):
 # Gets the filename of downloaded youtube_dl file
 # Inspiration code: https://stackoverflow.com/questions/64759263/how-to-get-filename-of-file-downloaded-with-youtube-dl
 class FilenameCollectorPP(PostProcessor):
-    def __init__(self, downloader):
+    def __init__(self):
         super(FilenameCollectorPP, self).__init__(None)
         self.filenames = []
 
@@ -331,11 +331,11 @@ def download_playsound(url, start_time, end_time) -> Dict:
             
             data = {
                 "download_result": True,
-                "filename": filename_collector.filenames,
+                "filename": filename_collector.filenames[0],
             }
 
             return data
-    except Exception:
+    except Exception as e:
         data = {
             "download_result": False,
             "filename": None,

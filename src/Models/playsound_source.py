@@ -30,8 +30,8 @@ class PlaysoundSource():
         if ctx.message.attachments:
             attachment = ctx.message.attachments[0]
             url = attachment.url
-            filename = attachment.filename
-            file_ext = pathlib.Path(filename).suffix
+            filename = f'{Path(attachment.filename).stem}_playsound{Path(attachment.filename).suffix}'
+            file_ext = Path(filename).suffix
         else:
             url = url
 
@@ -48,6 +48,7 @@ class PlaysoundSource():
                     if not response.status == 200:
                         raise Exception("Url not found")
                     async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix=file_ext) as f:
+                        print(f'filename: {filename}')
                         await f.write(await response.read())
                         audio_file = mutagen.File(f.name)
                         duration = audio_file.info.length
@@ -60,29 +61,29 @@ class PlaysoundSource():
                             if not helper.valid_filesize(playsound_duration):
                                 return None
 
-                            data = {
-                                "type": type,
-                                "url": url,
-                                "start_time": start_time,
-                                "end_time": end_time,
-                                "duration": playsound_duration,
-                            }
-
                             segment = AudioSegment.from_mp3(f.name)
                             cropped_segment = segment[start_time.to_ms():end_time.to_ms()]
                             print(f'start_time: {start_time.to_ms()}')
                             print(f'end_time: {end_time.to_ms()}')
                             
                             cropped_segment.export(filename, format=file_ext[1:])
-                            cropped_playsound = discord.File(filename)
-                            print(f'Finished cropping file')
-                            message = await ctx.send(file=cropped_playsound)
 
+                            data = {
+                                "type": type,
+                                "url": url,
+                                "start_time": start_time,
+                                "end_time": end_time,
+                                "duration": playsound_duration,
+                                "filename": filename,
+                            }
+
+                            # cropped_playsound = discord.File(filename)
+                            # message = await ctx.send(file=cropped_playsound)
+                            print('Finished cropping file')
+                            
                             return cls(ctx, data=data)
                         except Exception as e:
                             return await ctx.send(e)
-                        
-                        
         else:
             info = None
 
@@ -109,15 +110,6 @@ class PlaysoundSource():
                             
                             if not helper.valid_filesize(playsound_duration):
                                 return None
-
-                            # TODO: Add 'filename' to dictionary
-                            data = {
-                                    "type": type,
-                                    "url": url,
-                                    "start_time": start_time,
-                                    "end_time": end_time,
-                                    "duration": playsound_duration,
-                            }
 
                             diff = end_time.datetime - start_time.datetime
                             print(f'total_seconds: {diff.total_seconds()}')
@@ -154,11 +146,19 @@ class PlaysoundSource():
                                     cropped_segment.export(Path(filename), format="mp3")
 
                                     # cropped_playsound = discord.File(Path(f'{info["title"]}_playsound.mp3'))
-                                    cropped_playsound = discord.File(Path(filename))
-                                    message = await ctx.send(file=cropped_playsound)
+                                    # cropped_playsound = discord.File(Path(filename))
+                                    # message = await ctx.send(file=cropped_playsound)
 
+                                data = {
+                                        "type": type,
+                                        "url": url,
+                                        "start_time": start_time,
+                                        "end_time": end_time,
+                                        "duration": playsound_duration,
+                                        "filename": filename,
+                                }
                                 
-                            return download_result
+                                return cls(ctx, data=data)
                         except Exception as e:
                             return await ctx.send(e)
 

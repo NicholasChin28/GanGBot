@@ -23,6 +23,7 @@ from Models.s3file import S3File
 import validators
 from urllib.parse import urlparse
 from helper import helper
+from helper.s3_connection import S3Connection
 from Models.ytdl_source import YTDLSource
 from Models.playsound_source import PlaysoundSource
 
@@ -602,19 +603,56 @@ class Playsound(commands.Cog):
             if file_ext != ".mp3":
                 return await ctx.send('Only mp3 uploads supported')
 
+            # TODO: Standardize into one call
             try:
                 # Handling for user file attachment
                 playsound_source = await PlaysoundSource.create_source(ctx, args[0], file_upload=True)
-
-                print(f'Value of playsound_source: {playsound_source.start_time.datetime}')
+                playsound = discord.File(playsound_source.filename)
+                message = await ctx.send(file=playsound)
             except Exception as e:
                 return await ctx.send(e)
         # From Url
         else:
-            print('test here')
-            playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=args[0])
-            print(f'Playsound source created: {playsound_source}')
-            return
+            url = args[0]
+
+            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
+                return await ctx.send("Invalid Youtube link")
+
+            try:
+                playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=url)
+                playsound = discord.File(playsound_source.filename)
+                message = await ctx.send(file=playsound)
+            except Exception as e:
+                return await ctx.send(e)
+
+        # Check with user if the playsound generated is correct
+        def check(reaction, user):
+            return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['❌', '✅']) 
+        
+        # Add reactions to message
+        await message.add_reaction('❌')
+        await message.add_reaction('✅')
+
+        try:
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=60, check=check)
+        except asyncio.TimeoutError():
+            # TODO: Delete the playsound and delete the message
+            pass
+
+        if reaction.emoji == '✅':
+            # Approved playsound. Upload it to AWS S3
+            print('Approving playsound')
+            s3_connection = S3Connection()
+            upload_results = s3_connection.upload_files([playsound_source.filename])
+            print(f'upload_results: {upload_results}')
+            
+        elif reaction.emoji == '❌':
+            # Rejected playsound. Delete it from temp folder
+            print('Rejecting playsound')
+            Path(playsound_source.filename).unlink(missing_ok=True)
+            await message.delete()
+            await ctx.send("Rejected playsound. Removing...")
+            # return
         
     @_upload3.error
     async def upload3_error(self, ctx: commands.Context, error):
@@ -643,15 +681,6 @@ class Playsound(commands.Cog):
                 file_uploads.append(S3File(file.__str__(), e.response['Code']))
             
         return file_uploads     # Returns status of each file upload
-
-    # Define playsound criteria
-    async def check_audiofile(self, file):
-        '''
-        1. Is a mutagen file
-        2. File is less than 30 seconds
-        '''
-        valid_file = mutagen.File(file) is not None and mutagen.File(file).info.length <= 30
-        return valid_file
 
 def setup(bot):
     bot.add_cog(Playsound(bot))
