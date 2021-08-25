@@ -23,7 +23,7 @@ from Models.s3file import S3File
 import validators
 from urllib.parse import urlparse
 from helper import helper
-from helper.s3_connection import S3Connection
+from helper.s3_bucket import S3Bucket
 from Models.ytdl_source import YTDLSource
 from Models.playsound_source import PlaysoundSource
 
@@ -641,10 +641,20 @@ class Playsound(commands.Cog):
 
         if reaction.emoji == '✅':
             # Approved playsound. Upload it to AWS S3
+            # TODO: Try running in loop executor
             print('Approving playsound')
-            s3_connection = S3Connection()
-            upload_results = s3_connection.upload_files([playsound_source.filename])
-            print(f'upload_results: {upload_results}')
+            loop = asyncio.get_running_loop()
+            test_con = S3Bucket()
+            partial = functools.partial(test_con.upload_files, [playsound_source.filename])
+            upload_results = await loop.run_in_executor(None, partial)
+            print('upload_results: ', upload_results)
+
+            # upload_results = await S3Bucket.upload_files([playsound_source.filename])
+            # loop = asyncio.get_running_loop()
+            # s3_connection = S3Connection()
+            # partial = functools.partial(helper.download_playsound, url, start_time, end_time)
+            # upload_results = s3_connection.upload_files([playsound_source.filename])
+            # print(f'upload_results: {upload_results}')
             
         elif reaction.emoji == '❌':
             # Rejected playsound. Delete it from temp folder

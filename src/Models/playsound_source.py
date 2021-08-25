@@ -11,6 +11,7 @@ import mutagen
 import pathlib
 from helper import helper
 from pathlib import Path
+import concurrent.futures
 
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
