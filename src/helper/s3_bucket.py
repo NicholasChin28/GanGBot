@@ -3,8 +3,16 @@ import os
 import boto3
 from Models.s3file import S3File
 from botocore.exceptions import ClientError
+import functools
 
 class S3Bucket:
+    """
+    def __init__(self):
+        self.connection = self.create_s3_connection()
+        self.bucket_name = os.getenv('AWS_BUCKET')
+        self.bucket = self.get_bucket()
+    """
+
     # Uploads file to bucket
     # @classmethod
     def upload_files(self, files):
@@ -16,21 +24,35 @@ class S3Bucket:
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket(connection, bucket_name)
 
+        print('val of bucket: ', bucket)
         print('val of connection: ', connection)
 
         file_uploads = []
         for file in files:
             try:
                 bucket.upload_file(file, file)
-                file_uploads.add(S3File(file, '200'))
+                print('bucket uploaded file')
+                file_uploads.append(S3File(file, '200'))
+                print(f'Added bucket result: {file_uploads}')
             except ClientError as e:
                 if e.response['Error']['Code'] == '404':
                     print("Bucket does not exist. Called from upload_file")
                 elif e.response['Error']['Code'] == '403':
                     print("Insufficient permissions to upload file")
-                file_uploads.add(S3File(file, e.response['Code']))
-            
+                file_uploads.append(S3File(file, e.response['Code']))
+
+        print('Finished uploading, returning file_uploads')
         return file_uploads     # Returns status of each file upload
+
+    @classmethod
+    async def upload_files2(cls, files):
+        loop = asyncio.get_event_loop()
+
+        partial = functools.partial(cls.upload_files, cls, files)
+        data = await loop.run_in_executor(None, partial)
+
+        if data:
+            return data
 
     def create_connection(self):
         print('Creating AWS S3 connection...')

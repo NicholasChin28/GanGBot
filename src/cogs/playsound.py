@@ -24,6 +24,7 @@ import validators
 from urllib.parse import urlparse
 from helper import helper
 from helper.s3_bucket import S3Bucket
+from helper.s3_connection import S3Connection
 from Models.ytdl_source import YTDLSource
 from Models.playsound_source import PlaysoundSource
 
@@ -70,7 +71,7 @@ class PlaysoundSource_old(discord.PCMVolumeTransformer):
             raise SoundError('Playsound does not exist')
 
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
-        return cls(ctx, discord.FFmpegPCMAudio(location), data = data)
+        return cls(ctx, discord.FFmpegPCMAudio(location), data=data)
 
     # TODO: Get metadata of local sound files to display in queue function
     @staticmethod
@@ -643,11 +644,19 @@ class Playsound(commands.Cog):
             # Approved playsound. Upload it to AWS S3
             # TODO: Try running in loop executor
             print('Approving playsound')
-            loop = asyncio.get_running_loop()
+
+            # upload_results = await S3Bucket.upload_files2([playsound_source.filename])
+            # print('upload_results2: ', upload_results)
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+            loop = asyncio.get_event_loop()
             test_con = S3Bucket()
             partial = functools.partial(test_con.upload_files, [playsound_source.filename])
             upload_results = await loop.run_in_executor(None, partial)
-            print('upload_results: ', upload_results)
+            # After upload_results returns, there will be an exception. Probably due to the connection closing.
+            print('upload_results: ', upload_results)   
+            return await ctx.send("Playsound added!")
+            
 
             # upload_results = await S3Bucket.upload_files([playsound_source.filename])
             # loop = asyncio.get_running_loop()
