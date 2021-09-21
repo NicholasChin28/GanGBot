@@ -6,14 +6,11 @@ from botocore.exceptions import ClientError
 import functools
 
 class S3Bucket:
-    """
     def __init__(self):
-        self.connection = self.create_s3_connection()
+        self.s3 = self.create_s3_connection()
         self.bucket_name = os.getenv('AWS_BUCKET')
         self.bucket = self.get_bucket()
-    """
-
-    # Uploads file to bucket
+    
     # @classmethod
     def upload_files(self, files):
         print('upload_files')
@@ -54,7 +51,7 @@ class S3Bucket:
         if data:
             return data
 
-    def create_connection(self):
+    def create_s3_connection(self):
         print('Creating AWS S3 connection...')
         s3 = boto3.resource(
             service_name='s3',
@@ -78,20 +75,16 @@ class S3Bucket:
     # Get playsound bucket
     def get_bucket(self, s3, bucket_name: str):
         print('get_bucket function')
-        # exists = True
 
         # Check if bucket exist. V2
         try:
             s3.meta.client.head_bucket(Bucket=bucket_name)
             return s3.Bucket(bucket_name)
         except ClientError as e:
-            # If a client error is thrown, then check that it was a 404 error.
-            # If it was a 404 error, then the bucket does not exist.
             error_code = e.response['Error']['Code']
             if error_code == '403':
                 print('Private bucket. Forbidden Access!')
             elif error_code == '404':
-                # exists = False
                 print('Bucket does not exist')
                 print('Creating bucket...')
                 self.create_bucket(bucket_name)
@@ -99,11 +92,10 @@ class S3Bucket:
 
         return None
 
-
     # Downloads file from bucket
-    async def download_file(self, filename, exists):
+    async def download_file(self, filename):
         try:
-            self.s3_bucket.download_file(filename, filename)
+            self.bucket.download_file(filename, filename)
         except ClientError as e:
             if e.response['Error']['Code'] == "404":
                 print("The object does not exist")
@@ -122,14 +114,6 @@ class S3Bucket:
             'LocationConstraint': 'ap-southeast-1'
         })
         print('Bucket created...')
-        """
-        if playsound_bucket.creation_date:
-            print("The bucket exists")
-        else:
-            print('Bucket does not exist. Creating bucket...')
-            # Create the bucket
-            s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
-                'LocationConstraint': 'ap-southeast-1'
-            })
-            print('Bucket created...')
-        """
+
+    
+        

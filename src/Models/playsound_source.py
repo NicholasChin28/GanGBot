@@ -165,6 +165,11 @@ class PlaysoundSource():
 
                     # TODO: Find a way to create and close event loop. Current method causes multiple event loops to be open and not closed
     
+    # Get playsound from AWS S3 bucket
+    @classmethod
+    async def get_source(cls, ctx: commands.Context, name):
+        
+
     # TODO: Extract from the actual downloaded file
 
     # Validates and parses timestamp

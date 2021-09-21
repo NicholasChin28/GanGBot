@@ -2,8 +2,6 @@
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
 import pathlib
-import typing
-import boto3
 from dotenv import load_dotenv
 import os
 from pathlib import Path
@@ -19,12 +17,10 @@ import aiofiles
 import humanfriendly
 import shutil
 from pydub import AudioSegment
-from Models.s3file import S3File
 import validators
 from urllib.parse import urlparse
 from helper import helper
 from helper.s3_bucket import S3Bucket
-from helper.s3_connection import S3Connection
 from Models.ytdl_source import YTDLSource
 from Models.playsound_source import PlaysoundSource
 
@@ -64,6 +60,7 @@ class PlaysoundSource_old(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
 
         # partial = functools.partial(cls.extract_info, search)
+        """
         partial = functools.partial(PlaysoundSource.extract_info, search)
         data = await loop.run_in_executor(None, partial)
 
@@ -72,15 +69,16 @@ class PlaysoundSource_old(discord.PCMVolumeTransformer):
 
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
         return cls(ctx, discord.FFmpegPCMAudio(location), data=data)
+        """
+                
 
     # TODO: Get metadata of local sound files to display in queue function
     @staticmethod
     def extract_info(search: str):
         location = Path(f"{os.getenv('APP_PATH')}/playsounds/{search}.mp3")
+        details = {}
         if location.is_file():
-            details = {}
             playsound = mutagen.File(location)
-
             details['duration'] = int(playsound.info.length)
             details['title'] = search
             
@@ -126,16 +124,6 @@ class Sound:
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        """
-        self.s3 = self.create_s3_connection()
-        self.playsound_bucket = os.getenv('AWS_BUCKET')
-        self.s3_bucket = self.get_bucket()
-        self.bucket_objects = self.get_bucket_objects()
-        """
-        self.s3 = None
-        self.playsound_bucket = None
-        self.s3_bucket = None
-        self.bucket_objects = None
 
         # self.playsound_folder = Path(__file__).parent.absolute() / 'random2.mp3'
         self.playsound_folder = Path(__file__).parents[1].absolute() / 'playsounds' # Playsounds
@@ -144,41 +132,6 @@ class Playsound(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print('Playsound cog loaded!')
-
-        """
-        self.s3 = await self.create_s3_connection()
-        self.playsound_bucket = os.getenv('AWS_BUCKET')
-        self.s3_bucket = await self.get_bucket()
-        self.bucket_objects = await self.get_bucket_objects()
-        print('Initialized variables')
-
-        print(f'Val of: {self.s3}')
-        print(f'Val of: {self.playsound_bucket}')
-        print(f'Val of: {self.s3_bucket}')
-        print(f'Val of: {self.bucket_objects}')
-        await self.download_playsounds()
-        """
-
-    async def create_s3_connection(self):
-        print('Creating AWS S3 connection...')
-        s3 = boto3.resource(
-            service_name='s3',
-            region_name=os.getenv('AWS_REGION'),
-            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-        )
-
-        # Check if credentials and permissions are correct
-        try:
-            for _ in s3.buckets.all():
-                pass
-        except ClientError as e:
-            print(f'Client error: {e}')
-            return None
-
-        print('AWS S3 connection established')
-
-        return s3
 
     @commands.command(name='listsounds')
     async def _listsounds(self, ctx: commands.Context, *, page: int = 1):
@@ -272,6 +225,23 @@ class Playsound(commands.Cog):
 
                 await cur_voice_state.songs.put(sound)
                 await ctx.send('Enqueued a playsound')
+
+    # Command to play sound file from AWS S3 bucket
+    @commands.command(name='ps2')
+    async def _playsound2(self, ctx: commands.Context, *, search: str):
+        """Plays a custom playsound"""
+        parent_cog = ctx.box.get_cog('Music')
+        cur_voice_state = parent_cog.get_voice_state(ctx)
+        ctx.voice_state = cur_voice_state
+        if not cur_voice_state.voice:
+            await ctx.bot.get_command('join').callback(self, ctx)
+
+        # TODO: Search playsound from AWS S3
+        async with ctx.typing():
+            try:
+                source = PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
+            except SoundError as e:
+                await ctx.send("Source does not exist")
 
     # Downloads playsounds from AWS S3 bucket
     async def download_playsounds(self):
@@ -377,15 +347,6 @@ class Playsound(commands.Cog):
         })
         print('Bucket created...')
         
-    # Upload command test
-    @commands.command(name='upload')
-    async def _upload(self, ctx: commands.Context):
-        file_to_upload = Path('')   
-        to_send = []
-        to_send.append(file_to_upload)
-        temp_val = await self.upload_files(to_send)
-        print(f'Value of file_uploads: {temp_val}')
-
     # Add reactions for upload playsounds
     async def add_playsound_reactions(self, message):
         x_emoji = '❌'
@@ -435,13 +396,6 @@ class Playsound(commands.Cog):
                 helper.validate_range(timestamp, youtube_source)
             except Exception as e:
                 return await ctx.send(e)
-
-            '''
-            TODO: Continue from here <<
-            Before creating the playsound,
-            calculate the estimated size of the file
-            '''
-
 
             # Process playsound from Youtube url
             loop = asyncio.get_event_loop()
@@ -570,9 +524,9 @@ class Playsound(commands.Cog):
             loop.run_until_complete('function name for getting url and downloading file')
             """
     
-    # Upload command test 3
-    @commands.command(name='upload3')
-    async def _upload3(self, ctx: commands.Context, *args):
+    # Upload command
+    @commands.command(name='upload')
+    async def _upload(self, ctx: commands.Context, *args):
         message_attachments = ctx.message.attachments
 
         use_help = discord.Embed(
@@ -673,8 +627,8 @@ class Playsound(commands.Cog):
             await ctx.send("Rejected playsound. Removing...")
             # return
         
-    @_upload3.error
-    async def upload3_error(self, ctx: commands.Context, error):
+    @_upload.error
+    async def upload_error(self, ctx: commands.Context, error):
         # Check if arguments passed
         if isinstance(error, commands.MissingRequiredArgument):
             use_help = discord.Embed(
@@ -684,22 +638,6 @@ class Playsound(commands.Cog):
             use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
 
             await ctx.send(embed=use_help)
-            
-    # Uploads file to bucket
-    async def upload_files(self, files):
-        file_uploads = []
-        for file in files:
-            try:
-                self.s3_bucket.upload_file(file.__str__(), 'sample15s.mp3')
-                file_uploads.append(S3File(file.__str__(), '200'))
-            except ClientError as e:
-                if e.response['Error']['Code'] == '404':
-                    print("Bucket does not exist. Called from upload_file")
-                elif e.response['Error']['Code'] == '403':
-                    print("Insufficient permissions to upload file")
-                file_uploads.append(S3File(file.__str__(), e.response['Code']))
-            
-        return file_uploads     # Returns status of each file upload
 
 def setup(bot):
     bot.add_cog(Playsound(bot))
