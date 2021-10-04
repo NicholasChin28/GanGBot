@@ -5,24 +5,30 @@ from Models.s3file import S3File
 from botocore.exceptions import ClientError
 import functools
 
+
 class S3Bucket:
     def __init__(self):
-        self.s3 = self.create_s3_connection()
-        self.bucket_name = os.getenv('AWS_BUCKET')
-        self.bucket = self.get_bucket()
+        pass
+        # self.s3 = self.create_s3_connection()
+        # self.bucket_name = os.getenv('AWS_BUCKET')
+        # self.bucket = self.get_bucket()
+
+        # print('Created variables')
     
-    # @classmethod
-    def upload_files(self, files):
+    
+    def upload_files(cls, files):
         print('upload_files')
         # loop = asyncio.get_running_loop()
 
         # TODO: Try creating connection in the function that is using it. instead of creating a global one, then passing it
-        connection = self.create_connection()
+        # connection = cls.create_connection()
         bucket_name = os.getenv('AWS_BUCKET')
-        bucket = self.get_bucket(connection, bucket_name)
+        # bucket = cls.get_bucket(connection, bucket_name)
+        # bucket = "test"
+        bucket = cls.get_bucket2(bucket_name)
 
         print('val of bucket: ', bucket)
-        print('val of connection: ', connection)
+        # print('val of connection: ', connection)
 
         file_uploads = []
         for file in files:
@@ -92,6 +98,27 @@ class S3Bucket:
 
         return None
 
+    # Get playsound bucket, v2
+    def get_bucket2(self, bucket_name: str):
+        print('get_bucket2 function')
+
+        s3 = self.create_s3_connection()
+        
+        try:
+            s3.meta.client.head_bucket(Bucket=bucket_name)
+            return s3.Bucket(bucket_name)
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == '403':
+                print('Private bucket. Forbidden Access!')
+            elif error_code == '404':
+                print('Bucket does not exist')
+                print('Creating bucket...')
+                self.create_bucket(bucket_name)
+                return s3.Bucket(bucket_name)
+
+        return None
+
     # Downloads file from bucket
     async def download_file(self, filename):
         try:
@@ -115,5 +142,14 @@ class S3Bucket:
         })
         print('Bucket created...')
 
-    
+    # Get file from bucket
+    def get_playsound(self, name):
+        bucket_name = os.getenv('AWS_BUCKET')
+        bucket = self.get_bucket2(bucket_name)
+
+        playsound = bucket.Object(name).get()['Body']
+        return playsound
+
+
+
         

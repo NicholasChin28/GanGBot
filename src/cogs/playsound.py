@@ -110,8 +110,9 @@ class Sound:
 
     def __init__(self, source: PlaysoundSource):
         self.source = source
-        self.requester = source.requester
+        # self.requester = source.requester
 
+    """
     def create_embed(self):
         embed = (discord.Embed(title='Now playing',
                                 description='```css\n{0.source.title}\n```'.format(self),
@@ -120,6 +121,7 @@ class Sound:
                 .add_field(name='Requested by', value=self.requester.mention))
 
         return embed
+    """
 
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -230,7 +232,7 @@ class Playsound(commands.Cog):
     @commands.command(name='ps2')
     async def _playsound2(self, ctx: commands.Context, *, search: str):
         """Plays a custom playsound"""
-        parent_cog = ctx.box.get_cog('Music')
+        parent_cog = ctx.bot.get_cog('Music')
         cur_voice_state = parent_cog.get_voice_state(ctx)
         ctx.voice_state = cur_voice_state
         if not cur_voice_state.voice:
@@ -239,9 +241,16 @@ class Playsound(commands.Cog):
         # TODO: Search playsound from AWS S3
         async with ctx.typing():
             try:
-                source = PlaysoundSource.get_source(ctx, search, loop=self.bot.loop)
-            except SoundError as e:
-                await ctx.send("Source does not exist")
+                source = await PlaysoundSource.get_source(ctx, search)
+                print('source: ', source)
+                print('type of source: ', type(source))
+            except Exception as e:
+                await ctx.send(f"Source does not exist: {e}")
+            else:
+                sound = Sound(source)
+
+                await cur_voice_state.songs.put(sound)
+                await ctx.send('Enqueued a playsound')
 
     # Downloads playsounds from AWS S3 bucket
     async def download_playsounds(self):
@@ -571,7 +580,7 @@ class Playsound(commands.Cog):
             url = args[0]
 
             if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
-                return await ctx.send("Invalid Youtube link")
+                return await ctx.send("Only valid Youtube links supported")
 
             try:
                 playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=url)
@@ -601,15 +610,20 @@ class Playsound(commands.Cog):
 
             # upload_results = await S3Bucket.upload_files2([playsound_source.filename])
             # print('upload_results2: ', upload_results)
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            # asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
+            # test_con = S3Bucket()
+            # partial = functools.partial(test_con.upload_files, [playsound_source.filename])
             test_con = S3Bucket()
             partial = functools.partial(test_con.upload_files, [playsound_source.filename])
-            upload_results = await loop.run_in_executor(None, partial)
-            # After upload_results returns, there will be an exception. Probably due to the connection closing.
-            print('upload_results: ', upload_results)   
-            return await ctx.send("Playsound added!")
+            try:
+                upload_results = await loop.run_in_executor(None, partial)
+                # After upload_results returns, there will be an exception. Probably due to the connection closing.
+                print('upload_results: ', upload_results)   
+                return await ctx.send("Playsound added!")
+            except Exception as e:
+                return await ctx.send(e)
             
 
             # upload_results = await S3Bucket.upload_files([playsound_source.filename])

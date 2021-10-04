@@ -10,8 +10,11 @@ import aiofiles
 import mutagen
 import pathlib
 from helper import helper
+from helper.s3_bucket import S3Bucket
 from pathlib import Path
 import concurrent.futures
+
+# TODO: Add another playsound class for compatibility with current Sound class and queue
 
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
@@ -168,7 +171,18 @@ class PlaysoundSource():
     # Get playsound from AWS S3 bucket
     @classmethod
     async def get_source(cls, ctx: commands.Context, name):
-        
+        loop = asyncio.get_running_loop()
+
+        # test_con = S3Bucket()
+        test_con = S3Bucket()
+        partial = functools.partial(test_con.get_playsound, name=name)
+        playsound = await loop.run_in_executor(None, partial)
+
+        # Test getting the value of playsound
+        print(f'Type of playsound: {type(playsound)}')
+        print(f'Value of playsound: {playsound}')
+
+        return playsound
 
     # TODO: Extract from the actual downloaded file
 
