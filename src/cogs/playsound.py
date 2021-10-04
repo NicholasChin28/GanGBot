@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 from helper import helper
 from helper.s3_bucket import S3Bucket
 from Models.ytdl_source import YTDLSource
-from Models.playsound_source import PlaysoundSource
+from Models.playsound_source import PlaysoundSource, PlaysoundSource_supernew
 
 load_dotenv()
 
@@ -108,9 +108,14 @@ class PlaysoundSource_old(discord.PCMVolumeTransformer):
 class Sound:
     __slots__ = ('source', 'requester')
 
-    def __init__(self, source: PlaysoundSource):
+    def __init__(self, source: PlaysoundSource_supernew):
         self.source = source
         # self.requester = source.requester
+
+    def create_embed(self):
+        embed = discord.Embed(title="Now playing playsound")
+
+        return embed
 
     """
     def create_embed(self):
@@ -241,7 +246,7 @@ class Playsound(commands.Cog):
         # TODO: Search playsound from AWS S3
         async with ctx.typing():
             try:
-                source = await PlaysoundSource.get_source(ctx, search)
+                source = await PlaysoundSource_supernew.get_source(ctx, search, loop=self.bot.loop)
                 print('source: ', source)
                 print('type of source: ', type(source))
             except Exception as e:
@@ -363,175 +368,6 @@ class Playsound(commands.Cog):
 
         await message.add_reaction(tick_emoji)
         await message.add_reaction(x_emoji)
-        
-
-    # Upload command test 2
-    @commands.command(name='upload2')
-    async def _upload2(self, ctx: commands.Context, *args):
-        # Prevent user from uploading attachment together and url argument
-        # Use *args method instead so that user can do with file attachment, etc:
-        # .upload2 00:30-1:00
-        # print(type(args))
-        if len(args) == 0:
-            return await ctx.send("Invalid use of upload command")
-
-        message_attachments = ctx.message.attachments
-        url = args[0]
-        if len(message_attachments) > 0:
-            if len(args) != 1:
-                return await ctx.send("Please specify the timestamp")
-
-            timestamp = helper.parse_time(args[0])
-            if timestamp is None:
-                return await ctx.send("Invalid timestamp provided")
-            # Only allow one argument. Which is timestamp
-            
-        # Handle Youtube
-        else:
-            # Temporarily make it a must to provide start time and end time
-            # TODO: Calculate end time as the end duration of Youtube video
-            if len(args) != 2:
-                return await ctx.send("Please provide Youtube link together with start time and end time")
-            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
-                return await ctx.send("Invalid Youtube link")
-            timestamp = helper.parse_time(args[1])
-            if timestamp is None:
-                return await ctx.send("Invalid timestamp")
-            
-            youtube_source = await YTDLSource.create_source(url)
-            print(f'Value of youtube_source: {youtube_source.duration}')    # Returns seconds
-
-            try:
-                helper.validate_range(timestamp, youtube_source)
-            except Exception as e:
-                return await ctx.send(e)
-
-            # Process playsound from Youtube url
-            loop = asyncio.get_event_loop()
-            partial = functools.partial(helper.create_playsound, url, "most random name", timestamp)
-
-            async_result = await loop.run_in_executor(None, partial)
-
-            if async_result is None:
-                return await ctx.send("Should not happen from async_result")
-
-            return await ctx.send(f"Processing complete. Check local file: {async_result}")
-
-
-        # CODE BELOW IS NOT IN USE. 15 JULY 2021
-        if (not url and len(message_attachments) == 0) or (url and len(message_attachments) != 0):
-            return await ctx.send("Try uploading a file OR sending a Youtube link")
-        
-
-        max_size = '10MB'   # Max size allowed for playsound
-
-        # Handle Youtube links
-        if len(message_attachments) == 0 and url:
-            # Check if url is a valid Youtube URL
-            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
-                return await ctx.send("Invalid Youtube link")
-            # TODO: Check if user put timestamp arguments as well
-            if timestamp is not None:
-                # Validate timestamp
-                # TODO: Now accepting time_range as seconds. Refactor it to use similar style as .play command
-                # Extract info from youtube url
-                await ctx.send(f"Value of timestamp: {timestamp}")
-                timerange = helper.parse_time(timestamp)
-        # Handle file attachments
-        else:
-            # Handling for user file attachment
-            filename = message_attachments[0].filename
-            file_ext = pathlib.Path(filename).suffix
-            file_url = message_attachments[0].url
-
-            print(f'Value of message_attachments: {message_attachments}')
-            print(f'Value of extension: {file_ext}')
-            # Only need to check first item as Discord only allows one file per message
-            
-            async with ClientSession() as session:
-                async with session.get(file_url) as response:
-                    if not response.status == 200:
-                        return await ctx.send("Invalid attachment URL")
-
-                    content_type = response.headers['content-type']
-                    if not content_type.startswith('audio/'):
-                        return await ctx.send("Invalid file type")
-
-                    max_length = humanfriendly.parse_size(max_size, binary=True)
-                    content_length = response.headers['content-length']
-                    
-                    if int(content_length) > max_length:
-                        return await ctx.send('File size is too large. Send a file 10MB or less')
-
-                    # All criteria passed. Download file to temporary file
-                    async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix=file_ext) as f:
-                        await f.write(await response.read()) 
-                        await f.seek(0)
-                        
-                        type_file_f2 = mutagen.File(f.name)
-                        print(f"type_file_f2: {type_file_f2}, {type_file_f2.info.length}")
-
-                        # Working code segment to crop audio
-                        song = AudioSegment.from_mp3(f.name)    # Accessing file from temp folder
-
-                        ten_seconds = 10 * 1000
-                        first_10_seconds = song[:ten_seconds]
-
-                        
-                        # Save the cropped file to a temporary file name
-                        
-                        print(f'The parent folder: {pathlib.Path(f.name).parent}')
-
-                        # temp_filename = f'{pathlib.Path(f.name).parent}/({pathlib.Path(filename).stem}_playsound{file_ext})'
-                        temp_filename = pathlib.Path(f.name).parent / f'{pathlib.Path(filename).stem}_playsound{file_ext}' 
-                        print(f'Value of temp_filename: {temp_filename}')
-
-                        # Save the cropped file to a temporary file name
-                        first_10_seconds.export(temp_filename, format=file_ext[1:])
-
-                        print("File slicing completed!")
-
-                        preview_playsound = discord.File(temp_filename)
-                        message = await ctx.send(file=preview_playsound)
-
-                        # Add reactions to confirm if the cropped playsound is as wanted
-                        await self.add_playsound_reactions(message)
-
-                        # Check for reaction
-                        def check(reaction, user):
-                            return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['✅', '❌'])
-
-                        while True:
-                            try:
-                                reaction, _ = await self.bot.wait_for('reaction_add', timeout=120, check=check)
-                            except asyncio.TimeoutError:
-                                await message.delete()
-                                break
-                            else:
-                                if reaction.emoji == '✅':
-                                    # TODO: Approved playsound
-                                    # TODO: Check if a similar named playsound already exists
-                                    # Place the playsound into the '~/playsounds' folder
-                                    # TODO: self.playsound_folder variable is not correct value. Creating file instead of saving into directory
-                                    shutil.move(temp_filename, self.playsound_folder)
-
-                                    print(f'Cur value of temp_filename: {temp_filename}')
-                                    print(f'Cur value of self.playsound_folder: {self.playsound_folder}')
-                                    print('File moved successfully')
-                                elif reaction.emoji == '❌':
-                                    # TODO: Rejected playsound
-                                    # Delete the playsound from the preview_playsounds_folder
-                                    try:
-                                        os.unlink(temp_filename)
-                                        print(f'File deleted at {temp_filename} successful')
-                                    except Exception:
-                                        print(f'File deletion at temp_filename: {temp_filename} failed')
-
-            # TODO: Implement loop below 
-            """
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete('function name for getting url and downloading file')
-            """
     
     # Upload command
     @commands.command(name='upload')
@@ -608,13 +444,8 @@ class Playsound(commands.Cog):
             # TODO: Try running in loop executor
             print('Approving playsound')
 
-            # upload_results = await S3Bucket.upload_files2([playsound_source.filename])
-            # print('upload_results2: ', upload_results)
-            # asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
             loop = asyncio.get_running_loop()
-            # test_con = S3Bucket()
-            # partial = functools.partial(test_con.upload_files, [playsound_source.filename])
+            # TODO: Ask user for the filename of the file to upload
             test_con = S3Bucket()
             partial = functools.partial(test_con.upload_files, [playsound_source.filename])
             try:

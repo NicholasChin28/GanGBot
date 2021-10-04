@@ -16,6 +16,39 @@ import concurrent.futures
 
 # TODO: Add another playsound class for compatibility with current Sound class and queue
 
+# Temporary class for playing audio
+class PlaysoundSource_supernew(discord.PCMVolumeTransformer):
+    FFMPEG_OPTIONS = {
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options': '-vn',
+    }
+
+    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+        super().__init__(source, volume)
+
+        self.requester = ctx.author
+        self.channel = ctx.channel
+        self.data = data
+
+        self.title = 'test'
+        self.duration = 90
+
+    @classmethod
+    async def get_source(cls, ctx: commands.Context, playsound: str, *, loop: asyncio.BaseEventLoop):
+        loop = asyncio.get_running_loop()
+
+        test_con = S3Bucket()
+        partial = functools.partial(test_con.get_playsound, name=playsound)
+        s3_playsound = await loop.run_in_executor(None, partial)
+
+        # Test getting the value of playsound
+        print(f'Type of playsound: {type(playsound)}')
+        print(f'Value of playsound: {playsound}')
+
+        # return playsound
+        return cls(ctx, discord.FFmpegPCMAudio(playsound), data=None)
+
+
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
         self.requester = ctx.author
@@ -182,7 +215,8 @@ class PlaysoundSource():
         print(f'Type of playsound: {type(playsound)}')
         print(f'Value of playsound: {playsound}')
 
-        return playsound
+        # return playsound
+        return cls(ctx, discord.FFmpegPCMAudio(playsound), data=None)
 
     # TODO: Extract from the actual downloaded file
 

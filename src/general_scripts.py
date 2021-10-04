@@ -1,3 +1,4 @@
+from codecs import encode
 from botocore.exceptions import ClientError
 import psycopg2
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ import boto3
 import botocore
 import re
 import json
+import logging
 from pydub import AudioSegment
 from Models.aws_s3 import AwsS3
 import aiohttp
@@ -373,7 +375,13 @@ async def check_webpage(url: str):
             content_type = response.headers['content-type']
             print(f'content-type: {content_type.startswith("audio/")}')
                 
-loop = asyncio.get_event_loop()
+# loop = asyncio.get_event_loop()
 # loop.run_until_complete(run_length_test("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3"))
-loop.run_until_complete(check_webpage("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3"))
+# loop.run_until_complete(check_webpage("https://cdn.discordapp.com/attachments/694753759091359825/864366367558074405/Thor_-_God_of_Thunder_Angry_Review_Video_Game-m8e39b1G93Q.mp3"))
 # loop.run_until_complete(main())
+
+logging.basicConfig(filename='example.log', level=logging.DEBUG)
+logging.debug('This message should go to the log file')
+logging.info('So should this')
+logging.warning('And this')
+logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
