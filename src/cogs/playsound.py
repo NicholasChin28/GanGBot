@@ -386,6 +386,8 @@ class Playsound(commands.Cog):
         if len(message_attachments) > 1:
             return await ctx.send('File upload only supports one file attachment', delete_after=20)
         
+        uploader = ctx.message.author
+
         # File upload
         if len(message_attachments) == 1:
             if len(args) > 1:
@@ -428,42 +430,48 @@ class Playsound(commands.Cog):
         # Check with user if the playsound generated is correct
         def check(reaction, user):
             return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['❌', '✅']) 
+
+        def name_check(message):
+            print("name_check called")
+            return message.author == uploader
         
         # Add reactions to message
         await message.add_reaction('❌')
         await message.add_reaction('✅')
 
         try:
-            reaction, _ = await self.bot.wait_for('reaction_add', timeout=60, check=check)
-        except asyncio.TimeoutError():
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=10, check=check)
+        except asyncio.TimeoutError:
             # TODO: Delete the playsound and delete the message
-            pass
+            await ctx.send("Reaction timeout exceeded. Deleting playsound")
+            Path(playsound_source.filename).unlink(missing_ok=True)
 
         if reaction.emoji == '✅':
-            # Approved playsound. Upload it to AWS S3
-            # TODO: Try running in loop executor
-            print('Approving playsound')
-
-            loop = asyncio.get_running_loop()
-            # TODO: Ask user for the filename of the file to upload
-            test_con = S3Bucket()
-            partial = functools.partial(test_con.upload_files, [playsound_source.filename])
+            await ctx.send("Give a cool name for the playsound!")
             try:
-                upload_results = await loop.run_in_executor(None, partial)
-                # After upload_results returns, there will be an exception. Probably due to the connection closing.
-                print('upload_results: ', upload_results)   
-                return await ctx.send("Playsound added!")
-            except Exception as e:
-                return await ctx.send(e)
-            
+                name = await self.bot.wait_for('message', timeout=10, check=name_check)
+            except asyncio.TimeoutError:
+                print("Timeout exceeded from message wait")
+                return await ctx.send('Message timeout exceeded. Removing playsound.')
 
-            # upload_results = await S3Bucket.upload_files([playsound_source.filename])
-            # loop = asyncio.get_running_loop()
-            # s3_connection = S3Connection()
-            # partial = functools.partial(helper.download_playsound, url, start_time, end_time)
-            # upload_results = s3_connection.upload_files([playsound_source.filename])
-            # print(f'upload_results: {upload_results}')
-            
+            # TODO: Put the except asyncio.TimeoutError outside instead of nested
+            if name:
+                # Approved playsound. Upload it to AWS S3
+                # TODO: Try running in loop executor
+                print('Approving playsound')
+
+                loop = asyncio.get_running_loop()
+                # TODO: Ask user for the filename of the file to upload
+                # TODO: Currently filename uploading does not work as the extension is not detected
+                test_con = S3Bucket()
+                partial = functools.partial(test_con.upload_files, [playsound_source.filename], name.content)
+                try:
+                    upload_results = await loop.run_in_executor(None, partial)
+                    # After upload_results returns, there will be an exception. Probably due to the connection closing.
+                    print('upload_results: ', upload_results)   
+                    return await ctx.send("Playsound added!")
+                except Exception as e:
+                    return await ctx.send(e)
         elif reaction.emoji == '❌':
             # Rejected playsound. Delete it from temp folder
             print('Rejecting playsound')
@@ -471,7 +479,7 @@ class Playsound(commands.Cog):
             await message.delete()
             await ctx.send("Rejected playsound. Removing...")
             # return
-        
+
     @_upload.error
     async def upload_error(self, ctx: commands.Context, error):
         # Check if arguments passed

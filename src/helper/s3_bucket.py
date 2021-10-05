@@ -16,7 +16,7 @@ class S3Bucket:
         # print('Created variables')
     
     
-    def upload_files(cls, files):
+    def upload_files(cls, files, name):
         print('upload_files')
         # loop = asyncio.get_running_loop()
 
@@ -33,7 +33,7 @@ class S3Bucket:
         file_uploads = []
         for file in files:
             try:
-                bucket.upload_file(file, file)
+                bucket.upload_file(name, file)
                 print('bucket uploaded file')
                 file_uploads.append(S3File(file, '200'))
                 print(f'Added bucket result: {file_uploads}')
