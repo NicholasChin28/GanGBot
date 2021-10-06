@@ -16,10 +16,10 @@ class S3Bucket:
         # print('Created variables')
     
     
-    def upload_files(cls, files, name):
+    def upload_files(cls, ctx, files):
         print('upload_files')
         # loop = asyncio.get_running_loop()
-
+        server = ctx.message.guild.id
         # TODO: Try creating connection in the function that is using it. instead of creating a global one, then passing it
         # connection = cls.create_connection()
         bucket_name = os.getenv('AWS_BUCKET')
@@ -33,7 +33,8 @@ class S3Bucket:
         file_uploads = []
         for file in files:
             try:
-                bucket.upload_file(name, file)
+                print('value of file ', file)
+                bucket.upload_file(file, f"{server}/{file}")
                 print('bucket uploaded file')
                 file_uploads.append(S3File(file, '200'))
                 print(f'Added bucket result: {file_uploads}')

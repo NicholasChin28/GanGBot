@@ -211,6 +211,8 @@ class Playsound(commands.Cog):
                     elif reaction.emoji == '\u25b6':
                         page += 1
                         await refresh_embed()
+    # TODO: New listsounds command
+    # @commands.command(name='')
 
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='ps')
@@ -451,20 +453,25 @@ class Playsound(commands.Cog):
             try:
                 name = await self.bot.wait_for('message', timeout=10, check=name_check)
             except asyncio.TimeoutError:
+                Path(playsound_source.filename).unlink(missing_ok=True)
                 print("Timeout exceeded from message wait")
                 return await ctx.send('Message timeout exceeded. Removing playsound.')
 
-            # TODO: Put the except asyncio.TimeoutError outside instead of nested
             if name:
                 # Approved playsound. Upload it to AWS S3
-                # TODO: Try running in loop executor
                 print('Approving playsound')
 
                 loop = asyncio.get_running_loop()
-                # TODO: Ask user for the filename of the file to upload
-                # TODO: Currently filename uploading does not work as the extension is not detected
+                
+                # Rename the file before uploading
+                playsound_local = Path(playsound_source.filename)
+                # print(playsound_local)
+                new_name = Path(name.content + playsound_local.suffix)
+                # print(new_name)
+                playsound_local.rename(new_name)
+
                 test_con = S3Bucket()
-                partial = functools.partial(test_con.upload_files, [playsound_source.filename], name.content)
+                partial = functools.partial(test_con.upload_files, ctx, [new_name.__str__()])
                 try:
                     upload_results = await loop.run_in_executor(None, partial)
                     # After upload_results returns, there will be an exception. Probably due to the connection closing.
@@ -478,7 +485,6 @@ class Playsound(commands.Cog):
             Path(playsound_source.filename).unlink(missing_ok=True)
             await message.delete()
             await ctx.send("Rejected playsound. Removing...")
-            # return
 
     @_upload.error
     async def upload_error(self, ctx: commands.Context, error):
