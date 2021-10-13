@@ -2,6 +2,7 @@
 # Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
 # TODO: Add file watcher
 import pathlib
+from discord.ext.commands.context import Context
 from dotenv import load_dotenv
 import os
 from pathlib import Path
@@ -211,8 +212,13 @@ class Playsound(commands.Cog):
                     elif reaction.emoji == '\u25b6':
                         page += 1
                         await refresh_embed()
+
     # TODO: New listsounds command
-    # @commands.command(name='')
+    @commands.command(name='listsounds2')
+    async def _listsounds2(self, ctx: commands.Context, *, page: int = 1):
+        """ Get list of playsounds from bucket """
+        pass
+
 
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='ps')

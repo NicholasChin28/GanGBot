@@ -15,6 +15,15 @@ class S3Bucket:
 
         # print('Created variables')
     
+    # Async function for listing the files from bucket
+    def get_files(cls, ctx):
+        server = ctx.message.guild.id 
+
+        bucket_name = os.getenv('AWS_BUCKET')
+        bucket = cls.get_bucket2(bucket_name)   
+
+        for obj in bucket.objects.filter(Prefix=f"{server}/"):
+            print(obj)
     
     def upload_files(cls, ctx, files):
         print('upload_files')
