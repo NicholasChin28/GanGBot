@@ -20,6 +20,7 @@ import shutil
 from pydub import AudioSegment
 import validators
 from urllib.parse import urlparse
+from Models.emojis import Emojis
 from helper import helper
 from helper.s3_bucket import S3Bucket
 from Models.ytdl_source import YTDLSource
@@ -179,9 +180,9 @@ class Playsound(commands.Cog):
                 if page == pages:
                     pass    # Only 1 page. No reactions required
                 if page > 1:
-                    await message.add_reaction('\u25c0')
+                    await message.add_reaction(Emojis.reverse_button)
                 if pages > page:
-                    await message.add_reaction('\u25b6')
+                    await message.add_reaction(Emojis.play_button)
             
             await add_page_reactions()
 
@@ -217,7 +218,13 @@ class Playsound(commands.Cog):
     @commands.command(name='listsounds2')
     async def _listsounds2(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds from bucket """
-        pass
+        loop = asyncio.get_running_loop()
+
+        test_con = S3Bucket()
+        partial = functools.partial(test_con.get_files, ctx)
+
+        the_list = loop.run_in_executor(None, partial)
+        print(the_list)
 
 
     # Additional command to play local .mp3 files for soundboard
@@ -371,11 +378,8 @@ class Playsound(commands.Cog):
         
     # Add reactions for upload playsounds
     async def add_playsound_reactions(self, message):
-        x_emoji = '❌'
-        tick_emoji = '✅'
-
-        await message.add_reaction(tick_emoji)
-        await message.add_reaction(x_emoji)
+        await message.add_reaction(Emojis.tick_emoji)
+        await message.add_reaction(Emojis.x_emoji)
     
     # Upload command
     @commands.command(name='upload')
@@ -444,8 +448,8 @@ class Playsound(commands.Cog):
             return message.author == uploader
         
         # Add reactions to message
-        await message.add_reaction('❌')
-        await message.add_reaction('✅')
+        await message.add_reaction(Emojis.x_emoji)
+        await message.add_reaction(Emojis.tick_emoji)
 
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', timeout=10, check=check)
@@ -454,7 +458,7 @@ class Playsound(commands.Cog):
             await ctx.send("Reaction timeout exceeded. Deleting playsound")
             Path(playsound_source.filename).unlink(missing_ok=True)
 
-        if reaction.emoji == '✅':
+        if reaction.emoji == Emojis.tick_emoji:
             await ctx.send("Give a cool name for the playsound!")
             try:
                 name = await self.bot.wait_for('message', timeout=10, check=name_check)
@@ -485,7 +489,7 @@ class Playsound(commands.Cog):
                     return await ctx.send("Playsound added!")
                 except Exception as e:
                     return await ctx.send(e)
-        elif reaction.emoji == '❌':
+        elif reaction.emoji == Emojis.x_emoji:
             # Rejected playsound. Delete it from temp folder
             print('Rejecting playsound')
             Path(playsound_source.filename).unlink(missing_ok=True)

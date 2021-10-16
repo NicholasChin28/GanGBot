@@ -7,6 +7,7 @@ from helper import helper
 from src.Models.role import Role
 from tortoise import Tortoise, run_async
 from pyaml_env import parse_config
+from Models.emojis import Emojis
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -56,9 +57,6 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def _cogs(self, ctx: commands.Context):
         '''Display status and list of cogs'''
-        x_emoji = '❌'
-        tick_emoji = '✅'
-
         all_cogs = helper.get_all_cogs()
         # Remove leading text "cogs." from bot extensions
         loaded_cogs = [i.replace("cogs.", "") for i in self.bot.extensions.keys()]
@@ -70,9 +68,9 @@ class Owner(commands.Cog):
 
         for x in all_cogs:
             if x in loaded_cogs:
-                cogs_status.append(f'{tick_emoji}')
+                cogs_status.append(f'{Emojis.tick_emoji}')
             else:
-                cogs_status.append(f'{x_emoji}')
+                cogs_status.append(f'{Emojis.x_emoji}')
 
         embed.add_field(name='__Cogs__', value=f'{os.linesep.join(all_cogs)}', inline=True)
         embed.add_field(name='__Loaded__', value=f'{os.linesep.join(cogs_status)}', inline=True)

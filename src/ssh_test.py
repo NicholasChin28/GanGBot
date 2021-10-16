@@ -12,6 +12,7 @@ import sys
 
 # Kills current running instance of MaldBot
 # TODO: Consider running python_file from .sh file
+# TODO: Consider rewriting using https://github.com/fabric/fabric
 def kill_process(client):
     # Kills all screens
     # Temporary fix

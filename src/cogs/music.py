@@ -20,6 +20,7 @@ import youtube_dl
 
 from helper import helper
 import validators
+from Models.emojis import Emojis
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 
@@ -440,9 +441,9 @@ class Music(commands.Cog):
                 if page == pages:
                     pass    # Only 1 page. No reactions required
                 if page > 1:
-                    await message.add_reaction('\u25c0')
+                    await message.add_reaction(Emojis.reverse_button)
                 if pages > page:
-                    await message.add_reaction('\u25b6')
+                    await message.add_reaction(Emojis.play_button)
 
             await add_page_reactions()
 
@@ -458,7 +459,7 @@ class Music(commands.Cog):
 
             # Check for reaction
             def check(reaction, user):
-                return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['\u25c0', '\u25b6'])
+                return not user.bot and reaction.message.id == message.id and (reaction.emoji in [Emojis.reverse_button, Emojis.play_button])
 
             while True:
                 try:
@@ -467,10 +468,10 @@ class Music(commands.Cog):
                     await message.delete()
                     break
                 else:
-                    if reaction.emoji == '\u25c0':
+                    if reaction.emoji == Emojis.reverse_button:
                         page -= 1
                         await refresh_embed()
-                    elif reaction.emoji == '\u25b6':
+                    elif reaction.emoji == Emojis.play_button:
                         page += 1
                         await refresh_embed()
 
@@ -501,7 +502,7 @@ class Music(commands.Cog):
         """Pauses the currently playing song."""
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             ctx.voice_state.voice.pause()
-            await ctx.message.add_reaction('⏯')            
+            await ctx.message.add_reaction(Emojis.play_pause)            
 
     @commands.command(name='resume')
     @commands.has_permissions(manage_guild=True)
@@ -509,7 +510,7 @@ class Music(commands.Cog):
         """Resumes a currently paused song."""
         if ctx.voice_state.current and ctx.voice_state.voice.is_paused():
             ctx.voice_state.voice.resume()
-            await ctx.message.add_reaction('⏯')
+            await ctx.message.add_reaction(Emojis.play_pause)
         else:
             await ctx.send('There is no song to resume')
 
@@ -525,7 +526,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.stop()
             # Sets the current song to be None
             ctx.voice_state.current = None
-            await ctx.message.add_reaction('⏹')
+            await ctx.message.add_reaction(Emojis.stop_button)
         elif not ctx.voice_state.is_playing:
             emoji = get(ctx.guild.emojis, name='Pepehands')
             await ctx.send(f"No music is being played {emoji} . Use me please sirs.")
@@ -539,7 +540,7 @@ class Music(commands.Cog):
             return await ctx.send('Not playing any music right now...')
 
         ctx.voice_state.loop = False    # Unloops the queue
-        await ctx.message.add_reaction('⏭')
+        await ctx.message.add_reaction(Emojis.next_button)
 
         ctx.voice_state.skip()
 
@@ -551,7 +552,7 @@ class Music(commands.Cog):
             return await ctx.send('Empty queue.')
 
         ctx.voice_state.songs.shuffle()
-        await ctx.message.add_reaction('✅')
+        await ctx.message.add_reaction(Emojis.tick_emoji)
 
     @commands.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int):
@@ -562,12 +563,12 @@ class Music(commands.Cog):
 
         if index == 1:
             ctx.voice_state.skip()
-            await ctx.message.add_reaction('✅')
+            await ctx.message.add_reaction(Emojis.tick_emoji)
             return
 
         try:
             ctx.voice_state.songs.remove(index - 2)
-            await ctx.message.add_reaction('✅')
+            await ctx.message.add_reaction(Emojis.tick_emoji)
         except IndexError:
             return await ctx.send('Invalid queue index')
 
@@ -583,7 +584,7 @@ class Music(commands.Cog):
 
         # Inverse boolean value to loop and unloop
         ctx.voice_state.loop = not ctx.voice_state.loop
-        await ctx.message.add_reaction('✅')
+        await ctx.message.add_reaction(Emojis.tick_emoji)
 
     @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *search):

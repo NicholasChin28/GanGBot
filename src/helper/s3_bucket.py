@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 import boto3
 from Models.s3file import S3File
 from botocore.exceptions import ClientError
@@ -20,10 +21,16 @@ class S3Bucket:
         server = ctx.message.guild.id 
 
         bucket_name = os.getenv('AWS_BUCKET')
-        bucket = cls.get_bucket2(bucket_name)   
+        bucket = cls.get_bucket2(bucket_name)  
 
-        for obj in bucket.objects.filter(Prefix=f"{server}/"):
-            print(obj)
+        f = lambda x: Path(x).with_suffix("").as_posix().__str__().split('/')[1]
+        
+        to_return = [f(obj.key) for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/") if f(obj.key) is not None]
+        return to_return
+        """
+        for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/"):
+            print(Path(obj.key).with_suffix('').as_posix().__str__().split('/')[1])
+        """
     
     def upload_files(cls, ctx, files):
         print('upload_files')
