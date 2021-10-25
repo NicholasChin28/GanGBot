@@ -52,7 +52,7 @@ class PlaysoundSource_supernew(discord.PCMVolumeTransformer):
 
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
-        self.requester = ctx.author
+        self.uploader = ctx.author
         self.guild = ctx.guild
         self.data = data
 

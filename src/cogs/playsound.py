@@ -14,6 +14,9 @@ import discord
 from discord.ext import commands
 from botocore.exceptions import ClientError
 from aiohttp import ClientSession
+from pyaml_env import parse_config
+from tortoise import Tortoise, run_async
+from src.Models.playsound import Playsound
 import aiofiles
 import humanfriendly
 import shutil
@@ -491,9 +494,21 @@ class Playsound(commands.Cog):
                     upload_results = await loop.run_in_executor(None, partial)
                     # After upload_results returns, there will be an exception. Probably due to the connection closing.
                     print('upload_results: ', upload_results)   
-                    return await ctx.send("Playsound added!")
+                    
                     # TODO: Save the playsound details in db
+                    tortoise_config = parse_config('./tortoise-config.yaml')
+                    await Tortoise.init(config=tortoise_config)
+                    
+                    await Playsound.create(
+                        name = new_name,
+                        duration = playsound_source.duration,
+                        uploader = playsound_source.uploader,
+                        played = 0,
+                        guild = playsound_source.guild,
+                    )
 
+                    await ctx.send("Playsound added!")
+                    await Tortoise.close_connections()
                 except Exception as e:
                     return await ctx.send(e)
         elif reaction.emoji == Emojis.x_emoji:
