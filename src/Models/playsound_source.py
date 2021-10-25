@@ -8,6 +8,7 @@ import validators
 from aiohttp import ClientSession
 import aiofiles
 import mutagen
+from mutagen.mp3 import EasyMP3
 import pathlib
 from helper import helper
 from helper.s3_bucket import S3Bucket
@@ -181,6 +182,9 @@ class PlaysoundSource():
 
                                     # cropped_segment.export(Path(f'{info["title"]}_playsound.mp3'), format="mp3")
                                     cropped_segment.export(Path(filename), format="mp3")
+                                    
+                                    # cropped_playsound = mutagen.File(Path(filename))
+                                    cropped_playsound = mutagen.File(Path(filename))
 
                                     # cropped_playsound = discord.File(Path(f'{info["title"]}_playsound.mp3'))
                                     # cropped_playsound = discord.File(Path(filename))
@@ -191,7 +195,7 @@ class PlaysoundSource():
                                         "url": url,
                                         "start_time": start_time,
                                         "end_time": end_time,
-                                        "duration": playsound_duration,
+                                        "duration": cropped_playsound.info.length,
                                         "filename": filename,
                                 }
                                 
@@ -200,7 +204,17 @@ class PlaysoundSource():
                             return await ctx.send(e)
 
                     # TODO: Find a way to create and close event loop. Current method causes multiple event loops to be open and not closed
-    
+
+    # Run from loop 
+    @classmethod
+    async def double_crop(cls, segment, start_crop, end_crop, filename):
+        cropped_segment = segment[start_crop:end_crop]
+
+        # cropped_segment.export(Path(f'{info["title"]}_playsound.mp3'), format="mp3")
+        cropped_segment.export(Path(filename), format="mp3")
+
+        return True
+
     # Get playsound from AWS S3 bucket
     @classmethod
     async def get_source(cls, ctx: commands.Context, name):

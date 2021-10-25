@@ -15,7 +15,7 @@ class S3Bucket:
         # self.bucket = self.get_bucket()
 
         # print('Created variables')
-    
+
     # Async function for listing the files from bucket
     def get_files(cls, ctx):
         server = ctx.message.guild.id 
@@ -23,15 +23,25 @@ class S3Bucket:
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = cls.get_bucket2(bucket_name)  
 
-        f = lambda x: Path(x).with_suffix("").as_posix().__str__().split('/')[1]
+        # f = lambda x: Path(x).with_suffix("").as_posix().__str__().split('/')[1] if (len(Path(x).with_suffix("").as_posix().__str__().split('/')) > 1)
         
-        to_return = [f(obj.key) for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/") if f(obj.key) is not None]
+        to_return = [cls.get_filename(obj.key) for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/") if cls.get_filename(obj.key)]
+
+        """
+        for items in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/"):
+            print(items.head_object)
+        """
+
         return to_return
         """
         for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/"):
             print(Path(obj.key).with_suffix('').as_posix().__str__().split('/')[1])
         """
-    
+    def get_filename(cls, x):
+        str_list = Path(x).with_suffix("").as_posix().__str__().split('/')
+        if len(str_list) > 1:
+            return str_list[1]
+
     def upload_files(cls, ctx, files):
         print('upload_files')
         # loop = asyncio.get_running_loop()
@@ -60,6 +70,7 @@ class S3Bucket:
                 elif e.response['Error']['Code'] == '403':
                     print("Insufficient permissions to upload file")
                 file_uploads.append(S3File(file, e.response['Code']))
+                # TODO: If response code is 200, then save the details in DB
 
         print('Finished uploading, returning file_uploads')
         return file_uploads     # Returns status of each file upload
@@ -160,6 +171,7 @@ class S3Bucket:
         print('Bucket created...')
 
     # Get file from bucket
+    # TODO: Get from specific server folder in bucket
     def get_playsound(self, name):
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket2(bucket_name)

@@ -207,10 +207,10 @@ class Playsound(commands.Cog):
                     await message.delete()
                     break
                 else:
-                    if reaction.emoji == '\u25c0':
+                    if reaction.emoji == Emojis.reverse_button:
                         page -= 1
                         await refresh_embed()
-                    elif reaction.emoji == '\u25b6':
+                    elif reaction.emoji == Emojis.play_button:
                         page += 1
                         await refresh_embed()
 
@@ -223,8 +223,13 @@ class Playsound(commands.Cog):
         test_con = S3Bucket()
         partial = functools.partial(test_con.get_files, ctx)
 
-        the_list = loop.run_in_executor(None, partial)
+        the_list = await loop.run_in_executor(None, partial)
         print(the_list)
+
+        if len(the_list) == 0:
+            return await ctx.send("No playsounds found")
+        
+        
 
 
     # Additional command to play local .mp3 files for soundboard
@@ -487,6 +492,8 @@ class Playsound(commands.Cog):
                     # After upload_results returns, there will be an exception. Probably due to the connection closing.
                     print('upload_results: ', upload_results)   
                     return await ctx.send("Playsound added!")
+                    # TODO: Save the playsound details in db
+
                 except Exception as e:
                     return await ctx.send(e)
         elif reaction.emoji == Emojis.x_emoji:
