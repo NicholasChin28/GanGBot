@@ -18,7 +18,7 @@ class S3Bucket:
 
     # Async function for listing the files from bucket
     def get_files(cls, ctx):
-        server = ctx.message.guild.id 
+        server = ctx.message.guild.id
 
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = cls.get_bucket2(bucket_name)  
