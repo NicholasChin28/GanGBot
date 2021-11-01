@@ -16,7 +16,7 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
-from src.Models.playsound import Playsound
+from src.Models.playsound import Playsound as PsObject
 import aiofiles
 import humanfriendly
 import shutil
@@ -233,8 +233,6 @@ class Playsound(commands.Cog):
             return await ctx.send("No playsounds found")
         
         
-
-
     # Additional command to play local .mp3 files for soundboard
     @commands.command(name='ps')
     async def _playsound(self, ctx: commands.Context, *, search: str):
@@ -499,12 +497,12 @@ class Playsound(commands.Cog):
                     tortoise_config = parse_config('./tortoise-config.yaml')
                     await Tortoise.init(config=tortoise_config)
                     
-                    await Playsound.create(
-                        name = new_name,
-                        duration = playsound_source.duration,
-                        uploader = playsound_source.uploader,
-                        played = 0,
-                        guild = playsound_source.guild,
+                    await PsObject.create(
+                        name=new_name,
+                        duration=playsound_source.duration,
+                        uploader=playsound_source.uploader.id,
+                        played=0,
+                        guild=playsound_source.guild.id,
                     )
 
                     await ctx.send("Playsound added!")

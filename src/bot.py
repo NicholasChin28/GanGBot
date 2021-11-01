@@ -24,32 +24,16 @@ from helper import helper
 bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
 
 
-'''
-@bot.event
-async def on_connect():
-    # Set avatar of bot
-    with open('Maldbot-01.jpg', 'rb') as f:
-        image = f.read()
-    await bot.user.edit(avatar=image)
-'''
-
-# Loads all cogs 
-@bot.event
-async def on_connect():
-    for filename in helper.get_cogs():
-        bot.load_extension(f'cogs.{filename}')
-    
 @bot.event
 async def on_ready():
     print('Logged in as \n{0.user.name}\n{0.user.id}'.format(bot))
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
-    # await bot.change_presence(activity=discord.CustomActivity(name='Custom status'))
+    # Loads all cogs
+    for filename in helper.get_cogs():
+        bot.load_extension(f'cogs.{filename}')
 
 # Load environment variables
 load_dotenv(find_dotenv())
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 bot.run(TOKEN)
-
-
-
