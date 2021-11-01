@@ -5,6 +5,8 @@ import boto3
 from Models.s3file import S3File
 from botocore.exceptions import ClientError
 import functools
+from io import BytesIO
+import base64
 
 
 class S3Bucket:
@@ -176,8 +178,11 @@ class S3Bucket:
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket2(bucket_name)
 
-        playsound = bucket.Object(name).get()['Body'].read() 
-        return playsound
+        playsound = bucket.Object(name).get()['Body'].read()
+        # return BytesIO(playsound).seek(0)
+        # return playsound
+        return base64.b64encode(playsound)
+        
 
 
 

@@ -1,3 +1,4 @@
+import io
 import functools
 import youtube_dl
 import asyncio
@@ -43,11 +44,11 @@ class PlaysoundSource_supernew(discord.PCMVolumeTransformer):
         s3_playsound = await loop.run_in_executor(None, partial)
 
         # Test getting the value of playsound
-        print(f'Type of playsound: {type(playsound)}')
-        print(f'Value of playsound: {playsound}')
+        print(f'Type of playsound: {type(s3_playsound)}')
+        print(f'Value of playsound: {s3_playsound}')
 
         # return playsound
-        return cls(ctx, discord.FFmpegPCMAudio(playsound), data=None)
+        return cls(ctx, discord.FFmpegPCMAudio(s3_playsound), data=None)
 
 
 class PlaysoundSource():
