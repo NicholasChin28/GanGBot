@@ -179,9 +179,10 @@ class S3Bucket:
         bucket = self.get_bucket2(bucket_name)
 
         playsound = bucket.Object(name).get()['Body'].read()
-        # return BytesIO(playsound).seek(0)
+        bytesio_object = BytesIO(playsound)
+        return bytesio_object
         # return playsound
-        return base64.b64encode(playsound)
+        # return base64.b64encode(playsound)
         
 
 
