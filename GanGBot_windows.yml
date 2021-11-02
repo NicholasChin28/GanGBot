@@ -98,7 +98,7 @@ dependencies:
     - cffi==1.14.3
     - chardet==3.0.4
     - ddlparse==1.9.0
-    - discord-py==1.5.1
+    - discord-py==2.0.0a3575+g45d498c1
     - idna==2.9
     - iso8601==0.1.13
     - multidict==4.7.5
@@ -106,6 +106,7 @@ dependencies:
     - pyaml-env==1.1.0
     - pydantic==1.7.3
     - pypika==0.44.1
+    - pypika-tortoise==0.1.1
     - pytube==10.0.0
     - pytz==2020.5
     - rapidfuzz==0.13.0
@@ -113,10 +114,10 @@ dependencies:
     - soundcard==0.4.0
     - spotdl==3.1.4
     - spotipy==2.16.1
-    - tortoise-orm==0.16.19
+    - tortoise-orm==0.17.8
     - tqdm==4.52.0
     - typing-extensions==3.7.4.3
     - urllib3==1.25.8
-    - wavelink==0.9.10
+    - wavelink==0.9.9
     - websockets==8.1
     - yarl==1.4.2

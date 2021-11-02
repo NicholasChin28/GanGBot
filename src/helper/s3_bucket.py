@@ -23,22 +23,12 @@ class S3Bucket:
         server = ctx.message.guild.id
 
         bucket_name = os.getenv('AWS_BUCKET')
-        bucket = cls.get_bucket2(bucket_name)  
+        bucket = cls.get_bucket2(bucket_name)
 
-        # f = lambda x: Path(x).with_suffix("").as_posix().__str__().split('/')[1] if (len(Path(x).with_suffix("").as_posix().__str__().split('/')) > 1)
-        
         to_return = [cls.get_filename(obj.key) for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/") if cls.get_filename(obj.key)]
 
-        """
-        for items in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/"):
-            print(items.head_object)
-        """
-
         return to_return
-        """
-        for obj in bucket.objects.filter(Delimiter='/', Prefix=f"{server}/"):
-            print(Path(obj.key).with_suffix('').as_posix().__str__().split('/')[1])
-        """
+        
     def get_filename(cls, x):
         str_list = Path(x).with_suffix("").as_posix().__str__().split('/')
         if len(str_list) > 1:
@@ -179,12 +169,4 @@ class S3Bucket:
         bucket = self.get_bucket2(bucket_name)
 
         playsound = bucket.Object(name).get()['Body'].read()
-        bytesio_object = BytesIO(playsound)
-        return bytesio_object
-        # return playsound
-        # return base64.b64encode(playsound)
-        
-
-
-
-        
+        return BytesIO(playsound)
