@@ -168,5 +168,5 @@ class S3Bucket:
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket2(bucket_name)
 
-        playsound = bucket.Object(name).get()['Body'].read()
+        playsound = bucket.Object(f'{name}.mp3').get()['Body'].read()
         return BytesIO(playsound)

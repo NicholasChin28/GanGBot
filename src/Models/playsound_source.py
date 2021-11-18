@@ -19,8 +19,8 @@ import base64
 
 # TODO: Add another playsound class for compatibility with current Sound class and queue
 
-# Temporary class for playing audio
-class PlaysoundSource_supernew(discord.PCMVolumeTransformer):
+# Class for playing audio
+class PlaysoundAudio(discord.PCMVolumeTransformer):
     FFMPEG_OPTIONS = {
         'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
