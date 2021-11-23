@@ -2,7 +2,12 @@
 import os
 import discord
 from discord.ext import commands
+import typing
 from helper import helper
+from src.Models.role import Role
+from tortoise import Tortoise, run_async
+from pyaml_env import parse_config
+from Models.emojis import Emojis
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -52,9 +57,6 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def _cogs(self, ctx: commands.Context):
         '''Display status and list of cogs'''
-        x_emoji = '❌'
-        tick_emoji = '✅'
-
         all_cogs = helper.get_all_cogs()
         # Remove leading text "cogs." from bot extensions
         loaded_cogs = [i.replace("cogs.", "") for i in self.bot.extensions.keys()]
@@ -66,14 +68,61 @@ class Owner(commands.Cog):
 
         for x in all_cogs:
             if x in loaded_cogs:
-                cogs_status.append(f'{tick_emoji}')
+                cogs_status.append(f'{Emojis.tick_emoji}')
             else:
-                cogs_status.append(f'{x_emoji}')
+                cogs_status.append(f'{Emojis.x_emoji}')
 
         embed.add_field(name='__Cogs__', value=f'{os.linesep.join(all_cogs)}', inline=True)
         embed.add_field(name='__Loaded__', value=f'{os.linesep.join(cogs_status)}', inline=True)
 
         await ctx.send(embed=embed)
+
+    @commands.command(name='permission')
+    @commands.is_owner()
+    async def _permission(self, ctx: commands.Context, action: str, command: str, guild_id: typing.Optional[int] = None, *, role_name: str = None):
+        '''Add playsound permission to role'''
+
+        allowed_actions = {
+            'add': True,
+            'delete': False
+        }
+        allowed_commands = ['upload']
+
+        if action not in allowed_actions.keys():
+            return await ctx.send('Supported actions are only add or delete')
+
+        if command not in allowed_commands:
+            return await ctx.send('Supported command is only upload')
+
+        if guild_id:
+            guild = self.bot.get_guild(id=guild_id)
+            command_role = discord.utils.get(guild.roles, name=role_name)
+        else:
+            guild_id = ctx.message.guild.id
+            command_role = discord.utils.get(ctx.guild.roles, name=role_name)
+
+        if command_role is None:
+            return await ctx.send("Role not found in guild")
+
+        # Database transactions
+        tortoise_config = parse_config('./tortoise-config.yaml')
+        await Tortoise.init(config=tortoise_config)
+        await Tortoise.generate_schemas()
+
+        db_role = await Role.filter(role_id=command_role.id).first()
+        
+        if db_role:
+            await Role.filter(role_id=command_role.id).update(upload_playsound=allowed_actions.get(action))
+            await ctx.send(f'{command_role.name} role updated. \nPermission set to {action}')
+        else:
+            await Role.create(
+                role_id=command_role.id,
+                guild=guild_id,
+                upload_playsound=allowed_actions.get(action)
+            )
+            await ctx.send('New role created!')
+
+        await Tortoise.close_connections()
 
     # Error handling
     @_load.error

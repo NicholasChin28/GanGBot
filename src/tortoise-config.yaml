@@ -1,0 +1,13 @@
+'connections': 
+    'default': 
+        'engine': 'tortoise.backends.asyncpg'
+        'credentials': 
+            'host': !ENV ${RDS_HOST}
+            'port': !ENV ${RDS_PORT}
+            'user': !ENV ${RDS_USER}
+            'password': !ENV ${RDS_PASSWORD}
+            'database': !ENV ${RDS_DB}
+'apps': 
+    'models': 
+        'models': ['src.data.db_context', 'aerich.models']
+        'default_connection': 'default'

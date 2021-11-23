@@ -1,11 +1,14 @@
 # TODO: Use optional arguments for @property decorators: https://stackoverflow.com/questions/58433807/property-decorator-with-optional-argument
 import time
+from datetime import datetime, timedelta
 import pathlib
+from typing import Dict, List
 from aiohttp.client import request
 import validators
 import youtube_dl
-from datetime import timedelta
 from Models import ytdl_source
+from humanfriendly import parse_size
+from youtube_dl.postprocessor.common import PostProcessor
 
 class MyLogger(object):
     def debug(self, msg):
@@ -16,6 +19,88 @@ class MyLogger(object):
 
     def error(self, msg):
         print(msg)
+
+# Gets the filename of downloaded youtube_dl file
+# Inspiration code: https://stackoverflow.com/questions/64759263/how-to-get-filename-of-file-downloaded-with-youtube-dl
+class FilenameCollectorPP(PostProcessor):
+    def __init__(self):
+        super(FilenameCollectorPP, self).__init__(None)
+        self.filenames = []
+
+    def run(self, information):
+        self.filenames.append(information['filepath'])
+        return [], information
+
+
+class VideoTime:
+    _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
+
+    def parse_time(self, time_str: str):
+        print(f'Value of time_str: {time_str}')
+        for format in self._time_formats:
+            try:
+                print(f'Value of format: {format}')
+                valid_timestamp = datetime.strptime(time_str, format)
+                return valid_timestamp
+            except ValueError:
+                pass
+        
+        print('No valid time formats found, should raise Exception next')
+        raise Exception("No valid time formats found")
+
+    def __init__(self, time: str):
+        parsed_time = self.parse_time(time)
+        self.second = parsed_time.second
+        self.minute = parsed_time.minute
+        self.hour = parsed_time.hour
+        self.microsecond = parsed_time.microsecond
+        self.datetime = parsed_time
+        self.datetime_str = time
+
+    # Convert datetime to microsecond 
+    def to_ms(self):
+        return (self.hour * 3600 + self.minute * 60 + self.second) * 1000 + (self.microsecond / 1000)
+
+    def __str__(self):
+        return self.datetime_str
+        
+class FileRange:
+    def __init__(self, data: dict):
+        self.start_time = data.get('start_time')
+        self.end_time = data.get('end_time')
+        self.duration = data.get('end_time').parsed_time - data.get('start_time').parsed_time
+
+    @classmethod
+    def parse_time(cls, timestamp: str, url_duration: str):
+        print('FileRange.parse_time called')
+        time_ranges = timestamp.split('-')
+        struct_time_range = []
+
+        if len(time_ranges) > 2:
+            raise Exception("Invalid timestamp format")
+
+        try:
+            for i in time_ranges:
+                struct_time_range.append(VideoTime(i))
+            if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
+                struct_time_range.append(VideoTime(url_duration))
+                if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
+                    raise Exception("Starting time greater than video length!")
+            else:
+                # User provided start and end time.  Make sure they are valid 
+                user_video = VideoTime(url_duration)
+                if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
+                    raise Exception("Invalid timestamp")
+
+            # Dictionary to return
+            data = {
+                "start_time": struct_time_range[0],
+                "end_time": struct_time_range[1]
+            }
+
+            return struct_time_range
+        except ValueError:
+            raise Exception("Error ValueError from validate_time")
 
 class VideoRange:
     _start_time = None
@@ -141,7 +226,7 @@ def validate_time(timestamp):
             valid_timestamp = time.strptime(timestamp, format)
             return valid_timestamp
         except ValueError:
-            pass
+            return None
 
 # Parses timestamp input by user from music play command
 # TODO: Throw error messages so that bot can display to user the error
@@ -152,6 +237,7 @@ def parse_time(timestamp):
 
     if len(time_ranges) == 1:   # Starting time range only
         print('condition 1')
+        print(f'Value of time_ranges: {time_ranges}')
         for i in time_ranges:
             if validate_time(i) is not None:
                 # struct_time_range.append(validate_time(i))
@@ -175,22 +261,54 @@ def parse_time(timestamp):
             return None
 
         return VideoRange(start_time=struct_time_range[0], end_time=struct_time_range[-1])
+
+    return None
+
+def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
+    print('parse_time2 function called')
+    time_ranges = timestamp.split('-')
+    struct_time_range = []
+
+    if len(time_ranges) > 2:
+        raise Exception("Invalid timestamp format")
+
+    try:
+        for i in time_ranges:
+            print('line 250')
+            struct_time_range.append(VideoTime(i))
+            print('line 252')
+        if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
+            struct_time_range.append(VideoTime(url_duration))
+            if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
+                raise Exception("Starting time greater than video length!")
+        else:
+            conv_duration = str(timedelta(seconds=round(url_duration, 1)))  
+            user_video = VideoTime(conv_duration)
+
+            if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
+                raise Exception("Invalid timestamp")
+
+        return struct_time_range
+    except ValueError:
+        raise Exception("Error ValueError from validate_time")
+    except Exception as e:
+        print('re-raising exception from VideoTime.parse_time')
+        raise e
      
-# Validates upload arguments from playsound cog upload command
-def validate_upload_arguments(args):
-    for i in args:
-        if validators.url(i):
-            pass
 
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now converting ...')
 
-# Extracts info from given youtube url
-def extract_youtube_info(url):
+# Downloads playsound
+def download_playsound(url, start_time, end_time) -> Dict:
+    print('From download_playsound')
+    print(f'start_time datetime_str: {start_time.datetime_str}')
+    print(f'end_time datetime_str: {end_time.datetime_str}')
+
     ydl_opts = {
         'format': 'bestaudio/best',
-        # 'outtmp1': '%(title)s.%(ext)s',
+        'outtmpl': './%(title)s_playsound.%(ext)s',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -198,33 +316,36 @@ def extract_youtube_info(url):
         }],
         'external_downloader': 'ffmpeg',
         'external_downloader_args': [
-            '-ss', '00:01:00.00', '-to', '00:01:50.00'
+            '-ss', start_time.datetime_str, '-to', end_time.datetime_str
         ],
         'logger': MyLogger(),
         'progress_hooks': [my_hook],
     }
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            filename_collector = FilenameCollectorPP()
+            ydl.add_post_processor(filename_collector)
 
-        # video_duration = info["duration"]
+            ydl.download([url])
+            
+            data = {
+                "download_result": True,
+                "filename": filename_collector.filenames[0],
+            }
 
-        return info
-        # best_audio_format = max
+            return data
+    except Exception as e:
+        data = {
+            "download_result": False,
+            "filename": None,
+        }
 
-# Check if timestamp is within url duration
-def validate_time_range(url, time_range):
-    info = youtube_dl.YoutubeDL().extract_info(url, download=False)
-    request_time = parse_time(time_range)
-
-    if request_time is not None:
-        start_duration_seconds = request_time.start_time_seconds()
-        end_duration_seconds = request_time.end_time_seconds()
-
-    video_duration = info["duration"]   # Duration in seconds
-
-# Calculate estimated size of cropped playsound source
-def calc_filesize(duration: int) -> int:
+        return data
+        
+# Check if created playsound size is valid
+def valid_filesize(duration: int) -> bool:
+    max_size = '500KB'
     bitrate = 192       # 192 kilobit per second
     bit_to_byte = 8     # Number of bits in a byte
     """
@@ -233,4 +354,8 @@ def calc_filesize(duration: int) -> int:
     8 refers to number of bits in a bit
     Return value is in kilobyte
     """
-    return bitrate * duration / bit_to_byte
+    playsound_size = bitrate * duration / bit_to_byte
+    if parse_size(f'{playsound_size}KB') > parse_size(max_size):
+        return False
+    
+    return True

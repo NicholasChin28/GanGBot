@@ -6,7 +6,6 @@ class Playsound(Model):
     name = fields.TextField()
     duration = fields.FloatField()
     uploader = fields.BigIntField()
-    file_location = fields.TextField()
     played = fields.IntField()
     guild = fields.BigIntField()
 
