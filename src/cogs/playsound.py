@@ -15,7 +15,7 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
-from src.Models.playsound import Playsound as PsObject
+from Models.playsound import Playsound as PsObject
 import validators
 from urllib.parse import urlparse
 from Models.emojis import Emojis
