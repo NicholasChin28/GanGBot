@@ -1,6 +1,3 @@
-# Storing and retrieving playsounds from AWS S3 bucket
-# Reference material: https://www.gormanalysis.com/blog/connecting-to-aws-s3-with-python/   
-# TODO: Add file watcher
 import pathlib
 from discord.ext.commands.context import Context
 from dotenv import load_dotenv
@@ -29,10 +26,6 @@ from Models.playsound_source import PlaysoundAudio, PlaysoundSource
 
 load_dotenv()
 
-# TODO: Getting the MD5 from Etag of AWS S3 objects will not be the same if the files are multi part uploaded
-# Find a way of possibly getting MD5 checksum regardless of multipart uploaded or individually uploaded
-# Possible reference: https://stackoverflow.com/questions/1775816/how-to-get-the-md5sum-of-a-file-on-amazons-s3
-# Possible reference: https://stackoverflow.com/questions/14591926/how-to-compare-local-file-with-amazon-s3-file
 
 # Non existent playsound file error
 class SoundError(Exception):
@@ -146,20 +139,21 @@ class Playsound(commands.Cog):
     # Command to play sound file from AWS S3 bucket
     @commands.command(name='ps')
     async def _playsound2(self, ctx: commands.Context, *, search: str):
-        """Plays a custom playsound"""
-        parent_cog = ctx.bot.get_cog('Music')
-        cur_voice_state = parent_cog.get_voice_state(ctx)
-        ctx.voice_state = cur_voice_state
-        if not cur_voice_state.voice:
-            await ctx.bot.get_command('join').callback(self, ctx)
-
+        """Plays a playsound"""
         async with ctx.typing():
             try:
                 source = await PlaysoundAudio.get_source(ctx, search, loop=self.bot.loop)
                 print('source: ', source)
                 print('type of source: ', type(source))
+
+                # Join VC only if playsound exists
+                parent_cog = ctx.bot.get_cog('Music')
+                cur_voice_state = parent_cog.get_voice_state(ctx)
+                ctx.voice_state = cur_voice_state
+                if not cur_voice_state.voice:
+                    await ctx.bot.get_command('join').callback(self, ctx)
             except Exception as e:
-                await ctx.send(f"Source does not exist: {e}")
+                await ctx.send("Playsound not found")
             else:
                 sound = Sound(source)
 
@@ -168,23 +162,43 @@ class Playsound(commands.Cog):
 
     # Delete playsound
     # TODO: Delete playsound from s3 and remove database record
-    @commands.command(name='dps')
-    @commands.is_owner()
-    async def _delete(self, ctx: commands.Context, name):
+    @commands.command(name='delps', aliases=['psdelete', 'dps', 'psdel'])
+    async def _delete(self, ctx: commands.Context, ps_name):
+        """Deletes a playsound"""
         view = Confirm()
-        await ctx.send('Do you want to continue?', view=view)
+        await ctx.send('Are you sure you want to delete the playsound?', view=view)
 
         await view.wait()
         if view.value is None:
             print('Timed out...')
         elif view.value:
             print('Confirmed...')
+            # Delete playsound here
+            loop = asyncio.get_running_loop()
+
+            s3_con = S3Bucket()
+            partial = functools.partial(s3_con.delete_playsound, ctx, name=ps_name)
+            result = await loop.run_in_executor(None, partial)
+
+            if result:
+                # Delete from database
+                tortoise_config = parse_config('./tortoise-config.yaml')
+                await Tortoise.init(config=tortoise_config)
+
+                record = await PsObject.filter(
+                    name=f'{ps_name}.mp3'
+                ).first()
+
+                if record:
+                    await record.delete()
+                await ctx.send('Playsound deleted')
         else:
             print('Cancelled...')
 
     # Upload command
-    @commands.command(name='upload')
+    @commands.command(name='addps', aliases=['psadd', 'aps', 'uploadps'])
     async def _upload(self, ctx: commands.Context, *args):
+        """Add a playsound"""
         message_attachments = ctx.message.attachments
 
         use_help = discord.Embed(
@@ -301,11 +315,14 @@ class Playsound(commands.Cog):
                     )
 
                     await ctx.send("Playsound added!")
+                    # Delete the playsound after successful upload
+                    Path(new_name).unlink(missing_ok=True)
+
                     await Tortoise.close_connections()
                 except Exception as e:
                     return await ctx.send(e)
         elif reaction.emoji == Emojis.x_emoji:
-            # Rejected playsound. Delete it from temp folder
+            # Rejected playsound. Delete it
             print('Rejecting playsound')
             Path(playsound_source.filename).unlink(missing_ok=True)
             await message.delete()
@@ -330,6 +347,7 @@ class Confirm(discord.ui.View):
     def __init__(self):
         super().__init__()
         self.value = None
+        self.timeout = 20
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):

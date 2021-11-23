@@ -163,10 +163,26 @@ class S3Bucket:
         print('Bucket created...')
 
     # Get file from bucket
-    # TODO: Get from specific server folder in bucket
-    def get_playsound(self, name):
+    def get_playsound(self, ctx, name):
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket2(bucket_name)
 
-        playsound = bucket.Object(f'{name}.mp3').get()['Body'].read()
+        playsound = bucket.Object(f'{ctx.guild.id}/{name}.mp3').get()['Body'].read()
         return BytesIO(playsound)
+
+    # Delete object from bucket
+    # TODO: Check if deleted result is True
+    def delete_playsound(self, ctx, name):
+        bucket_name = os.getenv('AWS_BUCKET')
+        bucket = self.get_bucket2(bucket_name)
+
+        result = bucket.delete_objects(
+            Delete={
+                'Objects': [
+                    {
+                        'Key': f'{ctx.guild.id}/{name}.mp3',
+                    },
+                ],
+            }
+        )
+        return True

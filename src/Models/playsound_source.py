@@ -41,7 +41,7 @@ class PlaysoundAudio(discord.PCMVolumeTransformer):
         loop = asyncio.get_running_loop()
 
         test_con = S3Bucket()
-        partial = functools.partial(test_con.get_playsound, name=playsound)
+        partial = functools.partial(test_con.get_playsound, ctx, name=playsound)
         s3_playsound = await loop.run_in_executor(None, partial)
 
         return cls(ctx, discord.FFmpegPCMAudio(s3_playsound, pipe=True), data=None)
