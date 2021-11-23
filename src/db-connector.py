@@ -4,7 +4,7 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 from tortoise import Tortoise, run_async
-# from src.Data.db_context import Models
+# from data.db_context import Models
 
 # Load environment variables
 load_dotenv()
@@ -14,7 +14,7 @@ load_dotenv()
 async def init():
     await Tortoise.init(
         db_url=f'postgres://{os.getenv("RDS_USERNAME")}:{os.getenv("RDS_PASSWORD")}@{os.getenv("RDS_HOSTNAME")}:{os.getenv("RDS_PORT")}/{os.getenv("RDS_DB_NAME")}',
-        modules={'models': ['src.data.db_context', 'aerich.models']}
+        modules={'models': ['data.db_context', 'aerich.models']}
     )
     # Generate the schema
     await Tortoise.generate_schemas(safe=True)

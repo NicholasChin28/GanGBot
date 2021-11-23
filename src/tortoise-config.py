@@ -10,7 +10,7 @@ TORTOISE_ORM = {
     "connections": {"default": f'postgres://{os.getenv("RDS_USERNAME")}:{os.getenv("RDS_PASSWORD")}@{os.getenv("RDS_HOSTNAME")}:{os.getenv("RDS_PORT")}/{os.getenv("RDS_DB_NAME")}'},
     "apps": {
         "models": {
-            "models": ["src.data.db_context", "aerich.models"],
+            "models": ["data.db_context", "aerich.models"],
             "default_connection": "default",
         },
     },
