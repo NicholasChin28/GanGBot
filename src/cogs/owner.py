@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 import typing
 from helper import helper
-from src.Models.role import Role
+from Models.role import Role
 from tortoise import Tortoise, run_async
 from pyaml_env import parse_config
 from Models.emojis import Emojis
