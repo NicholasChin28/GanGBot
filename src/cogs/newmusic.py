@@ -40,9 +40,8 @@ class NewMusic(commands.Cog):
 
         await vc.play(search)
 
-'''
 def setup(bot):
     bot.add_cog(NewMusic(bot))
-'''
+
 
         
