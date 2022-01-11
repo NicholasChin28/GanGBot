@@ -6,7 +6,7 @@ from typing import Dict, List
 from aiohttp.client import request
 import validators
 import youtube_dl
-from Models import ytdl_source
+from models import ytdl_source
 from humanfriendly import parse_size
 from youtube_dl.postprocessor.common import PostProcessor
 

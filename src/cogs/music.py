@@ -20,7 +20,7 @@ import youtube_dl
 
 from helper import helper
 import validators
-from Models.emojis import Emojis
+from models.emojis import Emojis
 
 # Inspiration code from: https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
 

@@ -16,7 +16,7 @@ import logging
 from pydub import AudioSegment
 from tortoise import Tortoise, run_async
 from yaml import parse
-from Models.aws_s3 import AwsS3
+from models.aws_s3 import AwsS3
 import asyncio
 from youtube_dl import YoutubeDL
 from aiohttp import ClientSession

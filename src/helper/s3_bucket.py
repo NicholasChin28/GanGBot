@@ -2,7 +2,7 @@ import asyncio
 import os
 from pathlib import Path
 import boto3
-from Models.s3file import S3File
+from models.s3file import S3File
 from botocore.exceptions import ClientError
 import functools
 from io import BytesIO
@@ -168,7 +168,29 @@ class S3Bucket:
         bucket = self.get_bucket2(bucket_name)
 
         playsound = bucket.Object(f'{ctx.guild.id}/{name}.mp3').get()['Body'].read()
-        return BytesIO(playsound)
+        print(type(playsound))
+
+        new_playsound = BytesIO(playsound)
+
+        # print(new_playsound.read())
+        return playsound
+        # return playsound
+        # return new_playsound
+        # print(playsound)
+
+        # print('\n' * 15)
+
+        # new_playsound = playsound.split(b'\x00')
+
+        # print(new_playsound)
+
+        # Temporary write to file
+        # f = open("sample.mp3", "wb")
+        # f.write(playsound)
+        # f.close()
+
+
+        # return playsound
 
     # Delete object from bucket
     # TODO: Check if deleted result is True

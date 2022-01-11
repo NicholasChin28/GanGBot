@@ -15,14 +15,14 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
-from Models.playsound import Playsound as PsObject
+from models.playsound import Playsound as PsObject
 import validators
 from urllib.parse import urlparse
-from Models.emojis import Emojis
+from models.emojis import Emojis
 from helper import helper
 from helper.s3_bucket import S3Bucket
-from Models.ytdl_source import YTDLSource
-from Models.playsound_source import PlaysoundAudio, PlaysoundSource
+from models.ytdl_source import YTDLSource
+from models.playsound_source import PlaysoundAudio, PlaysoundSource
 
 load_dotenv()
 

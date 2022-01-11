@@ -16,8 +16,63 @@ from helper.s3_bucket import S3Bucket
 from pathlib import Path
 import concurrent.futures
 import base64
+from subprocess import PIPE, Popen
+from shlex import split
+from io import BytesIO
+from discord.opus import Encoder
+import shlex
+import subprocess
 
 # TODO: Add another playsound class for compatibility with current Sound class and queue
+class FFmpegPCMAudio(discord.AudioSource):
+    """Reimplementation of discord.FFmpegPCMAudio with source: bytes support
+    Original Source: https://github.com/Rapptz/discord.py/issues/5192
+    Credit to https://github.com/GnomedDev/Discord-TTS-Bot/blob/master/player.py#L21 for fix"""
+
+    def __init__(self, source, *, executable="ffmpeg", pipe=False, stderr=None, before_options=None, options=None):
+        args = [executable]
+        if isinstance(before_options, str):
+            args.extend(split(before_options))
+
+        args.append("-i")
+        args.append("-" if pipe else source)
+        args.extend(("-f", "s16le", "-ar", "48000", "-ac", "2", "-loglevel", "warning"))
+
+        if isinstance(options, str):
+            args.extend(split(options))
+
+        args.append("pipe:1")
+
+        self._stdout = None
+        self._process = None
+        self._stderr = stderr
+        self._process_args = args
+        self._stdin = source if pipe else None
+
+    def _create_process(self) -> BytesIO:
+        stdin, stderr, args = self._stdin, self._stderr, self._process_args
+        self._process = Popen(args, stdin=PIPE, stdout=PIPE, stderr=stderr)
+        return BytesIO(self._process.communicate(input=stdin)[0])
+
+    def read(self) -> bytes:
+        if self._stdout is None:
+            # This function runs in a voice thread, so we can afford to block
+            # it and make the process now instead of in the main thread
+            self._stdout = self._create_process()
+
+        ret = self._stdout.read(Encoder.FRAME_SIZE)
+        return ret if len(ret) == Encoder.FRAME_SIZE else b""
+
+    def cleanup(self):
+        process = self._process
+        if process is None:
+            return
+
+        process.kill()
+        if process.poll() is None:
+            process.communicate()
+
+        self._process = None
 
 # Class for playing audio
 class PlaysoundAudio(discord.PCMVolumeTransformer):
@@ -26,7 +81,7 @@ class PlaysoundAudio(discord.PCMVolumeTransformer):
         'options': '-vn',
     }
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+    def __init__(self, ctx: commands.Context, source: FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
 
         self.requester = ctx.author
@@ -38,14 +93,21 @@ class PlaysoundAudio(discord.PCMVolumeTransformer):
 
     @classmethod
     async def get_source(cls, ctx: commands.Context, playsound: str, *, loop: asyncio.BaseEventLoop):
+        FFMPEG_OPTIONS = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': f'-vn -re',
+        }
+
         loop = asyncio.get_running_loop()
 
         test_con = S3Bucket()
         partial = functools.partial(test_con.get_playsound, ctx, name=playsound)
         s3_playsound = await loop.run_in_executor(None, partial)
+        # temp_playsound = open("the_sampletest.mp3", "rb")
 
-        return cls(ctx, discord.FFmpegPCMAudio(s3_playsound, pipe=True), data=None)
-
+        # print(f'Value of temp_playsound: {temp_playsound}')
+        # return cls(ctx, FFmpegPCMAudio(temp_playsound, pipe=True))
+        return cls(ctx, FFmpegPCMAudio(s3_playsound, pipe=True), data=None)
 
 class PlaysoundSource():
     def __init__(self, ctx: commands.Context, *, data: dict):
@@ -74,7 +136,6 @@ class PlaysoundSource():
 
         if not validators.url(url):
             raise Exception("Invalid url")
-
 
         if file_upload:
             # Download file to temp file to get the duration

@@ -4,10 +4,10 @@ import discord
 from discord.ext import commands
 import typing
 from helper import helper
-from Models.role import Role
+from models.role import Role
 from tortoise import Tortoise, run_async
 from pyaml_env import parse_config
-from Models.emojis import Emojis
+from models.emojis import Emojis
 
 class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):

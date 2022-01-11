@@ -1,7 +1,7 @@
 from botocore.exceptions import ClientError
 import os
 import boto3
-from Models.s3file import S3File
+from models.s3file import S3File
 
 
 class S3Connection:
