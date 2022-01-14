@@ -1,4 +1,5 @@
 import asyncio
+import aiofiles
 import os
 from pathlib import Path
 import boto3
@@ -155,12 +156,24 @@ class S3Bucket:
             return int(e.response['Error']['Code']) != 404
         return True
 
-    # Create bucket
+    # Create buc    ket
     def create_bucket(self, bucket_name: str):
         self.s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
             'LocationConstraint': 'ap-southeast-1'
         })
         print('Bucket created...')
+
+    async def get_fileplaysound(self, ctx, query):
+        bucket_name = os.getenv('AWS_BUCKET')
+        bucket = self.get_bucket2(bucket_name)
+
+        playsound_bytes = bucket.Object(f'{ctx.guild.id}/{query}.mp3').get()['Body']
+
+        async with aiofiles.tempfile.NamedTemporaryFile('wb', delete=False, suffix='mp3') as f:
+            await f.write(playsound_bytes.read())
+
+            return f
+
 
     # Get file from bucket
     def get_playsound(self, ctx, name):
