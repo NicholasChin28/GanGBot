@@ -10,27 +10,27 @@
 
 # TODO: Generate custom help command for the bot
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
-# from spotify_player import SpotifyCog, SpotTrack, SpotifyRealSource, SpotError
-# from spotify_player import SpotifyCog
-# from custom_poll import MyMenu
 import os
 from dotenv import load_dotenv, find_dotenv
-import pathlib
 
 import discord
 from discord.ext import commands
 from helper import helper
 
-bot = commands.Bot(command_prefix=['.', '?'], description='GanG スター Bot')
+intents = discord.Intents(messages=True, guilds=True, members=True, voice_states=True)
 
+class MaldBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=commands.when_mentioned_or('.', '?'), description='GanG スター Bot', intents=intents)
 
-@bot.event
-async def on_ready():
-    print('Logged in as \n{0.user.name}\n{0.user.id}'.format(bot))
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
-    # Loads all cogs
-    for filename in helper.get_cogs():
-        bot.load_extension(f'cogs.{filename}')
+    async def on_ready(self):
+        print(f'Logged in as \n{bot.user.name}\n{bot.user.id}')
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
+        # Load cogs
+        for filename in helper.get_cogs():
+            self.load_extension(f'cogs.{filename}')
+
+bot = MaldBot()
 
 # Load environment variables
 load_dotenv(find_dotenv())

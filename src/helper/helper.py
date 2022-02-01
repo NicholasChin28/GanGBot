@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 import pathlib
 from typing import Dict, List
+import typing
 from aiohttp.client import request
 import validators
 import youtube_dl
@@ -31,6 +32,21 @@ class FilenameCollectorPP(PostProcessor):
         self.filenames.append(information['filepath'])
         return [], information
 
+# TODO: Rewrite VideoTime class
+class VideoTimeNew:
+    def parse_time(self, time_str: str):
+        TIME_FORMATS = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
+        for format in TIME_FORMATS:
+            try:
+                valid_timestamp = datetime.strptime(time_str, format)
+                return valid_timestamp
+            except ValueError:
+                pass
+        return None
+
+    def __init__(self, time: str):
+        parsed_time = self.parse_time(time)
+                
 
 class VideoTime:
     _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
@@ -63,6 +79,10 @@ class VideoTime:
 
     def __str__(self):
         return self.datetime_str
+
+    # Get duration in seconds
+    def get_duration(self):
+        return (self.hour * 3600 + self.minute * 60 + self.second)
         
 class FileRange:
     def __init__(self, data: dict):
@@ -264,8 +284,21 @@ def parse_time(timestamp):
 
     return None
 
+def parse_time_new(duration: float, timestamp: typing.Optional[str] = None) -> List[VideoTime]:
+    # Calculate duration of timestamp
+    if timestamp:
+        time_range = timestamp.split('-')
+        # struct_time_range = []
+        if len(time_range) is not 2:
+            raise Exception('Invalid timestamp format')
+        
+        time_range = {
+            "start_time": time_range[0],
+            "end_time": time_range[1] 
+        }
+
 def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
-    print('parse_time2 function called')
+# def parse_time2(duration: float, timestamp: typing.Optional[str] = None) -> List[VideoTime]:
     time_ranges = timestamp.split('-')
     struct_time_range = []
 
@@ -278,11 +311,11 @@ def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
             struct_time_range.append(VideoTime(i))
             print('line 252')
         if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
-            struct_time_range.append(VideoTime(url_duration))
+            struct_time_range.append(VideoTime(duration))
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
                 raise Exception("Starting time greater than video length!")
         else:
-            conv_duration = str(timedelta(seconds=round(url_duration, 1)))  
+            conv_duration = str(timedelta(seconds=round(duration, 1)))  
             user_video = VideoTime(conv_duration)
 
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:

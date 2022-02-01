@@ -1,10 +1,12 @@
 import pathlib
+import aiohttp
 from discord.ext.commands.context import Context
 from dotenv import load_dotenv
 import os
 from pathlib import Path
 import mutagen
 import hashlib
+import typing
 import asyncio
 import functools
 import discord
@@ -197,8 +199,9 @@ class Playsound(commands.Cog):
 
     # Upload command
     @commands.command(name='addps', aliases=['psadd', 'aps', 'uploadps'])
-    async def _upload(self, ctx: commands.Context, *args):
+    async def _upload(self, ctx: commands.Context, link: str, timestamp: typing.Optional[str] = None):
         """Add a playsound"""
+        video_unavailable = '"playabilityStatus:":{"status":"ERROR","reason":"Video unavailable"}'
         message_attachments = ctx.message.attachments
 
         use_help = discord.Embed(
@@ -207,8 +210,11 @@ class Playsound(commands.Cog):
         use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
         use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
 
+
+        '''
         if len(args) == 0:
             return await ctx.send(embed=use_help, delete_after=20)
+        '''
 
         if len(message_attachments) > 1:
             return await ctx.send('File upload only supports one file attachment', delete_after=20)
@@ -217,7 +223,7 @@ class Playsound(commands.Cog):
 
         # File upload
         if len(message_attachments) == 1:
-            if len(args) > 1:
+            if len(link) > 1:
                 return await ctx.send(use_help, delete_after=20)
 
             first_attachment = message_attachments[0]
@@ -242,13 +248,16 @@ class Playsound(commands.Cog):
                 return await ctx.send(e)
         # From Url
         else:
-            url = args[0]
+            if not validators.url(link) and 'youtube.com' in urlparse(link).netloc:
+                return await ctx.send("Only Youtube links supported")
 
-            if not validators.url(url) and 'youtube.com' in urlparse(url).netloc:
-                return await ctx.send("Only valid Youtube links supported")
-
+            async with ClientSession() as session:
+                async with session.get(link) as resp:
+                    print(await resp.text())
+                    if video_unavailable in await resp.text():
+                        return await ctx.send('Invalid Youtube link')
             try:
-                playsound_source = await PlaysoundSource.create_source(ctx, args[-1], url=url)
+                playsound_source = await PlaysoundSource.create_source(ctx, url=link, timestamp=timestamp)
                 playsound = discord.File(playsound_source.filename)
                 message = await ctx.send(file=playsound)
             except Exception as e:
@@ -332,6 +341,7 @@ class Playsound(commands.Cog):
     async def upload_error(self, ctx: commands.Context, error):
         # Check if arguments passed
         if isinstance(error, commands.MissingRequiredArgument):
+            print('Missing required argument')
             use_help = discord.Embed(
                 title="How to use:",
                 description=f"{ctx.command.name}")

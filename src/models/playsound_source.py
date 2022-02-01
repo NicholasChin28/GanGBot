@@ -11,6 +11,7 @@ import aiofiles
 import mutagen
 from mutagen.mp3 import EasyMP3
 import pathlib
+import typing
 from helper import helper
 from helper.s3_bucket import S3Bucket
 from pathlib import Path
@@ -123,7 +124,7 @@ class PlaysoundSource():
         self.filename = data.get('filename')
         
     @classmethod
-    async def create_source(cls, ctx: commands.Context, timestamp: str, file_upload=False, url=None):
+    async def create_source(cls, ctx: commands.Context, timestamp: typing.Optional[str] = None, file_upload=False, url=None):
         if ctx.message.attachments:
             attachment = ctx.message.attachments[0]
             url = attachment.url
@@ -148,6 +149,9 @@ class PlaysoundSource():
                         await f.write(await response.read())
                         audio_file = mutagen.File(f.name)
                         duration = audio_file.info.length
+
+                        if duration > 20:
+                            return await ctx.send('Playsounds must be within 20 seconds')
 
                         type = "File"
                         try:
@@ -198,7 +202,10 @@ class PlaysoundSource():
                     # YoutubeDL could not extract url duration
                         if duration is None:
                             return await ctx.send("Youtube link does not have a duration.")
-
+                        
+                        if duration > 20 and timestamp is None:
+                            return await ctx.send('Playsounds must be within 20 seconds')
+                        
                         type = "Youtube"
                         try:
                             start_time, end_time = helper.parse_time2(timestamp, duration)
