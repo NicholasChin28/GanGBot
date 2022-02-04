@@ -7,6 +7,7 @@ from wavelink.tracks import Track
 import typing
 
 from helper.s3_bucket import S3Bucket
+from views.musicplayer_view import MusicPlayerView
 
 class NewMusic(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -47,6 +48,7 @@ class NewMusic(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print('New music cog loaded')
+        self.bot.add_command('skip_new')
 
     @commands.command()
     async def playw(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
@@ -97,8 +99,13 @@ class NewMusic(commands.Cog):
         if not vc:
             return await ctx.send('No queue as not connected', delete_after=5)
 
-        await ctx.send(vc.queue)
-
+        # TODO: Create embed for queue. Use webhook to allow clicking on queue item to display track
+        queue_embed = self.queue_embed(ctx)
+        if queue_embed is None:
+            return await ctx.send('Empty queue from newmusic')
+        
+        return await ctx.send(embed=queue_embed)
+        
     @commands.command()
     async def skipw(self, ctx: commands.Context):
         vc: Player = ctx.voice_client
@@ -108,6 +115,27 @@ class NewMusic(commands.Cog):
         
         if vc.is_playing():
             await vc.stop()
+
+    @commands.command()
+    async def pausew(self, ctx: commands.Context):
+        vc: Player = ctx.voice_client
+
+        if not ctx.voice_client:
+            return await ctx.send('Not currently connected to voice channel')
+
+        if not vc.is_playing():
+            return await ctx.send('Not playing any track currently')
+        
+        if vc.is_paused():
+            await ctx.send('Player was paused. Resuming now')
+        else:
+            await ctx.send('Player was playing. Pausing now')
+
+        await vc.set_pause(not vc.is_paused())
+
+    @commands.command()
+    async def preparew(self, ctx: commands.Context):
+        await ctx.send("Whats your favourite colour", view=MusicPlayerView(self.bot))
 
     @commands.command()
     async def localw(self, ctx: commands.Context):
@@ -146,22 +174,26 @@ class NewMusic(commands.Cog):
 
         return embed
 
+    def queue_embed(self, ctx: commands.Context, title: typing.Optional[str] = 'Track queue') -> discord.Embed:
+        vc: Player = ctx.voice_client
+        if vc.track is None and vc.queue.count == 0:
+            return None
+
+        embed = discord.Embed(title=title, description='```css\nList of tracks in queue\n```', color=discord.Color.blurple())
+        tracks_value = []
+        tracks_value.append(vc.track.info.get('title'))
+
+        for track in vc.queue:
+            tracks_value.append(track.info.get('title'))
+
+        desc_string = ""
+        for idx, val in enumerate(tracks_value, start=1):
+            desc_string += f'\n`{idx}.` {val}\n'
+
+        embed.add_field(name='Tracks', value=desc_string)
+        
+        return embed
+
 def setup(bot):
     bot.add_cog(NewMusic(bot))
 
-class MusicPlayerView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label='Green', style=discord.ButtonStyle.green, custom_id='musicplayer_view:green')
-    async def green(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('This is green')
-
-    @discord.ui.button(label='Red', style=discord.ButtonStyle.red, custom_id='persistent_view:red')
-    async def red(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('This is red.')
-
-    @discord.ui.button(label='Grey', style=discord.ButtonStyle.grey, custom_id='persistent_view:grey')
-    async def grey(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('This is grey.')
-        

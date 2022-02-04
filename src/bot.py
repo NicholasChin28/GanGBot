@@ -16,12 +16,14 @@ from dotenv import load_dotenv, find_dotenv
 import discord
 from discord.ext import commands
 from helper import helper
+from views.musicplayer_view import MusicPlayerView, MusicPlayerViewNew
 
 intents = discord.Intents(messages=True, guilds=True, members=True, voice_states=True)
 
 class MaldBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or('.', '?'), description='GanG スター Bot', intents=intents)
+        self.musicplayer_view_added = False
 
     async def on_ready(self):
         print(f'Logged in as \n{bot.user.name}\n{bot.user.id}')
@@ -29,6 +31,11 @@ class MaldBot(commands.Bot):
         # Load cogs
         for filename in helper.get_cogs():
             self.load_extension(f'cogs.{filename}')
+
+        if not self.musicplayer_view_added:
+            self.add_view(MusicPlayerView(self))
+            self.add_view(MusicPlayerViewNew())
+            self.musicplayer_view_added = True
 
 bot = MaldBot()
 
