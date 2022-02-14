@@ -1,12 +1,19 @@
 import discord
 from discord.ext import commands
 from utils.musicplayer_utils import MusicPlayerUtils
+from views.track_view import TrackView
+from views.playsound_view import PlaysoundInputModal
 from models.emojis import Emojis
 
 class MusicPlayerView(discord.ui.View):
     def __init__(self, bot: commands.Bot):
         super().__init__(timeout=None)
         self.bot = bot
+        self.queue_displays = []
+
+    @discord.ui.button(label='Modal', style=discord.ButtonStyle.green, custom_id='musicplayer_view:modal')
+    async def modal(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_modal(PlaysoundInputModal())
 
     @discord.ui.button(label='Green', style=discord.ButtonStyle.green, custom_id='musicplayer_view:green')
     async def green(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -22,6 +29,8 @@ class MusicPlayerView(discord.ui.View):
 
     @discord.ui.button(label='Grey', style=discord.ButtonStyle.grey, custom_id='persistent_view:grey')
     async def grey(self, button: discord.ui.Button, interaction: discord.Interaction):
+        # Print self.queue_displays
+        print(self.queue_displays)
         await interaction.response.send_message('This is grey.')
 
     @discord.ui.button(label='Skip', style=discord.ButtonStyle.red, emoji=Emojis.next_button, custom_id='musicplayer_view:skip')
@@ -35,6 +44,8 @@ class MusicPlayerView(discord.ui.View):
         ctx = await self.bot.get_context(interaction.message)
         await interaction.response.send_message('This is queue')
         await MusicPlayerUtils.queue_new(ctx)
+        # queue_display = await ctx.send('Track info:', view=TrackView(ctx), delete_after=30)
+        self.queue_displays.append(await ctx.send('Track info:', view=TrackView(ctx)))
 
     @discord.ui.button(label='Pause', style=discord.ButtonStyle.blurple, emoji=Emojis.stop_button, custom_id='musicplayer_view:pause_resume')
     async def pause_resume(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -48,12 +59,4 @@ class MusicPlayerView(discord.ui.View):
             button.label = 'Pause'
             button.emoji = Emojis.stop_button
             await interaction.response.edit_message(view=self)
-
-class MusicPlayerViewNew(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label='Edited to green', style=discord.ButtonStyle.green, custom_id='musicplayer_view:edit_green')
-    async def green(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('This is an edited green')
         

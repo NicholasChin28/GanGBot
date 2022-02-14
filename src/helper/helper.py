@@ -1,13 +1,17 @@
 # TODO: Use optional arguments for @property decorators: https://stackoverflow.com/questions/58433807/property-decorator-with-optional-argument
+import asyncio
 import time
 from datetime import datetime, timedelta
-import pathlib
+from pathlib import Path
+from pydub import AudioSegment
 from typing import Dict, List
 import typing
 from aiohttp.client import request
 import validators
+import mutagen
 import youtube_dl
 from models import ytdl_source
+from models.video_range import VideoRange
 from humanfriendly import parse_size
 from youtube_dl.postprocessor.common import PostProcessor
 
@@ -46,7 +50,21 @@ class VideoTimeNew:
 
     def __init__(self, time: str):
         parsed_time = self.parse_time(time)
-                
+
+class PlaysoundSourceNew:
+    def __init__(self, start_time: str, end_time: str):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.duration = end_time - start_time
+
+class PlaysoundLocal:
+    def __init__(self, filename: str, duration: int):
+        self.filename = filename
+        self.duration = duration
+
+    @classmethod
+    def fix_file(cls, filename: str):
+        return cls('test', 20)
 
 class VideoTime:
     _time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
@@ -122,50 +140,6 @@ class FileRange:
         except ValueError:
             raise Exception("Error ValueError from validate_time")
 
-class VideoRange:
-    _start_time = None
-    _end_time = None
-    _supported_formats = ['%M:%S', '%H:%M:%S']
-
-    @property
-    def start_time(self):
-        return self._start_time
-
-    @property
-    def end_time(self):
-        return self._end_time
-
-    @end_time.setter
-    def end_time(self, time: str):
-        self._end_time = validate_time(time)
-
-    # Temp functions to return the timedelta of start_time and end_time
-    def start_time_seconds(self):
-        if self._start_time is not None:
-            # return timedelta(hours=self._start_time.tm_hour, minutes=self._start_time.tm_min, seconds=self._start_time.tm_sec)
-            return custom_convert_to_seconds(self._start_time)
-        return None
-
-    def end_time_seconds(self):
-        if self._end_time is not None:
-            # return timedelta(hours=self._end_time.tm_hour, minutes=self._end_time.tm_min, seconds=self._end_time.tm_sec)
-            return custom_convert_to_seconds(self._end_time)
-        return None
-
-    def __init__(self, start_time=0, end_time=None) -> None:
-        self._start_time = start_time
-        self._end_time = end_time
-
-    # Converts VideoRange start_time / end_time to seconds
-    @classmethod
-    async def parse_in_seconds(self, time_obj):
-        return (time_obj)
-
-# Converts VideoRange structtime to seconds
-def custom_convert_to_seconds(time: time.struct_time):
-    to_return = (time.tm_hour * 3600) + (time.tm_min * 60) + time.tm_sec
-    return to_return
-
 # Creates playsound in current folder
 def create_playsound(url, name, timestamp):
     print(f'Values to receive: {url}\n{name}\n{timestamp}')
@@ -180,6 +154,16 @@ def create_playsound(url, name, timestamp):
         ydl.download([url])
 
     return True
+
+# Extracts duration from Youtube link
+def extract_duration(link: str):
+    try:
+        with youtube_dl.YoutubeDL() as ydl:
+            info = ydl.extract_info(link, download=False)
+            return info['duration']
+    except Exception as e:
+        print(e)
+        raise Exception("Youtubedl encountered an unexpected error")
 
 # Constructs the youtube_dl options
 def create_ytdl_options(filename: str, timestamp: VideoRange):
@@ -226,14 +210,14 @@ def validate_range(video_range: VideoRange, ytdl_source: ytdl_source.YTDLSource)
 # Gets all initial cogs to be loaded
 # Excludes custom_help cog
 def get_cogs():
-    cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
+    cogs_path = Path(Path.cwd() / 'cogs').glob('**/*')
     cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py' and x.stem != 'custom_help']
     return cogs
 
 
 # Gets a list of all cogs. Including custom_help cog
 def get_all_cogs():
-    cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
+    cogs_path = Path(Path.cwd() / 'cogs').glob('**/*')
     cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py']
     return cogs
 
@@ -284,18 +268,54 @@ def parse_time(timestamp):
 
     return None
 
-def parse_time_new(duration: float, timestamp: typing.Optional[str] = None) -> List[VideoTime]:
-    # Calculate duration of timestamp
-    if timestamp:
-        time_range = timestamp.split('-')
-        # struct_time_range = []
-        if len(time_range) is not 2:
-            raise Exception('Invalid timestamp format')
-        
-        time_range = {
-            "start_time": time_range[0],
-            "end_time": time_range[1] 
-        }
+def get_seconds(time_string: str):
+    time_formats = ['%S.%f', '%S', '%M:%S.%f', '%M:%S', '%H:%M:%S', '%H:%M:%S.%f']
+
+    for format in time_formats:
+        try:
+            dt_object = datetime.strptime(time_string, format)
+            return dt_object.hour * 3600 + dt_object.minute * 60 + dt_object.second
+        except ValueError:
+            pass
+    """
+    try:
+        for format in time_formats:
+            return datetime.strptime(time_string, format)
+    except ValueError:
+        pass
+    """
+    
+
+    # None could mean either error or it was not found?
+    return None
+
+def parse_time_new(timestamp: str, duration: int):
+    time_range = timestamp.split('-')
+
+    end_time = None
+
+    # Try to convert based on time_format
+    if len(time_range) > 2:
+        raise Exception('Invalid timestamp format')
+
+    start_time = get_seconds(time_range[0])
+    if len(time_range) == 2:
+        end_time = get_seconds(time_range[1])
+    else:
+        end_time = duration
+
+    # TODO: Check to make sure that start_time is not greater than duration and less than end time
+    # Vice versa as well
+
+    if start_time is None:
+        raise Exception('Invalid start time')
+    if end_time is None:
+        raise Exception('Invalid end time')
+
+    if (end_time - start_time <= 20) is not True:
+        raise Exception('Playsound cannot be longer than 20 seconds')
+
+    return PlaysoundSourceNew(start_time=start_time, end_time=end_time)
 
 def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
 # def parse_time2(duration: float, timestamp: typing.Optional[str] = None) -> List[VideoTime]:
@@ -307,15 +327,13 @@ def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
 
     try:
         for i in time_ranges:
-            print('line 250')
             struct_time_range.append(VideoTime(i))
-            print('line 252')
         if len(struct_time_range) == 1:     # User did not provide end time. So, use video end timestamp
-            struct_time_range.append(VideoTime(duration))
+            struct_time_range.append(VideoTime(url_duration))
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime:
                 raise Exception("Starting time greater than video length!")
         else:
-            conv_duration = str(timedelta(seconds=round(duration, 1)))  
+            conv_duration = str(timedelta(seconds=round(url_duration, 1)))  
             user_video = VideoTime(conv_duration)
 
             if not struct_time_range[-1].datetime > struct_time_range[0].datetime and not user_video.datetime >= struct_time_range[-1].datetime:
@@ -332,6 +350,54 @@ def parse_time2(timestamp: str, url_duration: float) -> List[VideoTime]:
 def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now converting ...')
+
+def download_playsound_new(url, start_time: int = None, end_time: int = None, duration: int = None):
+    ytdl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': './%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'external_downloader': 'ffmpeg',
+        'external_downloader_args': [],
+        'logger': MyLogger(),
+        'progress_hooks': [my_hook],
+    }
+
+    if start_time is not None:
+        ytdl_opts['external_downloader_args'].extend(['-ss', str(start_time)])
+    if end_time is not None:
+        ytdl_opts['external_downloader_args'].extend(['-to', str(end_time)])
+
+    try:
+        with youtube_dl.YoutubeDL(ytdl_opts) as ydl:
+            filename_collector = FilenameCollectorPP()
+            ydl.add_post_processor(filename_collector)
+
+            ydl.download([url])
+            filename = filename_collector.filenames[0]
+
+            downloaded_file = mutagen.File(Path(filename))
+            if int(downloaded_file.info.length) > duration:
+                # Crop the playsound to correct duration
+                segment = AudioSegment.from_mp3(filename)
+                start = (int(downloaded_file.info.length) - duration) * 1000
+                segment[start:].export(Path(filename), format='mp3')
+            
+            data = {
+                'download_result': True,
+                'filename': filename,
+            }
+    except Exception as e:
+        data = {
+            'download_result': False,
+            'filename': None,
+            'error': e,
+        }
+
+    return data
 
 # Downloads playsound
 def download_playsound(url, start_time, end_time) -> Dict:

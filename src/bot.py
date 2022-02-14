@@ -11,12 +11,13 @@
 # TODO: Generate custom help command for the bot
 # TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 import os
+import pathlib
 from dotenv import load_dotenv, find_dotenv
 
 import discord
 from discord.ext import commands
 from helper import helper
-from views.musicplayer_view import MusicPlayerView, MusicPlayerViewNew
+from views.musicplayer_view import MusicPlayerView
 
 intents = discord.Intents(messages=True, guilds=True, members=True, voice_states=True)
 
@@ -26,16 +27,21 @@ class MaldBot(commands.Bot):
         self.musicplayer_view_added = False
 
     async def on_ready(self):
-        print(f'Logged in as \n{bot.user.name}\n{bot.user.id}')
+        print(f'Logged in as \n{self.user.name}\n{self.user.id}')
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
         # Load cogs
-        for filename in helper.get_cogs():
+        for filename in self.get_cogs():
             self.load_extension(f'cogs.{filename}')
 
         if not self.musicplayer_view_added:
             self.add_view(MusicPlayerView(self))
-            self.add_view(MusicPlayerViewNew())
             self.musicplayer_view_added = True
+
+    def get_cogs(self):
+        cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
+        cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py' and x.stem != 'custom_help']
+        return cogs
+
 
 bot = MaldBot()
 

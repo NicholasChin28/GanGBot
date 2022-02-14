@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands
 from pydub import AudioSegment
 import validators
-from aiohttp import ClientSession
+from aiohttp import ClientResponse, ClientSession
 import aiofiles
 import mutagen
 from mutagen.mp3 import EasyMP3
@@ -122,7 +122,16 @@ class PlaysoundSource():
         self.end_time = data.get('end_time')
         self.duration = data.get('duration')
         self.filename = data.get('filename')
-        
+    
+    @classmethod
+    async def create_source2(cls, ctx: commands.Context, resp: ClientResponse, timestamp: typing.Optional[str] = None):
+        async with aiofiles.tempfile.NamedTemporaryFile('wb+', delete=False, suffix='mp3') as f:
+            # print(f'filename: {filename}')
+            await f.write(await resp.read())
+            # audio_file = mutagen.File
+            # TODO: Construct the file from the timestamp given
+
+
     @classmethod
     async def create_source(cls, ctx: commands.Context, timestamp: typing.Optional[str] = None, file_upload=False, url=None):
         if ctx.message.attachments:
@@ -245,15 +254,9 @@ class PlaysoundSource():
 
                                     cropped_segment = segment[start_crop:end_crop]
 
-                                    # cropped_segment.export(Path(f'{info["title"]}_playsound.mp3'), format="mp3")
                                     cropped_segment.export(Path(filename), format="mp3")
                                     
-                                    # cropped_playsound = mutagen.File(Path(filename))
                                     cropped_playsound = mutagen.File(Path(filename))
-
-                                    # cropped_playsound = discord.File(Path(f'{info["title"]}_playsound.mp3'))
-                                    # cropped_playsound = discord.File(Path(filename))
-                                    # message = await ctx.send(file=cropped_playsound)
 
                                 data = {
                                         "type": type,
@@ -269,16 +272,6 @@ class PlaysoundSource():
                             return await ctx.send(e)
 
                     # TODO: Find a way to create and close event loop. Current method causes multiple event loops to be open and not closed
-
-    # Run from loop 
-    @classmethod
-    async def double_crop(cls, segment, start_crop, end_crop, filename):
-        cropped_segment = segment[start_crop:end_crop]
-
-        # cropped_segment.export(Path(f'{info["title"]}_playsound.mp3'), format="mp3")
-        cropped_segment.export(Path(filename), format="mp3")
-
-        return True
 
     # Get playsound from AWS S3 bucket
     @classmethod
@@ -298,10 +291,6 @@ class PlaysoundSource():
         return cls(ctx, discord.FFmpegPCMAudio(playsound), data=None)
 
     # TODO: Extract from the actual downloaded file
-
-    # Validates and parses timestamp
-    def parse_timestamp(self, timestamp: str, video_duration: int):
-        video_time = self.to_hms(video_duration)
 
     # Converts seconds to h:m:s representation
     @staticmethod 

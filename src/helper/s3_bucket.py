@@ -35,7 +35,7 @@ class S3Bucket:
         if len(str_list) > 1:
             return str_list[1]
 
-    def upload_files(cls, ctx, files):
+    def upload_files(self, ctx, files):
         print('upload_files')
         # loop = asyncio.get_running_loop()
         server = ctx.message.guild.id
@@ -44,7 +44,8 @@ class S3Bucket:
         bucket_name = os.getenv('AWS_BUCKET')
         # bucket = cls.get_bucket(connection, bucket_name)
         # bucket = "test"
-        bucket = cls.get_bucket2(bucket_name)
+        # bucket = cls.get_bucket2(bucket_name)
+        bucket = self.get_bucket2(bucket_name)
 
         print('val of bucket: ', bucket)
         # print('val of connection: ', connection)
@@ -156,7 +157,7 @@ class S3Bucket:
             return int(e.response['Error']['Code']) != 404
         return True
 
-    # Create buc    ket
+    # Create bucket
     def create_bucket(self, bucket_name: str):
         self.s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={
             'LocationConstraint': 'ap-southeast-1'

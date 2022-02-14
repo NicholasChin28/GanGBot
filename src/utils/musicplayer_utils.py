@@ -29,7 +29,7 @@ class MusicPlayerUtils():
         if queue_embed is None:
             return await ctx.send('Empty queue from newmusic')
         
-        return await ctx.send(embed=queue_embed)
+        return await ctx.send(embed=queue_embed, delete_after=60)
 
     @classmethod
     async def pause_new(cls, ctx: commands.Context) -> typing.Union[discord.Message, bool]:

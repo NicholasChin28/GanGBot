@@ -42,8 +42,11 @@ class NewMusic(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: Player, track: Track, reason):
+        await player.play(await player.queue.get_wait())
+        """
         if not player.queue.is_empty:
             await player.play(await player.queue.get_wait())
+        """
 
     @commands.Cog.listener()
     async def on_ready(self):
