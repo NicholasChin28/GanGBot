@@ -1,11 +1,19 @@
 import discord
 from discord.ext import commands
+import wavelink
 from wavelink.player import Player
 import typing
 
 class MusicPlayerUtils():
     def __init__(self):
         pass
+
+    @classmethod
+    async def play_new(cls, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
+        if not ctx.voice_client:
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+        else:
+            vc: Player = ctx.voice_client
 
     @classmethod
     async def skip_new(cls, ctx: commands.Context):
@@ -24,7 +32,6 @@ class MusicPlayerUtils():
         if not vc:
             return await ctx.send('No queue as not connected', delete_after=5)
 
-        # TODO: Create embed for queue. Use webhook to allow clicking on queue item to display track
         queue_embed = cls.queue_embed(cls, ctx)
         if queue_embed is None:
             return await ctx.send('Empty queue from newmusic')

@@ -2,12 +2,14 @@ import asyncio
 import aiofiles
 import os
 from pathlib import Path
+from aiohttp import ClientSession
 import boto3
 from models.s3file import S3File
 from botocore.exceptions import ClientError
 import functools
 from io import BytesIO
 import base64
+from discord.ext import commands
 
 
 class S3Bucket:
@@ -18,6 +20,37 @@ class S3Bucket:
         # self.bucket = self.get_bucket()
 
         # print('Created variables')
+
+    def s3_client_conn(self):
+        s3 = boto3.client(
+            service_name='s3',
+            region_name='ap-southeast-1',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+
+        return s3
+
+    def create_s3_connection(self):
+        print('Creating AWS S3 connection...')
+        s3 = boto3.resource(
+            service_name='s3',
+            region_name='ap-southeast-1',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+        )
+
+        # Check if credentials and permissions are correct
+        try:
+            for _ in s3.buckets.all():
+                pass
+        except ClientError as e:
+            print(f'Client error: {e}')
+            return None
+
+        print('AWS S3 connection established')
+
+        return s3
 
     # Async function for listing the files from bucket
     def get_files(cls, ctx):
@@ -35,26 +68,46 @@ class S3Bucket:
         if len(str_list) > 1:
             return str_list[1]
 
+    def create_presigned_url(self, object_name: str, expiration=120):
+        # s3_client = self.create_s3_connection()
+        s3_client = self.s3_client_conn()
+        try:
+            response = s3_client.generate_presigned_url('get_object', Params={'Bucket': os.getenv('AWS_BUCKET'), 'Key': object_name}, ExpiresIn=expiration)
+        except ClientError as e:
+            print('Error downloading')
+            return None
+        
+        return response
+
+    async def download_playsound(self, ctx: commands.Context, cache_folder: Path, name: str):
+        loop = asyncio.get_event_loop()
+        presign_url = await loop.run_in_executor(None, self.create_presigned_url, name)
+
+        if presign_url is not None:
+            async with ClientSession() as session:
+                async with session.get(presign_url) as response:
+                    # async with aiofiles.open(f'./{cache_folder.__str__()}/{name}', mode='w+') as f:
+                    async with aiofiles.open('mald.mp3', mode='wb+') as f:
+                        playsound = await f.write(await response.read())
+
+                        return playsound
+
+        return None
+
     def upload_files(self, ctx, files):
         print('upload_files')
-        # loop = asyncio.get_running_loop()
+        
         server = ctx.message.guild.id
-        # TODO: Try creating connection in the function that is using it. instead of creating a global one, then passing it
-        # connection = cls.create_connection()
         bucket_name = os.getenv('AWS_BUCKET')
-        # bucket = cls.get_bucket(connection, bucket_name)
-        # bucket = "test"
-        # bucket = cls.get_bucket2(bucket_name)
         bucket = self.get_bucket2(bucket_name)
 
         print('val of bucket: ', bucket)
-        # print('val of connection: ', connection)
 
         file_uploads = []
         for file in files:
             try:
-                print('value of file ', file)
-                bucket.upload_file(file, f"{server}/{file}")
+                print('value of file ', file[2:])
+                bucket.upload_file(file, f"{server}/{file[2:]}")
                 print('bucket uploaded file')
                 file_uploads.append(S3File(file, '200'))
                 print(f'Added bucket result: {file_uploads}')
@@ -78,27 +131,6 @@ class S3Bucket:
 
         if data:
             return data
-
-    def create_s3_connection(self):
-        print('Creating AWS S3 connection...')
-        s3 = boto3.resource(
-            service_name='s3',
-            region_name='ap-southeast-1',
-            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-        )
-
-        # Check if credentials and permissions are correct
-        try:
-            for _ in s3.buckets.all():
-                pass
-        except ClientError as e:
-            print(f'Client error: {e}')
-            return None
-
-        print('AWS S3 connection established')
-
-        return s3
 
     # Get playsound bucket
     def get_bucket(self, s3, bucket_name: str):
@@ -175,7 +207,6 @@ class S3Bucket:
 
             return f
 
-
     # Get file from bucket
     def get_playsound(self, ctx, name):
         bucket_name = os.getenv('AWS_BUCKET')
@@ -186,25 +217,7 @@ class S3Bucket:
 
         new_playsound = BytesIO(playsound)
 
-        # print(new_playsound.read())
         return playsound
-        # return playsound
-        # return new_playsound
-        # print(playsound)
-
-        # print('\n' * 15)
-
-        # new_playsound = playsound.split(b'\x00')
-
-        # print(new_playsound)
-
-        # Temporary write to file
-        # f = open("sample.mp3", "wb")
-        # f.write(playsound)
-        # f.close()
-
-
-        # return playsound
 
     # Delete object from bucket
     # TODO: Check if deleted result is True

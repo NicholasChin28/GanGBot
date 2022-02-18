@@ -6,3 +6,4 @@ class Emojis:
     play_pause = '⏯️'
     stop_button = '⏹️'
     next_button = '⏭️'
+    clipboard = '📋'

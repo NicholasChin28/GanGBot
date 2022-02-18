@@ -9,7 +9,7 @@ class LinkField(discord.ui.TextInput):
             min_length=1, 
             max_length=10, 
             placeholder='Only Youtube links supported', 
-            custom_id='link'
+            custom_id='ps_link'
         )
 
 class NameField(discord.ui.TextInput):

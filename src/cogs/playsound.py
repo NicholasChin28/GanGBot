@@ -17,6 +17,8 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
+import wavelink
+from wavelink.player import Player
 from models.playsound import Playsound as PsObject
 import validators
 from urllib.parse import urlparse
@@ -139,6 +141,39 @@ class Playsound(commands.Cog):
                         page += 1
                         await refresh_embed()
     
+    @commands.command(name='ps2')
+    async def _playsound_new(self, ctx: commands.Context, *, search: str):
+        """Plays a playsound"""
+        async with ctx.typing():
+            node = wavelink.NodePool.get_node()
+            vc: Player = ctx.voice_client
+            # Check cache if playsound exists
+            # playsound_folder = Path(f'./playsounds/{ctx.guild.id}/')
+            playsound_folder = Path('./playsounds')
+            playsound_path = f'{ctx.guild.id}/{search}.mp3'
+
+            full_path = playsound_folder / playsound_path
+            # playsound = playsound_folder / f'{search}.mp3'
+
+            s3bucket = S3Bucket()
+            playsound = await s3bucket.get_fileplaysound(ctx=ctx, query=search)
+            track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound.name}')
+            await vc.queue.put_wait(track[0])
+            await ctx.send('Added playsound')
+            """
+            if Path(f'./{search}.mp3').exists():
+                # track = await node.get_tracks(cls=wavelink.Track, query=f'{playsound.__str__()}')
+                # track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'./mald.mp3')
+                track = await node.get_tracks(cls=wavelink.LocalTrack, query='mald.mp3')
+                await vc.queue.put_wait(track[0])
+            else:
+                # Download from AWS S3
+                bucket = S3Bucket()
+                playsound = await bucket.download_playsound(ctx, playsound_folder, playsound_path)
+            """
+
+
+
     # Command to play sound file from AWS S3 bucket
     @commands.command(name='ps')
     async def _playsound2(self, ctx: commands.Context, *, search: str):
@@ -202,6 +237,9 @@ class Playsound(commands.Cog):
     @commands.command(name='addps2', aliases=['psadd2', 'aps2', 'uploadps2'])
     async def addps2(self, ctx: commands.Context, link: str, *, timestamp: typing.Optional[str] = None):
         """Add a playsound v2"""
+        def uploader_check(message):
+            return message.author == ctx.message.author
+
         video_unavailable = '"playabilityStatus:":{"status":"ERROR","reason":"Video unavailable"}'
         
         print(f'link: {link}')
@@ -226,7 +264,6 @@ class Playsound(commands.Cog):
 
                 # Construct the timestamp
                 if timestamp:
-                    # helper.parse_time_new()
                     try:
                         playsound_source_new = await loop.run_in_executor(None, helper.parse_time_new, timestamp, duration)
                         download_playsound = await loop.run_in_executor(None, helper.download_playsound_new, link, playsound_source_new.start_time, playsound_source_new.end_time, playsound_source_new.duration)
@@ -249,19 +286,29 @@ class Playsound(commands.Cog):
                     await confirm_view.wait()
 
                     playsound_name = download_playsound.get('filename')
-                    # TODO: Post the playsound in the channel
+                    playsound_path = Path(playsound_name)
+
                     if confirm_view.value is None:
                         print('Timed out')
-                        Path(playsound_name).unlink()
+                        playsound_path.unlink()
                         await ctx.send('Timeout exceeded. Removing playsound')
                     elif confirm_view.value:
+                        # Set playsound name
+                        await ctx.send('Give a cool name for the playsound!')
+                        try:
+                            name = await self.bot.wait_for('message', timeout=15, check=uploader_check)
+                        except asyncio.TimeoutError:
+                            playsound_path.unlink()
+                            return await ctx.send('Timeout exceeded. Removing playsound')
+
                         # Approve the playsound
+                        playsound_path.rename(name.content)
                         print('Approving the playsound')
                         await ctx.send('Approving playsound')
                         
                         try:
                             test_con = S3Bucket()
-                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, download_playsound.get('filename'))
+                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, [download_playsound.get('filename')])
                             print(f'upload_results: {upload_results}')
 
                             # Save playsound details in database
@@ -277,18 +324,18 @@ class Playsound(commands.Cog):
                             )
 
                             await ctx.send('Playsound added!')
-                            Path(download_playsound.get('filename')).unlink()
+                            playsound_path.unlink()
                             
                             await Tortoise.close_connections()
                         except Exception as e:
                             print(e)
-                            Path(download_playsound.get('filename')).unlink()
+                            playsound_path.unlink()
                             return await ctx.send('Error when approving playsound. Check the logs')
                     else:
                         # Reject the playsound
                         await ctx.send('Rejecting playsound')
                         print('Rejecting the playsound')
-                        Path(download_playsound.get('filename')).unlink()
+                        playsound_path.unlink()
                         await ctx.send('Playsound rejected')
                 else:
                     return await ctx.send('Unexpected error occurred. Please check logs')

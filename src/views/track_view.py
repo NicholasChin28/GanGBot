@@ -36,6 +36,6 @@ class TrackView(discord.ui.View):
         self.add_item(TrackSelect(ctx))
 
     async def on_timeout(self) -> None:
-        print('I timeout')
+        print('TrackView timeout')
         self.clear_items()
         return await super().on_timeout()

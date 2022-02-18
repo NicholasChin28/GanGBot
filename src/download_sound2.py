@@ -18,7 +18,7 @@ def my_hook(d):
 
 ydl_opts = {
     'format': 'bestaudio/best',
-    # 'outtmp1': '%(title)s.%(ext)s',
+    'outtmp1': '%(title)s.%(ext)s',
     'postprocessors': [{
         'key': 'FFmpegExtractAudio',
         'preferredcodec': 'mp3',
@@ -26,7 +26,7 @@ ydl_opts = {
     }],
     'external_downloader': 'ffmpeg',
     'external_downloader_args': [
-        '-ss', '00:01:00.00', '-to', '00:01:50.00'
+        '-ss', '120', '-to', '140'
     ],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
@@ -35,7 +35,7 @@ ydl_opts = {
 
 
 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    ydl.download(['https://www.youtube.com/watch?v=B7xai5u_tnk'])
+    ydl.download(['https://www.youtube.com/watch?v=nEx3elskvJY'])
 
 
 
