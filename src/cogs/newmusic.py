@@ -21,13 +21,12 @@ from views.musicplayer_view import MusicPlayerView
 class NewMusic(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        self.__tqueue = {}
 
         bot.loop.create_task(self.connect_nodes())
 
     @property
     def tqueue(self):
-        return self.__tqueue
+        return self.bot.tqueuenew
 
     async def connect_nodes(self):
         '''Connect to Lavalink nodes.'''
@@ -48,6 +47,11 @@ class NewMusic(commands.Cog):
         if track.id in self.tqueue.keys():
             text_channel = self.bot.get_channel(self.tqueue.get(track.id).channel.id)
             await text_channel.send(embed=self.track_embed(self.tqueue.pop(track.id), track, title='Now playing'))
+        """
+        if track.id in self.tqueue.keys():
+            text_channel = self.bot.get_channel(self.tqueue.get(track.id).channel.id)
+            await text_channel.send(embed=self.track_embed(self.tqueue.pop(track.id), track, title='Now playing'))
+        """
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: Player, track: Track, reason):
@@ -83,10 +87,7 @@ class NewMusic(commands.Cog):
         If not connected, connect to our voice channel.
         '''
         if not ctx.voice_client:
-            if ctx.author.voice.channel is not None:    # TODO: channel return type throws error
-                vc: Player = await ctx.author.voice.channel.connect(cls=Player)
-            else:
-                return await ctx.send('Please connect to a voice channel')
+            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
         else:
             vc: Player = ctx.voice_client
 
@@ -232,4 +233,3 @@ class NewMusic(commands.Cog):
 
 def setup(bot):
     bot.add_cog(NewMusic(bot))
-

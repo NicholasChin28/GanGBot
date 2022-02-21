@@ -25,6 +25,11 @@ class MaldBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or('.', '?'), description='GanG スター Bot', intents=intents)
         self.musicplayer_view_added = False
+        self.__tqueuenew = {}
+
+    @property
+    def tqueuenew(self):
+        return self.__tqueuenew
 
     async def on_ready(self):
         print(f'Logged in as \n{self.user.name}\n{self.user.id}')

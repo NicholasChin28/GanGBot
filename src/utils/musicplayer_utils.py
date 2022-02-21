@@ -15,6 +15,17 @@ class MusicPlayerUtils():
         else:
             vc: Player = ctx.voice_client
 
+        if vc.queue.is_empty and not vc.is_playing():
+            await vc.queue.put_wait(search)
+            self.tqueue.update({search.id: ctx})
+            await ctx.send(embed=self.track_embed(ctx, search, title='Added track'))
+            await vc.play(await vc.queue.get_wait())
+        else:
+            await vc.queue.put_wait(search)
+            self.tqueue.update({search.id: ctx})
+            await ctx.send(embed=self.track_embed(ctx, search, title='Added track'))
+            
+
     @classmethod
     async def skip_new(cls, ctx: commands.Context):
         vc: Player = ctx.voice_client

@@ -3,6 +3,7 @@ from discord.ext import commands
 from utils.musicplayer_utils import MusicPlayerUtils
 from views.track_view import TrackView
 from views.playsound_view import PlaysoundInputModal
+from views.playtrack_view import PlaytrackInputModal
 from models.emojis import Emojis
 
 class MusicPlayerView(discord.ui.View):
@@ -10,6 +11,11 @@ class MusicPlayerView(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         self.queue_displays = []
+
+    @discord.ui.button(label='Play', style=discord.ButtonStyle.red, custom_id='musicplayer_view:play')
+    async def play(self, button: discord.ui.Button, interaction: discord.Interaction):
+        # await interaction.response.send_modal(PlaytrackInputModal())
+        await interaction.response.send_message("this is play")
 
     @discord.ui.button(label='Modal', style=discord.ButtonStyle.green, custom_id='musicplayer_view:modal')
     async def modal(self, button: discord.ui.Button, interaction: discord.Interaction):
