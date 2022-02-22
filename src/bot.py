@@ -42,6 +42,10 @@ class MaldBot(commands.Bot):
             self.add_view(MusicPlayerView(self))
             self.musicplayer_view_added = True
 
+    async def close(self):
+        print('Bot is closing!')
+        await super().close()
+
     def get_cogs(self):
         cogs_path = pathlib.Path(pathlib.Path.cwd() / 'cogs').glob('**/*')
         cogs = [x.stem for x in cogs_path if x.is_file() and x.suffix == '.py' and x.stem != 'custom_help']

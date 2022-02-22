@@ -86,15 +86,14 @@ class S3Bucket:
         if presign_url is not None:
             async with ClientSession() as session:
                 async with session.get(presign_url) as response:
-                    # async with aiofiles.open(f'./{cache_folder.__str__()}/{name}', mode='w+') as f:
-                    async with aiofiles.open('mald.mp3', mode='wb+') as f:
+                    async with aiofiles.open(f'{cache_folder.resolve().__str__()}', mode='wb+') as f:
                         playsound = await f.write(await response.read())
 
                         return playsound
 
         return None
 
-    def upload_files(self, ctx, files):
+    def upload_files(self, ctx, file):
         print('upload_files')
         
         server = ctx.message.guild.id
@@ -104,33 +103,21 @@ class S3Bucket:
         print('val of bucket: ', bucket)
 
         file_uploads = []
-        for file in files:
-            try:
-                print('value of file ', file[2:])
-                bucket.upload_file(file, f"{server}/{file[2:]}")
-                print('bucket uploaded file')
-                file_uploads.append(S3File(file, '200'))
-                print(f'Added bucket result: {file_uploads}')
-            except ClientError as e:
-                if e.response['Error']['Code'] == '404':
-                    print("Bucket does not exist. Called from upload_file")
-                elif e.response['Error']['Code'] == '403':
-                    print("Insufficient permissions to upload file")
-                file_uploads.append(S3File(file, e.response['Code']))
-                # TODO: If response code is 200, then save the details in DB
+        try:
+            print(f'value of file: {file}')
+            bucket.upload_file(file, f"{server}/{file}")
+            print('bucket uploaded file')
+            file_uploads.append(S3File(file, '200'))
+            print(f'Added bucket result: {file_uploads}')
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                print("Bucket does not exist. Called from upload_file")
+            elif e.response['Error']['Code'] == '403':
+                print("Insufficient permissions to upload file")
+            file_uploads.append(S3File(file, e.response['Code']))
 
         print('Finished uploading, returning file_uploads')
         return file_uploads     # Returns status of each file upload
-
-    @classmethod
-    async def upload_files2(cls, files):
-        loop = asyncio.get_event_loop()
-
-        partial = functools.partial(cls.upload_files, cls, files)
-        data = await loop.run_in_executor(None, partial)
-
-        if data:
-            return data
 
     # Get playsound bucket
     def get_bucket(self, s3, bucket_name: str):

@@ -44,4 +44,5 @@ class PlaysoundInputModal(discord.ui.Modal):
         # print(self['link'].value)
         print(self.children[0].value)
         # print(modal['link'].value)
-        await interaction.response.send_message(f'Playsound link is: {interaction.message}')
+        # await interaction.response.send_message(f'Playsound link is: {interaction.message}')
+        await interaction.response.send_message(f'Adding playsound')

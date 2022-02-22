@@ -69,7 +69,7 @@ class Playsound(commands.Cog):
     async def on_ready(self):
         print('Playsound cog loaded!')
 
-    @commands.command(name='listsounds')
+    @commands.command(name='listsounds', aliases=['ls'])
     async def _listsounds2(self, ctx: commands.Context, *, page: int = 1):
         """ Get list of playsounds from bucket """
         loop = asyncio.get_running_loop()
@@ -146,20 +146,62 @@ class Playsound(commands.Cog):
         """Plays a playsound"""
         async with ctx.typing():
             node = wavelink.NodePool.get_node()
-            vc: Player = ctx.voice_client
+            if not ctx.voice_client:
+                if ctx.author.voice is None:
+                    return await ctx.send('Please connect to a voice channel')
+                vc: Player = await ctx.author.voice.channel.connect(cls=Player)
+            else:
+                vc: Player = ctx.voice_client
             # Check cache if playsound exists
-            # playsound_folder = Path(f'./playsounds/{ctx.guild.id}/')
-            playsound_folder = Path('./playsounds')
-            playsound_path = f'{ctx.guild.id}/{search}.mp3'
+            playsound_folder = Path(f'./playsounds/{ctx.guild.id}/')
 
+            if not playsound_folder.exists():
+                print(f'Creating folder for guild {ctx.guild.id}')
+                playsound_folder.mkdir(parents=True, exist_ok=False)
+            
+            playsound_path = playsound_folder / f'{search}.mp3'
+
+            if playsound_path.exists():
+                track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_path.resolve().__str__()}')
+                # await vc.queue.put_wait(track[0])
+                # await ctx.send('Added playsound')
+            else:
+                # Get file from AWS S3 bucket
+                bucket = S3Bucket()
+                playsound = await bucket.download_playsound(ctx, playsound_path, f'{ctx.guild.id}/{search}.mp3')
+
+                track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_path.resolve().__str__()}')
+                # await vc.queue.put_wait(track[0])
+                # await ctx.send('Added playsound')
+
+            if vc.queue.is_empty and not vc.is_playing():
+                await vc.queue.put_wait(track[0])
+                self.bot.tqueuenew.update({track[0].id: ctx})
+                await ctx.send('Added playsound')
+                await vc.play(await vc.queue.get_wait())
+            else:
+                await vc.queue.put_wait(track[0])
+                self.bot.tqueuenew.update({track[0].id: ctx})
+                await ctx.send('Added playsound')
+
+            """
+            playsound_folder = Path('./playsounds')
+            playsound_temp = Path('./playsounds/mald.mp3')
+            playsound_path = f'{ctx.guild.id}/{search}.mp3'
+            """
+
+            """
             full_path = playsound_folder / playsound_path
             # playsound = playsound_folder / f'{search}.mp3'
 
             s3bucket = S3Bucket()
             playsound = await s3bucket.get_fileplaysound(ctx=ctx, query=search)
-            track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound.name}')
+            # track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound.name}')
+            track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_temp.resolve().__str__()}')
             await vc.queue.put_wait(track[0])
             await ctx.send('Added playsound')
+            """
+
             """
             if Path(f'./{search}.mp3').exists():
                 # track = await node.get_tracks(cls=wavelink.Track, query=f'{playsound.__str__()}')
@@ -173,7 +215,7 @@ class Playsound(commands.Cog):
             """
 
 
-
+    # DEPRECATED: DONT USE
     # Command to play sound file from AWS S3 bucket
     @commands.command(name='ps')
     async def _playsound2(self, ctx: commands.Context, *, search: str):
@@ -302,13 +344,13 @@ class Playsound(commands.Cog):
                             return await ctx.send('Timeout exceeded. Removing playsound')
 
                         # Approve the playsound
-                        playsound_path.rename(name.content)
-                        print('Approving the playsound')
-                        await ctx.send('Approving playsound')
-                        
                         try:
+                            # playsound_path = playsound_path.rename(f'{name.content}')     # Throwing error here
+                            playsound_path = playsound_path.rename(f'{name.content}.mp3')
+                            print('Approving the playsound')
+                            await ctx.send('Approving playsound')
                             test_con = S3Bucket()
-                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, [download_playsound.get('filename')])
+                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, playsound_path.name)
                             print(f'upload_results: {upload_results}')
 
                             # Save playsound details in database

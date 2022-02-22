@@ -380,6 +380,10 @@ def download_playsound_new(url, start_time: int = None, end_time: int = None, du
             filename = filename_collector.filenames[0]
 
             downloaded_file = mutagen.File(Path(filename))
+            # Set title
+            downloaded_file.info.title = filename
+            downloaded_file.save()
+
             if int(downloaded_file.info.length) > duration:
                 # Crop the playsound to correct duration
                 segment = AudioSegment.from_mp3(filename)

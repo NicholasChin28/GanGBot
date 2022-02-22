@@ -9,20 +9,13 @@ class MusicPlayerUtils():
         pass
 
     @classmethod
-    async def play_new(cls, ctx: commands.Context, tqueue: typing.Dict, *, search):
+    async def play_new(cls, user: typing.Union[discord.User, discord.Member], ctx: commands.Context, tqueue: typing.Dict, *, search):
         if not ctx.voice_client:
-            vc: Player = await ctx.author.voice.channel.connect(cls=Player)
-        else:
-            vc: Player = ctx.voice_client
-        """
-        if not ctx.voice_client:
-            if ctx.author.voice.channel is not None:
-                vc: Player = await ctx.author.voice.channel.connect(cls=Player)
-            else:
+            if user.voice is None:
                 return await ctx.send('Please connect to a voice channel')
+            vc: Player = await user.voice.channel.connect(cls=Player)
         else:
             vc: Player = ctx.voice_client
-        """
 
         track = await wavelink.YouTubeTrack.search(query=search, return_first=True)
 
@@ -32,9 +25,23 @@ class MusicPlayerUtils():
             await ctx.send(embed=cls.track_embed(cls, ctx, track, title='Added track'))
             await vc.play(await vc.queue.get_wait())
         else:
-            await vc.queue.put_wait(search)
+            await vc.queue.put_wait(track)
             tqueue.update({track.id: ctx})
             await ctx.send(embed=cls.track_embed(cls, ctx, track, title='Added track'))            
+
+    @classmethod
+    async def stop(cls, ctx: commands.Context):
+        vc: Player = ctx.voice_client
+
+        if not vc:
+            return await ctx.send('Bot not connected to voice channel', delete_after=10)
+
+        if vc.queue.is_empty and not vc.is_playing():
+            await ctx.send('Nothing to clear')
+        else:
+            vc.queue.clear()
+            await vc.stop()
+            await ctx.send('Tracks cleared')
 
     @classmethod
     async def skip_new(cls, ctx: commands.Context):
@@ -95,7 +102,7 @@ class MusicPlayerUtils():
 
         embed = discord.Embed(title=title, description='```css\nList of tracks in queue\n```', color=discord.Color.blurple())
         tracks_value = []
-        tracks_value.append(vc.track.info.get('title'))
+        tracks_value.append(f'{vc.track.info.get("title")} (NOW PLAYING)')
 
         for track in vc.queue:
             tracks_value.append(track.info.get('title'))
