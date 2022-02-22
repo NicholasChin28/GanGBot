@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from utils.musicplayer_utils import MusicPlayerUtils
+from views.playtrack_view import PlaytrackInputModal
 from views.track_view import TrackView
 from views.playsound_view import PlaysoundInputModal
 from views.playtrack_view import PlaytrackInputModal
@@ -14,8 +15,10 @@ class MusicPlayerView(discord.ui.View):
 
     @discord.ui.button(label='Play', style=discord.ButtonStyle.red, custom_id='musicplayer_view:play')
     async def play(self, button: discord.ui.Button, interaction: discord.Interaction):
-        # await interaction.response.send_modal(PlaytrackInputModal())
-        await interaction.response.send_message("this is play")
+        ctx2 = interaction.user.voice.channel
+        ctx = await self.bot.get_context(interaction.message)
+        result = await interaction.response.send_modal(PlaytrackInputModal(ctx, self.bot.tqueuenew))
+        print(f'Result from callback: {result}')
 
     @discord.ui.button(label='Modal', style=discord.ButtonStyle.green, custom_id='musicplayer_view:modal')
     async def modal(self, button: discord.ui.Button, interaction: discord.Interaction):
