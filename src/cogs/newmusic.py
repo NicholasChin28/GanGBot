@@ -47,11 +47,6 @@ class NewMusic(commands.Cog):
         if track.id in self.tqueue.keys():
             text_channel = self.bot.get_channel(self.tqueue.get(track.id).channel.id)
             await text_channel.send(embed=self.track_embed(self.tqueue.pop(track.id), track, title='Now playing'))
-        """
-        if track.id in self.tqueue.keys():
-            text_channel = self.bot.get_channel(self.tqueue.get(track.id).channel.id)
-            await text_channel.send(embed=self.track_embed(self.tqueue.pop(track.id), track, title='Now playing'))
-        """
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, player: Player, track: Track, reason):
@@ -182,7 +177,7 @@ class NewMusic(commands.Cog):
             embed.set_thumbnail(url=f'https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg')
         else:
             # Playsound
-            embed = discord.Embed(title=title, description=f'```css\nPlaysound\n```', color=discord.Color.blurple())
+            embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
 
             embed.add_field(name='Duration', value=f'{round(track.duration)} seconds')
             embed.add_field(name='Requested by', value=ctx.author.mention)

@@ -277,14 +277,6 @@ def get_seconds(time_string: str):
             return dt_object.hour * 3600 + dt_object.minute * 60 + dt_object.second
         except ValueError:
             pass
-    """
-    try:
-        for format in time_formats:
-            return datetime.strptime(time_string, format)
-    except ValueError:
-        pass
-    """
-    
 
     # None could mean either error or it was not found?
     return None
@@ -304,15 +296,20 @@ def parse_time_new(timestamp: str, duration: int):
     else:
         end_time = duration
 
-    # TODO: Check to make sure that start_time is not greater than duration and less than end time
-    # Vice versa as well
-
     if start_time is None:
         raise Exception('Invalid start time')
     if end_time is None:
         raise Exception('Invalid end time')
 
-    if (end_time - start_time <= 20) is not True:
+    if start_time >= duration:
+        raise Exception('Start time must be less than video duration')
+    if end_time > duration:
+        raise Exception('End time must be less than video duration')
+
+    if end_time - start_time < 0:
+        raise Exception('End time must be greater than start time or vice versa')
+
+    if (0 < end_time - start_time <= 20) is not True:
         raise Exception('Playsound cannot be longer than 20 seconds')
 
     return PlaysoundSourceNew(start_time=start_time, end_time=end_time)
@@ -393,6 +390,7 @@ def download_playsound_new(url, start_time: int = None, end_time: int = None, du
             data = {
                 'download_result': True,
                 'filename': filename,
+                'file': mutagen.File(Path(filename))
             }
     except Exception as e:
         data = {

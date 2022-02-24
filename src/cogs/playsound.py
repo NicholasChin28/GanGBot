@@ -1,5 +1,6 @@
 import pathlib
 import aiohttp
+from mutagen.id3 import ID3, TIT2, TPE1
 from discord.ext.commands.context import Context
 from dotenv import load_dotenv
 import os
@@ -17,6 +18,7 @@ from botocore.exceptions import ClientError
 from aiohttp import ClientSession
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
+from tortoise.expressions import F
 import wavelink
 from wavelink.player import Player
 from models.playsound import Playsound as PsObject
@@ -171,10 +173,17 @@ class Playsound(commands.Cog):
                 playsound = await bucket.download_playsound(ctx, playsound_path, f'{ctx.guild.id}/{search}.mp3')
 
                 track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_path.resolve().__str__()}')
-                # await vc.queue.put_wait(track[0])
-                # await ctx.send('Added playsound')
+
+            # Temp update the track details
+            if track[0].title == 'Unknown title':
+                track[0].title = 'test'
+                track[0].info.update({'title': 'test'})
+
+            track[0].title = 'test'
+            track[0].info.update({'title': 'test'})
 
             if vc.queue.is_empty and not vc.is_playing():
+                print(track[0].title)
                 await vc.queue.put_wait(track[0])
                 self.bot.tqueuenew.update({track[0].id: ctx})
                 await ctx.send('Added playsound')
@@ -184,36 +193,18 @@ class Playsound(commands.Cog):
                 self.bot.tqueuenew.update({track[0].id: ctx})
                 await ctx.send('Added playsound')
 
-            """
-            playsound_folder = Path('./playsounds')
-            playsound_temp = Path('./playsounds/mald.mp3')
-            playsound_path = f'{ctx.guild.id}/{search}.mp3'
-            """
+            tortoise_config = parse_config('./tortoise-config.yaml')
+            await Tortoise.init(config=tortoise_config)
+            
+            # Update the database record
+            await PsObject.filter(
+                name=search,
+                guild=ctx.author.guild.id
+            ).update(
+                played=F('played') + 1
+            )
 
-            """
-            full_path = playsound_folder / playsound_path
-            # playsound = playsound_folder / f'{search}.mp3'
-
-            s3bucket = S3Bucket()
-            playsound = await s3bucket.get_fileplaysound(ctx=ctx, query=search)
-            # track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound.name}')
-            track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_temp.resolve().__str__()}')
-            await vc.queue.put_wait(track[0])
-            await ctx.send('Added playsound')
-            """
-
-            """
-            if Path(f'./{search}.mp3').exists():
-                # track = await node.get_tracks(cls=wavelink.Track, query=f'{playsound.__str__()}')
-                # track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'./mald.mp3')
-                track = await node.get_tracks(cls=wavelink.LocalTrack, query='mald.mp3')
-                await vc.queue.put_wait(track[0])
-            else:
-                # Download from AWS S3
-                bucket = S3Bucket()
-                playsound = await bucket.download_playsound(ctx, playsound_folder, playsound_path)
-            """
-
+            await Tortoise.close_connections()
 
     # DEPRECATED: DONT USE
     # Command to play sound file from AWS S3 bucket
@@ -278,9 +269,16 @@ class Playsound(commands.Cog):
     # Upload playsounds command
     @commands.command(name='addps2', aliases=['psadd2', 'aps2', 'uploadps2'])
     async def addps2(self, ctx: commands.Context, link: str, *, timestamp: typing.Optional[str] = None):
+        # Get all playsounds
+        loop = asyncio.get_event_loop()
+        s3_con = S3Bucket()
+        playsound_names = await loop.run_in_executor(None, s3_con.get_files, ctx)
+
         """Add a playsound v2"""
         def uploader_check(message):
-            return message.author == ctx.message.author
+            # Check if playsound name already exists
+            test = not message.content in playsound_names
+            return message.author == ctx.message.author and not message.content in playsound_names
 
         video_unavailable = '"playabilityStatus:":{"status":"ERROR","reason":"Video unavailable"}'
         
@@ -293,12 +291,8 @@ class Playsound(commands.Cog):
 
         async with ClientSession() as session:
             async with session.get(link) as resp:
-                print(await resp.text())
                 if video_unavailable in await resp.text():
                     return await ctx.send('Invalid Youtube link')
-                
-                loop = asyncio.get_event_loop()
-                # duration = await loop.run_in_executor(None, helper.extract_duration, [link])
                 try:
                     duration = await loop.run_in_executor(None, helper.extract_duration, link)
                 except Exception as e:
@@ -335,18 +329,28 @@ class Playsound(commands.Cog):
                         playsound_path.unlink()
                         await ctx.send('Timeout exceeded. Removing playsound')
                     elif confirm_view.value:
-                        # Set playsound name
                         await ctx.send('Give a cool name for the playsound!')
+                        
                         try:
-                            name = await self.bot.wait_for('message', timeout=15, check=uploader_check)
+                            name = await self.bot.wait_for('message', timeout=20, check=uploader_check)
                         except asyncio.TimeoutError:
                             playsound_path.unlink()
                             return await ctx.send('Timeout exceeded. Removing playsound')
 
                         # Approve the playsound
                         try:
-                            # playsound_path = playsound_path.rename(f'{name.content}')     # Throwing error here
+                            # Check if there is a similar named playsound
                             playsound_path = playsound_path.rename(f'{name.content}.mp3')
+
+                            # Update the metadata
+                            # https://en.wikipedia.org/wiki/ID3
+                            # TPE1 = Artist
+                            # TIT2 = Title
+                            file = mutagen.id3.ID3(Path(f'{playsound_path.name}'))
+                            file.add(TIT2(encoding=3, text=playsound_path.stem))
+                            file.add(TPE1(encoding=3, text='Playsound'))
+                            file.save()
+
                             print('Approving the playsound')
                             await ctx.send('Approving playsound')
                             test_con = S3Bucket()
@@ -358,8 +362,9 @@ class Playsound(commands.Cog):
                             await Tortoise.init(config=tortoise_config)
 
                             await PsObject.create(
-                                name=download_playsound.get('filename'),
-                                duration=10,
+                                name=playsound_path.stem,
+                                extension=playsound_path.suffix,
+                                duration=download_playsound.get('file').info.length,
                                 uploader=ctx.author.id,
                                 played=0,
                                 guild=ctx.author.guild.id,
