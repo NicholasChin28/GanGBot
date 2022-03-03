@@ -63,7 +63,7 @@ class NewMusic(commands.Cog):
         print('New music cog loaded')
 
     @commands.command()
-    async def playw(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
+    async def play(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
         '''Play a song with the given search query.
         
         If not connected, connect to our voice channel.
@@ -86,7 +86,7 @@ class NewMusic(commands.Cog):
             await ctx.send(embed=self.track_embed(ctx, search, title='Added track'))
 
     @commands.command()
-    async def volumew(self, ctx: commands.Context, *, volume: int = None):
+    async def volume(self, ctx: commands.Context, *, volume: int = None):
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -101,13 +101,13 @@ class NewMusic(commands.Cog):
         else:
             raise commands.BadArgument()
 
-    @volumew.error
-    async def volumew_error(self, ctx: commands.Context, error):
+    @volume.error
+    async def volume_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.BadArgument):
             await ctx.send(f'```css\nPass a number between 0 to 100\nLike so: .volumew 20\n```')
 
     @commands.command()
-    async def queuew(self, ctx: commands.Context):
+    async def queue(self, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -120,7 +120,7 @@ class NewMusic(commands.Cog):
         return await ctx.send(embed=queue_embed)
 
     @commands.command()
-    async def stopw(self, ctx: commands.Context):
+    async def stop(self, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -134,7 +134,7 @@ class NewMusic(commands.Cog):
             await ctx.send('Tracks cleared')
         
     @commands.command()
-    async def skipw(self, ctx: commands.Context):
+    async def skip(self, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:
@@ -147,7 +147,7 @@ class NewMusic(commands.Cog):
             return await ctx.send('Not playing anything right now')
 
     @commands.command()
-    async def pausew(self, ctx: commands.Context):
+    async def pause(self, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:
@@ -164,7 +164,7 @@ class NewMusic(commands.Cog):
         await vc.set_pause(not vc.is_paused())
 
     @commands.command()
-    async def preparew(self, ctx: commands.Context):
+    async def player(self, ctx: commands.Context):
         await ctx.send(view=MusicPlayerView(self.bot))
 
     def track_embed(self, ctx: commands.Context, track: wavelink.Track, title: typing.Optional[str] = 'Track') -> discord.Embed:

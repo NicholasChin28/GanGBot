@@ -9,7 +9,7 @@ class MusicPlayerUtils():
         pass
 
     @classmethod
-    async def play_new(cls, user: typing.Union[discord.User, discord.Member], ctx: commands.Context, tqueue: typing.Dict, *, search):
+    async def play(cls, user: typing.Union[discord.User, discord.Member], ctx: commands.Context, tqueue: typing.Dict, *, search):
         if not ctx.voice_client:
             if user.voice is None:
                 return await ctx.send('Please connect to a voice channel')
@@ -44,7 +44,7 @@ class MusicPlayerUtils():
             await ctx.send('Tracks cleared')
 
     @classmethod
-    async def skip_new(cls, ctx: commands.Context):
+    async def skip(cls, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:
@@ -57,7 +57,7 @@ class MusicPlayerUtils():
             return await ctx.send('Not playing anything right now')
 
     @classmethod
-    async def queue_new(cls, ctx: commands.Context):
+    async def queue(cls, ctx: commands.Context):
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -70,7 +70,7 @@ class MusicPlayerUtils():
         return await ctx.send(embed=queue_embed, delete_after=60)
 
     @classmethod
-    async def pause_new(cls, ctx: commands.Context) -> typing.Union[discord.Message, bool]:
+    async def pause(cls, ctx: commands.Context) -> typing.Union[discord.Message, bool]:
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:

@@ -27,6 +27,6 @@ class PlaytrackInputModal(discord.ui.Modal):
         test2 = self.children
         search = self.children[0].value
         
-        await MusicPlayerUtils.play_new(user=self.user, ctx=self.ctx, tqueue=self.tqueue, search=search)
+        await MusicPlayerUtils.play(user=self.user, ctx=self.ctx, tqueue=self.tqueue, search=search)
         await interaction.response.send_message('Adding track', ephemeral=True)
 
