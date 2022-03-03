@@ -26,17 +26,17 @@ class MusicPlayerView(discord.ui.View):
     @discord.ui.button(label='Skip', style=discord.ButtonStyle.red, emoji=Emojis.next_button, custom_id='musicplayer_view:skip')
     async def skip(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
-        await MusicPlayerUtils.skip_new(ctx)
+        await MusicPlayerUtils.skip(ctx)
 
     @discord.ui.button(label='Queue', style=discord.ButtonStyle.red, emoji=Emojis.clipboard, custom_id='musicplayer_view:queue')
     async def queue(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
-        await MusicPlayerUtils.queue_new(ctx)
+        await MusicPlayerUtils.queue(ctx)
 
     @discord.ui.button(label='Pause', style=discord.ButtonStyle.blurple, emoji=Emojis.play_pause, custom_id='musicplayer_view:pause_resume')
     async def pause_resume(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
-        is_paused = await MusicPlayerUtils.pause_new(ctx)
+        is_paused = await MusicPlayerUtils.pause(ctx)
         if is_paused:
             button.label = 'Resume'
             button.emoji = Emojis.resume_button
