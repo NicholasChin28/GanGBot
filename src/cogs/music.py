@@ -16,7 +16,7 @@ from base64 import urlsafe_b64encode
 from helper.s3_bucket import S3Bucket
 from views.musicplayer_view import MusicPlayerView
 
-class NewMusic(commands.Cog):
+class Music(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
@@ -64,7 +64,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def play(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
-        '''Play a song with the given search query.
+        '''Play a song with the given search query
         
         If not connected, connect to our voice channel.
         '''
@@ -87,6 +87,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def volume(self, ctx: commands.Context, *, volume: int = None):
+        '''Sets or gets the volume'''
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -108,6 +109,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def queue(self, ctx: commands.Context):
+        '''Shows all tracks in queue'''
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -121,6 +123,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def stop(self, ctx: commands.Context):
+        '''Stops current track and removes all tracks from queue'''
         vc: Player = ctx.voice_client
 
         if not vc:
@@ -135,6 +138,7 @@ class NewMusic(commands.Cog):
         
     @commands.command()
     async def skip(self, ctx: commands.Context):
+        '''Skip currently playing track'''
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:
@@ -148,6 +152,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def pause(self, ctx: commands.Context):
+        '''Pauses the player'''
         vc: Player = ctx.voice_client
 
         if not ctx.voice_client:
@@ -165,6 +170,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def player(self, ctx: commands.Context):
+        '''Alternative UI to perform bot music actions'''
         await ctx.send(view=MusicPlayerView(self.bot))
 
     def track_embed(self, ctx: commands.Context, track: wavelink.Track, title: typing.Optional[str] = 'Track') -> discord.Embed:
@@ -207,4 +213,4 @@ class NewMusic(commands.Cog):
         return embed
 
 def setup(bot):
-    bot.add_cog(NewMusic(bot))
+    bot.add_cog(Music(bot))
