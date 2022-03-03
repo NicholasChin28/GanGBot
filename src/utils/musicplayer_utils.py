@@ -21,13 +21,13 @@ class MusicPlayerUtils():
 
         if vc.queue.is_empty and not vc.is_playing():
             await vc.queue.put_wait(track)
-            tqueue.update({track.id: ctx})
-            await ctx.send(embed=cls.track_embed(cls, ctx, track, title='Added track'))
+            tqueue.update({track.id: ctx})  # TODO: Update with user ctx and not bot ctx
+            await ctx.send(embed=cls.track_embed(cls, track, user, title='Added track'))
             await vc.play(await vc.queue.get_wait())
         else:
             await vc.queue.put_wait(track)
             tqueue.update({track.id: ctx})
-            await ctx.send(embed=cls.track_embed(cls, ctx, track, title='Added track'))            
+            await ctx.send(embed=cls.track_embed(cls, track, user, title='Added track'))            
 
     @classmethod
     async def stop(cls, ctx: commands.Context):
@@ -52,6 +52,9 @@ class MusicPlayerUtils():
 
         if vc.is_playing():
             await vc.stop()
+            await ctx.send('Track skipped')
+        else:
+            return await ctx.send('Not playing anything right now')
 
     @classmethod
     async def queue_new(cls, ctx: commands.Context):
@@ -62,7 +65,7 @@ class MusicPlayerUtils():
 
         queue_embed = cls.queue_embed(cls, ctx)
         if queue_embed is None:
-            return await ctx.send('Empty queue from newmusic')
+            return await ctx.send('Empty queue')
         
         return await ctx.send(embed=queue_embed, delete_after=60)
 
@@ -85,14 +88,23 @@ class MusicPlayerUtils():
 
         return vc.is_paused()
 
-    def track_embed(self, ctx: commands.Context, track: wavelink.Track, title: typing.Optional[str] = 'Track') -> discord.Embed:
-        embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
+    def track_embed(self, track: wavelink.Track, user: typing.Union[discord.User, discord.Member], title: typing.Optional[str] = 'Track') -> discord.Embed:
+        if type(track) == wavelink.tracks.YouTubeTrack:
+            embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
 
-        embed.add_field(name='Duration', value=track.duration)
-        embed.add_field(name='Requested by', value=ctx.author.mention)
-        embed.add_field(name='Source', value=track.author)
-        embed.set_thumbnail(url=f'https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg')
+            embed.add_field(name='Duration', value=track.duration)
+            embed.add_field(name='Requested by', value=user.mention)
+            embed.add_field(name='Source', value=track.author)
+            
+            embed.set_thumbnail(url=f'https://img.youtube.com/vi/{track.identifier}/maxresdefault.jpg')
+        else:
+            # Playsound
+            embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
 
+            embed.add_field(name='Duration', value=f'{round(track.duration)} seconds')
+            embed.add_field(name='Requested by', value=user.mention)
+            embed.add_field(name='Source', value='Custom playsound')
+            
         return embed
 
     def queue_embed(self, ctx: commands.Context, title: typing.Optional[str] = 'Track queue') -> discord.Embed:

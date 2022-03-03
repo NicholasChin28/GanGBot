@@ -93,10 +93,12 @@ class S3Bucket:
 
         return None
 
-    def upload_files(self, ctx, file):
+    # def upload_files(self, ctx, file):
+    def upload_files(self, guild_id: int, file):
         print('upload_files')
         
-        server = ctx.message.guild.id
+        # server = ctx.message.guild.id
+        server = guild_id
         bucket_name = os.getenv('AWS_BUCKET')
         bucket = self.get_bucket2(bucket_name)
 

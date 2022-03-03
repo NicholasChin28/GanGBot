@@ -17,15 +17,12 @@ class MusicPlayerView(discord.ui.View):
     async def play(self, button: discord.ui.Button, interaction: discord.Interaction):
         user = interaction.user
         ctx = await self.bot.get_context(interaction.message)
-        result = await interaction.response.send_modal(PlaytrackInputModal(user, ctx, self.bot.tqueuenew))
-        print(f'Result from callback: {result}')
+        await interaction.response.send_modal(PlaytrackInputModal(user, ctx, self.bot.tqueuenew))
 
-    """
     @discord.ui.button(label='Add playsound', style=discord.ButtonStyle.green, emoji=Emojis.music_note, custom_id='musicplayer_view:add_ps')
     async def add_playsound(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_modal(PlaysoundInputModal())
-    """
-
+        await interaction.response.send_modal(PlaysoundInputModal(self.bot))
+    
     @discord.ui.button(label='Skip', style=discord.ButtonStyle.red, emoji=Emojis.next_button, custom_id='musicplayer_view:skip')
     async def skip(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
@@ -36,7 +33,7 @@ class MusicPlayerView(discord.ui.View):
         ctx = await self.bot.get_context(interaction.message)
         await MusicPlayerUtils.queue_new(ctx)
 
-    @discord.ui.button(label='Pause', style=discord.ButtonStyle.blurple, emoji=Emojis.pause_button, custom_id='musicplayer_view:pause_resume')
+    @discord.ui.button(label='Pause', style=discord.ButtonStyle.blurple, emoji=Emojis.play_pause, custom_id='musicplayer_view:pause_resume')
     async def pause_resume(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
         is_paused = await MusicPlayerUtils.pause_new(ctx)
@@ -49,7 +46,7 @@ class MusicPlayerView(discord.ui.View):
             button.emoji = Emojis.pause_button
             await interaction.response.edit_message(view=self)
 
-    @discord.ui.button(label='Stop', style=discord.ButtonStyle.red, emoji=Emojis.stop_button, custom_id='musicplayer_view:stop')
+    @discord.ui.button(label='Clear Queue', style=discord.ButtonStyle.red, emoji=Emojis.stop_button, custom_id='musicplayer_view:stop')
     async def stop(self, button: discord.ui.Button, interaction: discord.Interaction):
         ctx = await self.bot.get_context(interaction.message)
         await MusicPlayerUtils.stop(ctx)

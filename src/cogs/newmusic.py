@@ -5,7 +5,6 @@ from pathlib import Path
 from aiohttp import ClientSession
 import async_timeout
 import discord
-
 import wavelink
 from discord.ext import commands
 from wavelink.player import Player
@@ -14,7 +13,6 @@ from wavelink.tracks import Track
 import typing
 import urllib.parse
 from base64 import urlsafe_b64encode
-
 from helper.s3_bucket import S3Bucket
 from views.musicplayer_view import MusicPlayerView
 
@@ -117,7 +115,7 @@ class NewMusic(commands.Cog):
 
         queue_embed = self.queue_embed(ctx)
         if queue_embed is None:
-            return await ctx.send('Empty queue from newmusic')
+            return await ctx.send('Empty queue')
         
         return await ctx.send(embed=queue_embed)
 
@@ -144,6 +142,9 @@ class NewMusic(commands.Cog):
         
         if vc.is_playing():
             await vc.stop()
+            await ctx.send('Track skipped')
+        else:
+            return await ctx.send('Not playing anything right now')
 
     @commands.command()
     async def pausew(self, ctx: commands.Context):
@@ -164,7 +165,7 @@ class NewMusic(commands.Cog):
 
     @commands.command()
     async def preparew(self, ctx: commands.Context):
-        await ctx.send("Whats your favourite colour", view=MusicPlayerView(self.bot))
+        await ctx.send(view=MusicPlayerView(self.bot))
 
     def track_embed(self, ctx: commands.Context, track: wavelink.Track, title: typing.Optional[str] = 'Track') -> discord.Embed:
         if type(track) == wavelink.tracks.YouTubeTrack:

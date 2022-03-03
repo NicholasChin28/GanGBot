@@ -1,9 +1,14 @@
 from discord.ext import commands
 from urllib.parse import urlparse
+import mutagen
+from mutagen.id3 import ID3, TIT2, TPE1
 import validators
+import discord
+from pathlib import Path
 from helper import helper
 from helper.s3_bucket import S3Bucket
 import asyncio
+import typing
 from models.playsound import Playsound as PsObject
 from pyaml_env import parse_config
 from tortoise import Tortoise, run_async
@@ -15,9 +20,15 @@ class PlaysoundUtils():
         pass
 
     @classmethod
-    async def addps(cls, bot, user, link: str, ctx: commands.Context):
-        def uploader_check(message):
-            return message.author == user
+    # async def addps(cls, bot, user, link: str, ctx: commands.Context):
+    async def addps(cls, bot: commands.Bot, link: str, name: str, ctx: commands.Context, user: typing.Union[discord.User, discord.Member], timestamp: typing.Optional[str] = None):
+        # Get all playsounds
+        loop = asyncio.get_event_loop()
+        s3_con = S3Bucket()
+        playsound_names = await loop.run_in_executor(None, s3_con.get_files, ctx)
+
+        if name in playsound_names:
+            return await ctx.send('A playsound with that name already exists. Try something else')
 
         video_unavailable = '"playabilityStatus:":{"status":"ERROR","reason":"Video unavailable"}'
 
@@ -27,11 +38,8 @@ class PlaysoundUtils():
 
         async with ClientSession() as session:
             async with session.get(link) as resp:
-                print(await resp.text())
                 if video_unavailable in await resp.text():
                     return await ctx.send('Invalid Youtube link')
-
-                loop = asyncio.get_event_loop()
                 try:
                     duration = await loop.run_in_executor(None, helper.extract_duration, link)
                 except Exception as e:
@@ -49,7 +57,7 @@ class PlaysoundUtils():
                     if duration > 20:
                         return await ctx.send('Only playsounds 20 seconds or less can be added')
                     
-                    download_playsound = await loop.run_in_executor(None, helper.download_playsound_new, link)
+                    download_playsound = await loop.run_in_executor(None, helper.download_playsound_new, link, None, None, duration)
 
                 if download_playsound.get('download_result'):
                     playsound = discord.File(download_playsound.get('filename'))
@@ -69,21 +77,25 @@ class PlaysoundUtils():
                         await ctx.send('Timeout exceeded. Removing playsound')
                     elif confirm_view.value:
                         # Set playsound name
-                        await ctx.send('Give a cool name for the playsound!')
-                        try:
-                            name = await self.bot.wait_for('message', timeout=15, check=uploader_check)
-                        except asyncio.TimeoutError:
-                            playsound_path.unlink()
-                            return await ctx.send('Timeout exceeded. Removing playsound')
+                        # await ctx.send('Give a cool name for the playsound!')
 
                         # Approve the playsound
                         try:
-                            # playsound_path = playsound_path.rename(f'{name.content}')     # Throwing error here
-                            playsound_path = playsound_path.rename(f'{name.content}.mp3')
+                            playsound_path = playsound_path.rename(f'{name}.mp3')
+
+                            # Update the metadata
+                            # https://en.wikipedia.org/wiki/ID3
+                            # TPE1 = Artist
+                            # TIT2 = Title
+                            file = mutagen.id3.ID3(Path(f'{playsound_path.name}'))
+                            file.add(TIT2(encoding=3, text=playsound_path.stem))
+                            file.add(TPE1(encoding=3, text='Playsound'))
+                            file.save()
+
                             print('Approving the playsound')
                             await ctx.send('Approving playsound')
-                            test_con = S3Bucket()
-                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, playsound_path.name)
+                            # test_con = S3Bucket()
+                            upload_results = await loop.run_in_executor(None, s3_con.upload_files, user.guild.id, playsound_path.name)
                             print(f'upload_results: {upload_results}')
 
                             # Save playsound details in database
@@ -91,11 +103,12 @@ class PlaysoundUtils():
                             await Tortoise.init(config=tortoise_config)
 
                             await PsObject.create(
-                                name=download_playsound.get('filename'),
-                                duration=10,
-                                uploader=ctx.author.id,
+                                name=playsound_path.stem,
+                                extension=playsound_path.suffix,
+                                duration=download_playsound.get('file').info.length,
+                                uploader=user.id,
                                 played=0,
-                                guild=ctx.author.guild.id,
+                                guild=user.guild.id,
                             )
 
                             await ctx.send('Playsound added!')

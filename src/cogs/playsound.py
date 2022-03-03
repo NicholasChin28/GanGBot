@@ -30,38 +30,10 @@ from helper.s3_bucket import S3Bucket
 from models.ytdl_source import YTDLSource
 from models.playsound_source import PlaysoundAudio, PlaysoundSource
 from views.confirm import Confirm
+from views.multipage import MultiPage, PreviousButton, NextButton
+from datetime import datetime
 
 load_dotenv()
-
-
-# Non existent playsound file error
-class SoundError(Exception):
-    pass
-
-
-# Custom added class to play local .mp3 files as a soundboard
-class Sound:
-    __slots__ = ('source', 'requester')
-
-    def __init__(self, source: PlaysoundSource):
-        self.source = source
-        # self.requester = source.requester
-
-    def create_embed(self):
-        embed = discord.Embed(title="Now playing playsound")
-
-        return embed
-
-    """
-    def create_embed(self):
-        embed = (discord.Embed(title='Now playing',
-                                description='```css\n{0.source.title}\n```'.format(self),
-                                color=discord.Color.blurple())
-                .add_field(name='Duration', value=self.source.duration)
-                .add_field(name='Requested by', value=self.requester.mention))
-
-        return embed
-    """
 
 class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -72,79 +44,27 @@ class Playsound(commands.Cog):
         print('Playsound cog loaded!')
 
     @commands.command(name='listsounds', aliases=['ls'])
-    async def _listsounds2(self, ctx: commands.Context, *, page: int = 1):
-        """ Get list of playsounds from bucket """
-        loop = asyncio.get_running_loop()
+    async def _listsounds(self, ctx: commands.Context):
+        page = 1
+        loop = asyncio.get_event_loop()
+        tortoise_config = parse_config('./tortoise-config.yaml')
+        await Tortoise.init(config=tortoise_config)
 
-        test_con = S3Bucket()
-        partial = functools.partial(test_con.get_files, ctx)
+        # Get all playsounds
+        playsounds = await PsObject.all()
+        if len(playsounds) == 0:
+            return await ctx.send('No playsounds found')
+        
+        embeds = await loop.run_in_executor(None, self.playsound_embeds, playsounds)
 
-        the_list = await loop.run_in_executor(None, partial)
-        print(the_list)
+        embed = discord.Embed(description=f'**{len(playsounds)} sounds:**\n\n{embeds[page - 1]}')
+        embed.set_footer(text=f'Viewing page {page}/{len(embeds)}')
 
-        if len(the_list) == 0:
-            return await ctx.send("No playsounds found")
-        else:
-            limit = 10      # Playsounds per peage
-            embeds = []
-            playsounds = ''
-
-            for i, playsound in enumerate(the_list[0:], start=1):
-                if i % limit == 0:
-                    playsounds += '`{0}.` `{1}`\n'.format(i, playsound)
-                    embeds.append(playsounds)
-                    playsounds = ''
-                else:
-                    playsounds += '`{0}.` `{1}`\n'.format(i, playsound)
-                    if i == len(the_list):
-                        embeds.append(playsounds)
-
-            pages = len(embeds) # Total pages
-
-            embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(the_list), embeds[page - 1]))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-            message = await ctx.send(embed=embed)
-
-            # Page reactions
-            async def add_page_reactions():
-                if page == pages:
-                    pass    # Only 1 page. No reactions required
-                if page > 1:
-                    await message.add_reaction(Emojis.reverse_button)
-                if pages > page:
-                    await message.add_reaction(Emojis.play_button)
-
-            await add_page_reactions()
-
-            # Recreates the embed
-            async def refresh_embed():
-                await message.clear_reactions()
-                embed = (discord.Embed(description='**{} sounds:**\n\n{}'.format(len(the_list), embeds[page - 1]))
-                    .set_footer(text='Viewing page {}/{}'.format(page, pages)))
-
-                await message.edit(embed=embed)
-                await add_page_reactions()
-
-            # Check for reaction
-            def check(reaction, user):
-                return not user.bot and reaction.message.id == message.id and (reaction.emoji in [Emojis.reverse_button, Emojis.play_button])
-
-            while True:
-                try:
-                    reaction, _ = await ctx.bot.wait_for('reaction_add', timeout=60, check=check)
-                except asyncio.TimeoutError:
-                    await message.delete()
-                    break
-                else:
-                    if reaction.emoji == Emojis.reverse_button:
-                        page -= 1
-                        await refresh_embed()
-                    elif reaction.emoji == Emojis.play_button:
-                        page += 1
-                        await refresh_embed()
+        message = await ctx.send(embed=embed)
+        await message.edit(embed=embed, view=MultiPage(message, embeds, len(playsounds)))
     
-    @commands.command(name='ps2')
-    async def _playsound_new(self, ctx: commands.Context, *, search: str):
+    @commands.command(name='ps')
+    async def _playsound(self, ctx: commands.Context, *, search: str):
         """Plays a playsound"""
         async with ctx.typing():
             node = wavelink.NodePool.get_node()
@@ -165,8 +85,6 @@ class Playsound(commands.Cog):
 
             if playsound_path.exists():
                 track = await node.get_tracks(cls=wavelink.LocalTrack, query=f'{playsound_path.resolve().__str__()}')
-                # await vc.queue.put_wait(track[0])
-                # await ctx.send('Added playsound')
             else:
                 # Get file from AWS S3 bucket
                 bucket = S3Bucket()
@@ -176,11 +94,11 @@ class Playsound(commands.Cog):
 
             # Temp update the track details
             if track[0].title == 'Unknown title':
-                track[0].title = 'test'
-                track[0].info.update({'title': 'test'})
+                track[0].title = 'Playsound'
+                track[0].info.update({'title': 'Playsound'})
 
-            track[0].title = 'test'
-            track[0].info.update({'title': 'test'})
+            # track[0].title = 'test'
+            # track[0].info.update({'title': 'test'})
 
             if vc.queue.is_empty and not vc.is_playing():
                 print(track[0].title)
@@ -206,34 +124,10 @@ class Playsound(commands.Cog):
 
             await Tortoise.close_connections()
 
-    # DEPRECATED: DONT USE
-    # Command to play sound file from AWS S3 bucket
-    @commands.command(name='ps')
-    async def _playsound2(self, ctx: commands.Context, *, search: str):
-        """Plays a playsound"""
-        async with ctx.typing():
-            try:
-                source = await PlaysoundAudio.get_source(ctx, search, loop=self.bot.loop)
-                print('source: ', source)
-                print('type of source: ', type(source))
-
-                # Join VC only if playsound exists
-                parent_cog = ctx.bot.get_cog('Music')
-                cur_voice_state = parent_cog.get_voice_state(ctx)
-                ctx.voice_state = cur_voice_state
-                if not cur_voice_state.voice:
-                    await ctx.bot.get_command('join').callback(self, ctx)
-            except Exception as e:
-                await ctx.send("Playsound not found")
-            else:
-                sound = Sound(source)
-
-                await cur_voice_state.songs.put(sound)
-                await ctx.send('Enqueued a playsound')
-
     # Delete playsound
     # TODO: Delete playsound from s3 and remove database record
     @commands.command(name='delps', aliases=['psdelete', 'dps', 'psdel'])
+    @commands.is_owner()
     async def _delete(self, ctx: commands.Context, ps_name):
         """Deletes a playsound"""
         view = Confirm()
@@ -257,7 +151,7 @@ class Playsound(commands.Cog):
                 await Tortoise.init(config=tortoise_config)
 
                 record = await PsObject.filter(
-                    name=f'{ps_name}.mp3'
+                    name=f'{ps_name}'
                 ).first()
 
                 if record:
@@ -267,14 +161,14 @@ class Playsound(commands.Cog):
             print('Cancelled...')
 
     # Upload playsounds command
-    @commands.command(name='addps2', aliases=['psadd2', 'aps2', 'uploadps2'])
-    async def addps2(self, ctx: commands.Context, link: str, *, timestamp: typing.Optional[str] = None):
+    @commands.command(name='addps', aliases=['psadd', 'aps', 'uploadps'])
+    async def _addps(self, ctx: commands.Context, link: str, *, timestamp: typing.Optional[str] = None):
         # Get all playsounds
         loop = asyncio.get_event_loop()
         s3_con = S3Bucket()
         playsound_names = await loop.run_in_executor(None, s3_con.get_files, ctx)
 
-        """Add a playsound v2"""
+        """Add a playsound"""
         def uploader_check(message):
             # Check if playsound name already exists
             test = not message.content in playsound_names
@@ -310,7 +204,7 @@ class Playsound(commands.Cog):
                     if duration > 20:
                         return await ctx.send('Only playsounds 20 seconds or less can be added')
                     
-                    download_playsound = await loop.run_in_executor(None, helper.download_playsound_new, link)
+                    download_playsound = await loop.run_in_executor(None, helper.download_playsound_new, link, None, None, duration)
 
                 if download_playsound.get('download_result'):
                     playsound = discord.File(download_playsound.get('filename'))
@@ -331,12 +225,34 @@ class Playsound(commands.Cog):
                     elif confirm_view.value:
                         await ctx.send('Give a cool name for the playsound!')
                         
+                        while True:
+                            try:
+                                name = await self.bot.wait_for('message', timeout=20)
+                            except asyncio.TimeoutError:
+                                playsound_path.unlink()
+                                return await ctx.send('Timeout exceeded. Removing playsound')
+                            if name.content not in playsound_names:
+                                break
+                            else:
+                                await ctx.send('A playsound with that name already exists. Try something else')
+                                continue
+                                """
+                                test_some = name
+                                if name.content in playsound_names:
+                                    await ctx.send('A playsound with that name already exists. Try something else')
+                                    continue
+                                """
+                                
+                        """
                         try:
                             name = await self.bot.wait_for('message', timeout=20, check=uploader_check)
+                            print(f'value of name: {name}')
                         except asyncio.TimeoutError:
                             playsound_path.unlink()
                             return await ctx.send('Timeout exceeded. Removing playsound')
+                        """
 
+                        print(f'value of name v2: {name}')
                         # Approve the playsound
                         try:
                             # Check if there is a similar named playsound
@@ -354,7 +270,7 @@ class Playsound(commands.Cog):
                             print('Approving the playsound')
                             await ctx.send('Approving playsound')
                             test_con = S3Bucket()
-                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx, playsound_path.name)
+                            upload_results = await loop.run_in_executor(None, test_con.upload_files, ctx.message.guild.id, playsound_path.name)
                             print(f'upload_results: {upload_results}')
 
                             # Save playsound details in database
@@ -387,8 +303,8 @@ class Playsound(commands.Cog):
                 else:
                     return await ctx.send('Unexpected error occurred. Please check logs')
 
-    @addps2.error
-    async def addps2_error(self, ctx: commands.Context, error):
+    @_addps.error
+    async def addps_error(self, ctx: commands.Context, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send('Please provide a valid Youtube link')
             
@@ -402,181 +318,25 @@ class Playsound(commands.Cog):
             use_help.add_field(name='Start and end timestamp', value=f'.{ctx.command.name} {help_link} {help_timestamp}', inline=False)
 
             await ctx.send(embed=use_help)
-            
 
-    # Upload command
-    @commands.command(name='addps', aliases=['psadd', 'aps', 'uploadps'])
-    async def _upload(self, ctx: commands.Context, link: str, timestamp: typing.Optional[str] = None):
-        """Add a playsound"""
-        video_unavailable = '"playabilityStatus:":{"status":"ERROR","reason":"Video unavailable"}'
-        message_attachments = ctx.message.attachments
+    def playsound_embeds(self, playsounds: typing.List[PsObject]):
+        limit = 10
+        embeds = []
+        embed_text = ''
 
-        use_help = discord.Embed(
-                title="How to use:",
-                description=f"{ctx.command.name}")
-        use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
-        use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
+        for idx, playsound in enumerate(playsounds[0:], start=1):
+            if idx % limit == 0:
+                embed_text += f'{idx}. {playsound.name}\n'
+                embeds.append(embed_text)
+                embed_text = ''
+            else:
+                embed_text += f'{idx}. {playsound.name}\n'
+                if idx == len(playsounds):
+                    embeds.append(embed_text)
 
-
-        '''
-        if len(args) == 0:
-            return await ctx.send(embed=use_help, delete_after=20)
-        '''
-
-        if len(message_attachments) > 1:
-            return await ctx.send('File upload only supports one file attachment', delete_after=20)
-        
-        uploader = ctx.message.author
-
-        # File upload
-        if len(message_attachments) == 1:
-            if len(link) > 1:
-                return await ctx.send(use_help, delete_after=20)
-
-            first_attachment = message_attachments[0]
-                    
-            filename = first_attachment.filename
-            file_ext = pathlib.Path(filename).suffix
-            file_url = first_attachment.url
-
-            if not first_attachment.content_type.startswith('audio/'):
-                return await ctx.send('Only audio files supported')
-
-            if file_ext != ".mp3":
-                return await ctx.send('Only mp3 uploads supported')
-
-            # TODO: Standardize into one call
-            try:
-                # Handling for user file attachment
-                playsound_source = await PlaysoundSource.create_source(ctx, args[0], file_upload=True)
-                playsound = discord.File(playsound_source.filename)
-                message = await ctx.send(file=playsound)
-            except Exception as e:
-                return await ctx.send(e)
-        # From Url
-        else:
-            if not validators.url(link) and 'youtube.com' in urlparse(link).netloc:
-                return await ctx.send("Only Youtube links supported")
-
-            async with ClientSession() as session:
-                async with session.get(link) as resp:
-                    print(await resp.text())
-                    if video_unavailable in await resp.text():
-                        return await ctx.send('Invalid Youtube link')
-            try:
-                playsound_source = await PlaysoundSource.create_source(ctx, url=link, timestamp=timestamp)
-                playsound = discord.File(playsound_source.filename)
-                message = await ctx.send(file=playsound)
-            except Exception as e:
-                return await ctx.send(e)
-
-        # Check with user if the playsound generated is correct
-        def check(reaction, user):
-            return not user.bot and reaction.message.id == message.id and (reaction.emoji in ['❌', '✅']) 
-
-        def name_check(message):
-            print("name_check called")
-            return message.author == uploader
-        
-        # Add reactions to message
-        await message.add_reaction(Emojis.x_emoji)
-        await message.add_reaction(Emojis.tick_emoji)
-
-        try:
-            reaction, _ = await self.bot.wait_for('reaction_add', timeout=20, check=check)
-        except asyncio.TimeoutError:
-            # TODO: Delete the playsound and delete the message
-            await ctx.send("Reaction timeout exceeded. Deleting playsound")
-            Path(playsound_source.filename).unlink(missing_ok=True)
-
-        if reaction.emoji == Emojis.tick_emoji:
-            await ctx.send("Give a cool name for the playsound!")
-            try:
-                name = await self.bot.wait_for('message', timeout=10, check=name_check)
-            except asyncio.TimeoutError:
-                Path(playsound_source.filename).unlink(missing_ok=True)
-                print("Timeout exceeded from message wait")
-                return await ctx.send('Message timeout exceeded. Removing playsound.')
-
-            if name:
-                # Approved playsound. Upload it to AWS S3
-                print('Approving playsound')
-
-                loop = asyncio.get_running_loop()
+        return embeds
                 
-                # Rename the file before uploading
-                playsound_local = Path(playsound_source.filename)
-                # print(playsound_local)
-                new_name = Path(name.content + playsound_local.suffix)
-                # print(new_name)
-                playsound_local.rename(new_name)
 
-                test_con = S3Bucket()
-                partial = functools.partial(test_con.upload_files, ctx, [new_name.__str__()])
-                try:
-                    upload_results = await loop.run_in_executor(None, partial)
-                    # After upload_results returns, there will be an exception. Probably due to the connection closing.
-                    print('upload_results: ', upload_results)   
-                    
-                    # TODO: Save the playsound details in db
-                    tortoise_config = parse_config('./tortoise-config.yaml')
-                    await Tortoise.init(config=tortoise_config)
-                    
-                    await PsObject.create(
-                        name=new_name,
-                        duration=playsound_source.duration,
-                        uploader=playsound_source.uploader.id,
-                        played=0,
-                        guild=playsound_source.guild.id,
-                    )
-
-                    await ctx.send("Playsound added!")
-                    # Delete the playsound after successful upload
-                    Path(new_name).unlink(missing_ok=True)
-
-                    await Tortoise.close_connections()
-                except Exception as e:
-                    return await ctx.send(e)
-        elif reaction.emoji == Emojis.x_emoji:
-            # Rejected playsound. Delete it
-            print('Rejecting playsound')
-            Path(playsound_source.filename).unlink(missing_ok=True)
-            await message.delete()
-            await ctx.send("Rejected playsound. Removing...")
-
-    @_upload.error
-    async def upload_error(self, ctx: commands.Context, error):
-        # Check if arguments passed
-        if isinstance(error, commands.MissingRequiredArgument):
-            print('Missing required argument')
-            use_help = discord.Embed(
-                title="How to use:",
-                description=f"{ctx.command.name}")
-            use_help.add_field(name='With file attachment', value=f'.{ctx.command.name} 00:20-00:30', inline=False)
-            use_help.add_field(name='With link', value=f'.{ctx.command.name} https://www.youtube.com/watch?v=dQw4w9WgXcQ 00:20-00:30', inline=False)
-
-            await ctx.send(embed=use_help)
-
-
-# Example how to use Buttons, discordpy 2.0
-# https://github.com/Rapptz/discord.py/blob/master/examples/views/confirm.py
-class Confirm(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.value = None
-        self.timeout = 20
-
-    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
-    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Confirming', ephemeral=True)
-        self.value = True
-        self.stop()
-
-    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.grey)
-    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Cancelling', ephemeral=True)
-        self.value = False
-        self.stop()
 
 def setup(bot):
     bot.add_cog(Playsound(bot))
