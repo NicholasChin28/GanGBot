@@ -45,6 +45,7 @@ class Playsound(commands.Cog):
 
     @commands.command(name='listsounds', aliases=['ls'])
     async def _listsounds(self, ctx: commands.Context):
+        """Lists all available playsounds"""
         page = 1
         loop = asyncio.get_event_loop()
         tortoise_config = parse_config('./tortoise-config.yaml')
@@ -163,6 +164,7 @@ class Playsound(commands.Cog):
     # Upload playsounds command
     @commands.command(name='addps', aliases=['psadd', 'aps', 'uploadps'])
     async def _addps(self, ctx: commands.Context, link: str, *, timestamp: typing.Optional[str] = None):
+        """Add a playsound"""
         # Get all playsounds
         loop = asyncio.get_event_loop()
         s3_con = S3Bucket()
