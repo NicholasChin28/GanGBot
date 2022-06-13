@@ -58,9 +58,11 @@ class Music(commands.Cog):
                 if next_track:
                     return await player.play(next_track)
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print('New music cog loaded')
+    async def cog_load(self) -> None:
+        print("Music cog loaded! from 2.0")
+
+    async def cog_unload(self) -> None:
+        print("Music cog unloaded! from 2.0")
 
     @commands.command()
     async def play(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
@@ -212,5 +214,5 @@ class Music(commands.Cog):
         
         return embed
 
-def setup(bot):
-    bot.add_cog(Music(bot))
+async def setup(bot):
+    await bot.add_cog(Music(bot))

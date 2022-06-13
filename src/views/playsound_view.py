@@ -7,7 +7,7 @@ class LinkField(discord.ui.TextInput):
     def __init__(self):
         super().__init__(
             label='Playsound link',
-            style=discord.TextInputStyle.short,
+            style=discord.TextStyle.short,
             min_length=1, 
             placeholder='Only Youtube links supported', 
             custom_id='ps_link'
@@ -17,7 +17,7 @@ class NameField(discord.ui.TextInput):
     def __init__(self):
         super().__init__(
             label='Playsound name', 
-            style=discord.TextInputStyle.short, 
+            style=discord.TextStyle.short, 
             min_length=1, 
             max_length=20,
             placeholder='Give a cool name for the playsound!', 
@@ -28,7 +28,7 @@ class TimestampField(discord.ui.TextInput):
     def __init__(self):
         super().__init__(
             label='Playsound duration',
-            style=discord.TextInputStyle.short,
+            style=discord.TextStyle.short,
             required=False,
             placeholder='Duration cannot be more than 20 seconds',
             custom_id='ps_duration'

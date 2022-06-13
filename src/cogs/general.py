@@ -15,9 +15,11 @@ class General(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print('General cog loaded!')
+    async def cog_load(self) -> None:
+        print("General cog loaded! from 2.0")
+
+    async def cog_unload(self) -> None:
+        print("General cog unloaded! from 2.0")
 
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
@@ -123,5 +125,5 @@ The duration must be in seconds (eg. 300 for 5 minutes)""")
             else:
                 await ctx.send(f'The winning vote is "{(options[vote_counts.index(highest_count)])[1:-1]}" with a vote count of {highest_count}!')
 
-def setup(bot):
-    bot.add_cog(General(bot))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(General(bot))

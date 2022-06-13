@@ -19,7 +19,7 @@ from discord.ext import commands
 from helper import helper
 from views.musicplayer_view import MusicPlayerView
 
-intents = discord.Intents(messages=True, guilds=True, members=True, voice_states=True)
+intents = discord.Intents(message_content=True, messages=True, guilds=True, members=True, voice_states=True)
 
 class MaldBot(commands.Bot):
     def __init__(self):
@@ -31,16 +31,24 @@ class MaldBot(commands.Bot):
     def tqueuenew(self):
         return self.__tqueuenew
 
+    async def setup_hook(self) -> None:
+        self.add_view(MusicPlayerView(self))
+        self.musicplayer_view_added = True
+        for filename in self.get_cogs():
+            await self.load_extension(f'cogs.{filename}')
+
     async def on_ready(self):
         print(f'Logged in as \n{self.user.name}\n{self.user.id}')
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
         # Load cogs
-        for filename in self.get_cogs():
-            self.load_extension(f'cogs.{filename}')
+        # for filename in self.get_cogs():
+        #    await self.load_extension(f'cogs.{filename}')
 
+        """
         if not self.musicplayer_view_added:
             self.add_view(MusicPlayerView(self))
             self.musicplayer_view_added = True
+        """
 
     async def close(self):
         print('Bot is closing!')

@@ -13,9 +13,11 @@ class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print('Owner cog loaded!')
+    def cog_load(self) -> None:
+        print("Owner cog loaded! from 2.0")
+
+    async def cog_unload(self) -> None:
+        print("Owner cog unloaded! from 2.0")
 
     @commands.command(name='load')
     @commands.is_owner()
@@ -133,5 +135,5 @@ class Owner(commands.Cog):
             await ctx.send("Sorry, only the bot owner can use this command")
 
 
-def setup(bot):
-    bot.add_cog(Owner(bot))
+async def setup(bot):
+    await bot.add_cog(Owner(bot))

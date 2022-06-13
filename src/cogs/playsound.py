@@ -39,9 +39,11 @@ class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print('Playsound cog loaded!')
+    async def cog_load(self) -> None:
+        print("Playsound cog loaded! from 2.0")
+
+    async def cog_unload(self) -> None:
+        print("Playsound cog unloaded! from 2.0")
 
     @commands.command(name='listsounds', aliases=['ls'])
     async def _listsounds(self, ctx: commands.Context):
@@ -340,5 +342,5 @@ class Playsound(commands.Cog):
                 
 
 
-def setup(bot):
-    bot.add_cog(Playsound(bot))
+async def setup(bot):
+    await bot.add_cog(Playsound(bot))
