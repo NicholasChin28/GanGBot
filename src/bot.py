@@ -1,18 +1,8 @@
-# TODO: Pass context between different cogs
-# TODO: Add an emoji to cancel votes
-# TODO: Generate a helper decorator function to calculate the execution time of a function
-# Reference link for helper decorator function: https://dev.to/s9k96/calculating-run-time-of-a-function-using-python-decorators-148o
-# https://stackoverflow.com/questions/56796991/discord-py-changing-prefix-with-command
-# For editing / removing help command: https://stackoverflow.com/questions/45951224/how-to-remove-default-help-command-or-change-the-format-of-it-in-discord-py
-
-# Lookup command grouping in the future: https://stackoverflow.com/questions/62460182/discord-py-how-to-invoke-another-command-inside-another-one
-# Use tasks, etc. @task.loop for automating timed tasks
-
-# TODO: Generate custom help command for the bot
-# TODO: Add permissions error: https://stackoverflow.com/questions/52593777/permission-check-discord-py-bot
 import os
 import pathlib
 from dotenv import load_dotenv, find_dotenv
+import logging
+from pathlib import Path
 
 import discord
 from discord.ext import commands
@@ -37,21 +27,18 @@ class MaldBot(commands.Bot):
         for filename in self.get_cogs():
             await self.load_extension(f'cogs.{filename}')
 
-    async def on_ready(self):
-        print(f'Logged in as \n{self.user.name}\n{self.user.id}')
+    async def on_ready(self):        
+        logging.info(f'Logged in as \n{self.user.name}\n{self.user.id}')
         await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='yumans'))
-        # Load cogs
-        # for filename in self.get_cogs():
-        #    await self.load_extension(f'cogs.{filename}')
-
+        
         """
         if not self.musicplayer_view_added:
             self.add_view(MusicPlayerView(self))
             self.musicplayer_view_added = True
         """
 
-    async def close(self):
-        print('Bot is closing!')
+    async def close(self):        
+        logging.info('Bot is closing!')
         await super().close()
 
     def get_cogs(self):
@@ -66,4 +53,8 @@ bot = MaldBot()
 load_dotenv(find_dotenv())
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-bot.run(TOKEN)
+log_path = Path('logs/maldbot.log')
+log_path.parent.mkdir(parents=True, exist_ok=True)
+handler = logging.FileHandler(filename=str(log_path), encoding='utf-8', mode='a')
+
+bot.run(TOKEN, log_handler=handler, log_level=logging.INFO, root_logger=True)

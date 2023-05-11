@@ -3,6 +3,7 @@ import os
 import discord
 from discord.ext import commands
 import typing
+import logging
 from helper import helper
 from models.role import Role
 from tortoise import Tortoise, run_async
@@ -13,11 +14,11 @@ class Owner(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    def cog_load(self) -> None:
-        print("Owner cog loaded! from 2.0")
+    def cog_load(self) -> None:        
+        logging.info("Owner cog loaded! from 2.0")
 
-    async def cog_unload(self) -> None:
-        print("Owner cog unloaded! from 2.0")
+    async def cog_unload(self) -> None:        
+        logging.info("Owner cog unloaded! from 2.0")
 
     @commands.command(name='load')
     @commands.is_owner()

@@ -32,6 +32,7 @@ from models.playsound_source import PlaysoundAudio, PlaysoundSource
 from views.confirm import Confirm
 from views.multipage import MultiPage, PreviousButton, NextButton
 from datetime import datetime
+import logging
 
 load_dotenv()
 
@@ -39,11 +40,11 @@ class Playsound(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    async def cog_load(self) -> None:
-        print("Playsound cog loaded! from 2.0")
+    async def cog_load(self) -> None:        
+        logging.info("Playsound cog loaded! from 2.0")
 
-    async def cog_unload(self) -> None:
-        print("Playsound cog unloaded! from 2.0")
+    async def cog_unload(self) -> None:        
+        logging.info("Playsound cog unloaded! from 2.0")
 
     @commands.command(name='listsounds', aliases=['ls'])
     async def _listsounds(self, ctx: commands.Context):

@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 import random
+import logging
 
 # For vote
 import asyncio
@@ -15,11 +16,11 @@ class General(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    async def cog_load(self) -> None:
-        print("General cog loaded! from 2.0")
+    async def cog_load(self) -> None:        
+        logging.info("General cog loaded! from 2.0")
 
-    async def cog_unload(self) -> None:
-        print("General cog unloaded! from 2.0")
+    async def cog_unload(self) -> None:        
+        logging.info("General cog unloaded! from 2.0")
 
     @commands.command(name='choose')
     async def _choose(self, ctx: commands.Context, *, choose: str):
