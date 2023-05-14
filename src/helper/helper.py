@@ -9,11 +9,11 @@ import typing
 from aiohttp.client import request
 import validators
 import mutagen
-import youtube_dl
+import yt_dlp
 from models import ytdl_source
 from models.video_range import VideoRange
 from humanfriendly import parse_size
-from youtube_dl.postprocessor.common import PostProcessor
+from yt_dlp.postprocessor.common import PostProcessor
 
 class MyLogger(object):
     def debug(self, msg):
@@ -25,7 +25,7 @@ class MyLogger(object):
     def error(self, msg):
         print(msg)
 
-# Gets the filename of downloaded youtube_dl file
+# Gets the filename of downloaded yt_dlp file
 # Inspiration code: https://stackoverflow.com/questions/64759263/how-to-get-filename-of-file-downloaded-with-youtube-dl
 class FilenameCollectorPP(PostProcessor):
     def __init__(self):
@@ -148,7 +148,7 @@ def create_playsound(url, name, timestamp):
 
     print(f'Value of ydl_opts: {ydl_opts}')
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
         ydl.download([url])
@@ -158,14 +158,14 @@ def create_playsound(url, name, timestamp):
 # Extracts duration from Youtube link
 def extract_duration(link: str):
     try:
-        with youtube_dl.YoutubeDL() as ydl:
+        with yt_dlp.YoutubeDL() as ydl:
             info = ydl.extract_info(link, download=False)
             return info['duration']
     except Exception as e:
         print(e)
         raise Exception("Youtubedl encountered an unexpected error")
 
-# Constructs the youtube_dl options
+# Constructs the yt_dlp options
 def create_ytdl_options(filename: str, timestamp: VideoRange):
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -369,7 +369,7 @@ def download_playsound_new(url, start_time: int = None, end_time: int = None, du
         ytdl_opts['external_downloader_args'].extend(['-to', str(end_time)])
 
     try:
-        with youtube_dl.YoutubeDL(ytdl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ytdl_opts) as ydl:
             filename_collector = FilenameCollectorPP()
             ydl.add_post_processor(filename_collector)
 
@@ -424,7 +424,7 @@ def download_playsound(url, start_time, end_time) -> Dict:
     }
 
     try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             filename_collector = FilenameCollectorPP()
             ydl.add_post_processor(filename_collector)
 
