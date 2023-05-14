@@ -88,7 +88,7 @@ class MusicPlayerUtils():
 
         return vc.is_paused()
 
-    def track_embed(self, track: wavelink.Track, user: typing.Union[discord.User, discord.Member], title: typing.Optional[str] = 'Track') -> discord.Embed:
+    def track_embed(self, track: wavelink.YouTubeTrack, user: typing.Union[discord.User, discord.Member], title: typing.Optional[str] = 'Track') -> discord.Embed:
         if type(track) == wavelink.tracks.YouTubeTrack:
             embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
 

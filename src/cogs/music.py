@@ -8,13 +8,13 @@ import discord
 import wavelink
 from discord.ext import commands
 from wavelink.player import Player
-from wavelink.pool import Node
-from wavelink.tracks import Track
+from wavelink import Node
 import typing
 import urllib.parse
 from base64 import urlsafe_b64encode
 from helper.s3_bucket import S3Bucket
 from views.musicplayer_view import MusicPlayerView
+import logging
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -30,24 +30,22 @@ class Music(commands.Cog):
         '''Connect to Lavalink nodes.'''
         await self.bot.wait_until_ready()
 
-        await wavelink.NodePool.create_node(bot=self.bot,
-                                            host='127.0.0.1',
-                                            port=2333,
-                                            password='youshallnotpass')
+        node: wavelink.Node = wavelink.Node(uri='http://localhost:2333', password='youshallnotpass')
+        await wavelink.NodePool.connect(client=self.bot, nodes=[node])        
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: Node):
-        '''Event fired when a node has finished connecting.'''
-        print(f'Node: <{node.identifier}> is ready')
+        '''Event fired when a node has finished connecting.'''        
+        logging.info(f'Node: <{node.id}> is ready')
 
     @commands.Cog.listener()
-    async def on_wavelink_track_start(self, player: Player, track: Track):
+    async def on_wavelink_track_start(self, player: Player, track: wavelink.YouTubeTrack):
         if track.id in self.tqueue.keys():
             text_channel = self.bot.get_channel(self.tqueue.get(track.id).channel.id)
             await text_channel.send(embed=self.track_embed(self.tqueue.pop(track.id), track, title='Now playing'))
 
     @commands.Cog.listener()
-    async def on_wavelink_track_end(self, player: Player, track: Track, reason):
+    async def on_wavelink_track_end(self, player: Player, track: wavelink.YouTubeTrack, reason):
         try:
             with async_timeout.timeout(60):
                 next_track = await player.queue.get_wait()
@@ -59,13 +57,13 @@ class Music(commands.Cog):
                     return await player.play(next_track)
 
     async def cog_load(self) -> None:
-        print("Music cog loaded! from 2.0")
+        logging.info("Music cog loaded! from 2.0")
 
-    async def cog_unload(self) -> None:
-        print("Music cog unloaded! from 2.0")
-
+    async def cog_unload(self) -> None:        
+        logging.info("Music cog unloaded! from 2.0")
+    
     @commands.command()
-    async def play(self, ctx: commands.Context, *, search: wavelink.YouTubeTrack):
+    async def play(self, ctx: commands.Context, *, search: str):
         '''Play a song with the given search query
         
         If not connected, connect to our voice channel.
@@ -78,14 +76,15 @@ class Music(commands.Cog):
             vc: Player = ctx.voice_client
 
         if vc.queue.is_empty and not vc.is_playing():
-            await vc.queue.put_wait(search)
-            self.tqueue.update({search.id: ctx})
-            await ctx.send(embed=self.track_embed(ctx, search, title='Added track'))
+            track = await wavelink.YouTubeTrack.search(search, return_first=True)
+            await vc.queue.put_wait(track)
+            self.tqueue.update({track.title: ctx})
+            await ctx.send(embed=self.track_embed(ctx, track, title='Added track'))
             await vc.play(await vc.queue.get_wait())
         else:
             await vc.queue.put_wait(search)
-            self.tqueue.update({search.id: ctx})
-            await ctx.send(embed=self.track_embed(ctx, search, title='Added track'))
+            self.tqueue.update({track.title: ctx})
+            await ctx.send(embed=self.track_embed(ctx, track, title='Added track'))
 
     @commands.command()
     async def volume(self, ctx: commands.Context, *, volume: int = None):
@@ -175,7 +174,7 @@ class Music(commands.Cog):
         '''Alternative UI to perform bot music actions'''
         await ctx.send(view=MusicPlayerView(self.bot))
 
-    def track_embed(self, ctx: commands.Context, track: wavelink.Track, title: typing.Optional[str] = 'Track') -> discord.Embed:
+    def track_embed(self, ctx: commands.Context, track: wavelink.YouTubeTrack, title: typing.Optional[str] = 'Track') -> discord.Embed:
         if type(track) == wavelink.tracks.YouTubeTrack:
             embed = discord.Embed(title=title, description=f'```css\n{track.title}\n```', color=discord.Color.blurple())
 
