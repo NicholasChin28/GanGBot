@@ -1,6 +1,6 @@
 import io
 import functools
-import youtube_dl
+import yt_dlp
 import asyncio
 import discord
 from discord.ext import commands
@@ -203,7 +203,7 @@ class PlaysoundSource():
                     print(f'headers: {response.headers}')
 
                     # For now assume, that user will give a valid url
-                    with youtube_dl.YoutubeDL() as ydl:
+                    with yt_dlp.YoutubeDL() as ydl:
                         info = ydl.extract_info(url, download=False)
                         duration = info['duration']
                         print(f'info: {info}')

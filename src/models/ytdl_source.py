@@ -1,4 +1,4 @@
-import youtube_dl
+import yt_dlp
 import asyncio
 import functools
 
@@ -28,7 +28,7 @@ class YTDLSource():
         'options': f'-vn -re',
     }
 
-    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, data: dict):
         # super().__init__(source, volume)
